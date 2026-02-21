@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-plugins",
+  "description": "Development workflow plugins by wsbaser — code review, multi-agent implementation, and quality tools for Claude Code",
+  "owner": {
+    "name": "wsbaser",
+    "url": "https://github.com/wsbaser"
+  },
+  "plugins": [
+    {
+      "name": "wsbaser",
+      "description": "Development workflow toolkit: multi-agent spec implementation, architecture/clean-code review, code simplification, requirements interview, and more",
+      "author": {
+        "name": "wsbaser",
+        "url": "https://github.com/wsbaser"
+      },
+      "source": "./plugins/wsbaser",
+      "category": "development",
+      "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/wsbaser"
+    }
+  ]
+}

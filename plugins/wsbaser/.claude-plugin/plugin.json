@@ -1,0 +1,8 @@
+{
+  "name": "wsbaser",
+  "description": "Development workflow toolkit: multi-agent spec implementation, architecture and clean-code review, code simplification, requirements interview, and session learning extraction",
+  "author": {
+    "name": "wsbaser",
+    "url": "https://github.com/wsbaser"
+  }
+}
