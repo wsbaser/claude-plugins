@@ -49,7 +49,7 @@ Some commands can leverage agents from other plugins when available. If these pl
 
 ```
 /plugin marketplace add github.com/wsbaser/claude-plugins
-/plugin install wsbaser@claude-plugins
+/plugin install wsbaser@wsbaser-plugins
 ```
 
 ## License

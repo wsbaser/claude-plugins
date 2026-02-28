@@ -1,4 +1,4 @@
-# claude-plugins
+# wsbaser-plugins
 
 A marketplace of plugins for [Claude Code](https://claude.com/claude-code) by [wsbaser](https://github.com/wsbaser).
 
@@ -14,7 +14,7 @@ Add this marketplace and install the plugin:
 
 ```
 /plugin marketplace add github.com/wsbaser/claude-plugins
-/plugin install wsbaser@claude-plugins
+/plugin install wsbaser@wsbaser-plugins
 ```
 
 ## License

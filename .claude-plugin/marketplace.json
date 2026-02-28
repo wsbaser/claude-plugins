@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "plugins",
+  "name": "wsbaser-plugins",
   "description": "Development workflow plugins by wsbaser — code review, multi-agent implementation, and quality tools for Claude Code",
   "owner": {
     "name": "wsbaser",
