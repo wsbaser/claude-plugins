@@ -24,6 +24,14 @@ You are a TEAM LEAD orchestrating an Agent Team to implement a feature from spec
 
 Specification path: $ARGUMENTS
 
+### Flag Parsing
+
+Before analysis, parse the command arguments:
+- If `$ARGUMENTS` contains `--full`, set **REVIEW_MODE = full** and strip `--full` from the spec path
+- Otherwise, set **REVIEW_MODE = adaptive** (default)
+
+In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory reviewers — others are selected dynamically based on the implementation. In **full** mode, ALL reviewers are spawned upfront (original behavior).
+
 ### Steps
 
 1. **Read ALL spec files** from the provided directory
@@ -38,18 +46,50 @@ Specification path: $ARGUMENTS
    - Data model decisions (enums, types, state management)
    - API/interface design choices
    - Pattern selections (where multiple codebase patterns could apply)
-6. **Discover available agents** — scan the Task tool's subagent_type list for all available agent types
-7. **Select dynamic extra agents** based on spec content (only if the plugin is installed — check the Task tool's subagent_type list):
-   - Complex architecture? Add `comprehensive-review:architect-review` (if available)
-   - Async/error handling? Add `pr-review-toolkit:silent-failure-hunter` (if available)
-   - Type safety concerns? Add `pr-review-toolkit:type-design-analyzer` (if available)
-   - Security-sensitive code? Add `comprehensive-review:security-auditor` (if available)
-   - **Skip any agents whose plugins are not installed.** The core wsbaser agents provide sufficient review coverage.
+6. **Discover available agents** — scan the Task tool's subagent_type list for all available agent types (core 7c agents + external plugin agents)
+7. **Catalog available optional reviewers** — build a list of all optional reviewers that could be selected:
+   - **Core optional**: `arch-reviewer`, `clean-code-reviewer`, `regression-reviewer`, `linebyline-reviewer`
+   - **External optional** (only if plugin installed — check Task tool's subagent_type list):
+     - `test-analyzer` — `pr-review-toolkit:pr-test-analyzer`
+     - `code-reviewer` — `feature-dev:code-reviewer`
+     - `architect-review` — `comprehensive-review:architect-review`
+     - `silent-failure-hunter` — `pr-review-toolkit:silent-failure-hunter`
+     - `type-design-analyzer` — `pr-review-toolkit:type-design-analyzer`
+     - `security-auditor` — `comprehensive-review:security-auditor`
+   - **Skip any agents whose plugins are not installed.**
+   - If **REVIEW_MODE = full**: all available agents will be spawned (core + external)
+   - If **REVIEW_MODE = adaptive**: note risk areas from spec content — these will be passed to devils-advocate for reviewer selection after implementation
 8. **Present plan to user**:
 
+   If **REVIEW_MODE = adaptive**:
 ```
 ==============================================================
- SPEC ANALYSIS COMPLETE
+ SPEC ANALYSIS COMPLETE (adaptive review mode)
+==============================================================
+
+ Parallel Tracks:
+   Track A: [Task 1] -> [Task 2] (sequential within track)
+   Track B: [Task 3] (parallel with Track A)
+   Track C: [Task 4] -> [Task 5] (depends on A and B)
+
+ Agent Roster:
+   Implementation: impl-track-1, impl-track-2 (general-purpose)
+   Mandatory Reviewers: devils-advocate, code-simplifier
+   Optional Reviewers: selected adaptively after implementation
+     Available: {list of available optional reviewers}
+   Decision Support: devils-advocate
+
+ Decision Points for Devils Advocate:
+   1. {description}
+   2. {description}
+
+==============================================================
+```
+
+   If **REVIEW_MODE = full**:
+```
+==============================================================
+ SPEC ANALYSIS COMPLETE (full review mode)
 ==============================================================
 
  Parallel Tracks:
@@ -63,7 +103,7 @@ Specification path: $ARGUMENTS
               linebyline-reviewer, test-analyzer, code-reviewer,
               code-simplifier
    Decision Support: devils-advocate
-   Dynamic Extras: {list based on analysis}
+   External Agents: {list based on analysis, if plugins installed}
 
  Decision Points for Devils Advocate:
    1. {description}
@@ -92,29 +132,40 @@ Specification path: $ARGUMENTS
 
 3. **Spawn ALL teammates in parallel** — use a SINGLE message with MULTIPLE `Task` tool calls, all with `team_name` parameter:
 
-#### Mandatory Teammates (Always Spawned)
+#### Always Mandatory (Spawned in Phase 2 regardless of review mode)
 
 | Name | subagent_type | Role |
 |------|---------------|------|
 | `impl-track-1` ... `impl-track-N` | `general-purpose` | Code implementation (1 per parallel track) |
-| `arch-reviewer` | `wsbaser:architecture-reviewer` | Clean Architecture, SOLID, DDD |
-| `clean-code-reviewer` | `wsbaser:clean-code-reviewer` | DRY, code smells, SOLID class-level |
-| `regression-reviewer` | `wsbaser:regression-reviewer` | Behavioral regression detection |
-| `linebyline-reviewer` | `wsbaser:linebyline-reviewer` | Block-by-block spec fidelity with verdicts |
-| `test-analyzer` | `pr-review-toolkit:pr-test-analyzer` | Test code quality *(optional — skip if plugin not installed)* |
-| `code-reviewer` | `feature-dev:code-reviewer` | General bugs, logic errors *(optional — skip if plugin not installed)* |
-| `code-simplifier` | `wsbaser:code-simplifier` | Code complexity, simplification |
-| `devils-advocate` | `wsbaser:devils-advocate` | Challenge decisions during implementation |
+| `code-simplifier` | `7c:code-simplifier` | Code complexity, simplification |
+| `devils-advocate` | `7c:devils-advocate` | Challenge decisions + recommend reviewers (adaptive mode) |
 
-#### Dynamic Extras (Optional — External Plugins)
+#### Full Mode Only (Spawned in Phase 2 when `--full`)
 
-Added based on Phase 1 analysis **only if the required plugin is installed**. Check the Task tool's subagent_type list before spawning:
+These agents are spawned upfront in Phase 2 only when **REVIEW_MODE = full**:
+
+| Name | subagent_type | Role |
+|------|---------------|------|
+| `arch-reviewer` | `7c:architecture-reviewer` | Clean Architecture, SOLID, DDD |
+| `clean-code-reviewer` | `7c:clean-code-reviewer` | DRY, code smells, SOLID class-level |
+| `regression-reviewer` | `7c:regression-reviewer` | Behavioral regression detection |
+| `linebyline-reviewer` | `7c:linebyline-reviewer` | Block-by-block spec fidelity with verdicts |
+| `test-analyzer` | `pr-review-toolkit:pr-test-analyzer` | Test code quality *(skip if plugin not installed)* |
+| `code-reviewer` | `feature-dev:code-reviewer` | General bugs, logic errors *(skip if plugin not installed)* |
+
+#### Dynamic Extras (Full mode — External Plugins)
+
+In **full** mode, also spawn these based on Phase 1 analysis **only if the required plugin is installed**:
 - `architect-review` — `comprehensive-review:architect-review` (requires `comprehensive-review` plugin)
 - `silent-failure-hunter` — `pr-review-toolkit:silent-failure-hunter` (requires `pr-review-toolkit` plugin)
 - `type-design-analyzer` — `pr-review-toolkit:type-design-analyzer` (requires `pr-review-toolkit` plugin)
 - `security-auditor` — `comprehensive-review:security-auditor` (requires `comprehensive-review` plugin)
 
 If none of these plugins are installed, proceed without dynamic extras.
+
+#### Adaptive Mode
+
+In **adaptive** mode, only the "Always Mandatory" agents are spawned in Phase 2. Optional reviewers (core + external) are spawned **on-demand in Phase 4** based on the devils-advocate's recommendation from Phase 3.5.
 
 #### Spawn Prompts
 
@@ -132,18 +183,13 @@ Reviewers and devils-advocate start idle — they wait for messages from team le
 
 All agents are instructed on these protocols in their spawn prompts. Team lead sees brief summaries of peer DMs via idle notifications.
 
-### Protocol 1 — Reviewer Consensus Round
+### Protocol 1 — Direct Reviewer Reporting
 
-After all reviewers complete individual reviews, team lead appoints one reviewer as **consolidation lead** for that cycle. The consolidation lead:
-1. Receives findings from all other reviewers via DM
+Each reviewer sends their findings directly to the team lead via `SendMessage` after completing their individual review. The team lead consolidates all findings:
+1. Collects findings from all reviewers as they arrive
 2. Deduplicates overlapping issues (same file/lines flagged by multiple reviewers)
 3. Resolves conflicts (e.g., one reviewer says "extract to service", another says "keep inline")
-4. Produces a single consolidated report with attribution (which reviewer found each issue)
-5. Sends consolidated report to team lead
-
-Team lead appoints the most relevant reviewer each cycle:
-- Cycle 1 (full spec audit): `linebyline-reviewer`
-- Cycle 2+ (fix cycles): `regression-reviewer`
+4. Produces a single consolidated view for triage
 
 ### Protocol 2 — Reviewer <-> Impl Agent Clarification
 
@@ -215,20 +261,73 @@ After parallel tracks complete, assign the next wave (tracks that depended on co
 
 ---
 
+## Phase 3.5: Adaptive Reviewer Selection
+
+> **This phase only runs when REVIEW_MODE = adaptive.** If REVIEW_MODE = full, skip to Phase 4.
+
+**Goal**: Use devils-advocate's analysis to select which optional reviewers should run, based on the actual implementation.
+
+### Steps
+
+1. **Team lead compiles implementation summary**:
+   - List of all files created/modified (with descriptions of changes)
+   - Summary of implementation decisions made during Phase 3
+   - Scope/complexity assessment (small/medium/large)
+
+2. **Send reviewer recommendation request to devils-advocate** via `SendMessage` using **Template 6: Reviewer Recommendation Request**:
+   - Spec summary
+   - Files created/modified with descriptions
+   - Implementation decisions made
+   - Available reviewer agents (with descriptions of what each catches)
+   - Include both core optional and external plugin agents that are available
+
+3. **Devils-advocate analyzes and responds** with:
+   - Recommended reviewers with reasoning for each
+   - Skipped reviewers with reasoning for each
+   - Or "none needed beyond mandatory" if DA + code-simplifier are sufficient
+
+4. **Team lead displays selection to user**:
+
+```
+==============================================================
+ ADAPTIVE REVIEW SELECTION (by devils-advocate)
+==============================================================
+ Mandatory: devils-advocate, code-simplifier
+ Selected:  regression-reviewer (behavioral changes detected)
+            arch-reviewer (new component layer added)
+ Skipped:   clean-code-reviewer (small scope, no duplication risk)
+            linebyline-reviewer (spec is straightforward)
+ Reasoning: {DA's summary}
+==============================================================
+```
+
+5. **Spawn selected optional reviewers on-demand** — use parallel `Task` tool calls with `team_name` parameter. Each reviewer receives the standard **Reviewer Spawn Prompt** (Template 2). Zero optional reviewers is a valid outcome — only DA + code-simplifier will run in Phase 4.
+
+---
+
 ## Phase 4: Review Cycles (Max 3 Iterations)
 
 **Goal**: Iterative review and fix until quality is acceptable.
 
 ### Each Cycle
 
-#### Step 1 — Select Reviewers and Consensus Lead
+#### Step 1 — Select Reviewers
 
-- **Cycle 1**: ALL mandatory reviewers (full coverage). Consensus lead: `linebyline-reviewer`
+**Full mode (`--full`):**
+- **Cycle 1**: ALL reviewers (full coverage — all agents spawned in Phase 2)
 - **Cycle 2+**: Team lead decides based on what changed:
   - `regression-reviewer` always runs after any fix cycle
   - Other reviewers only if their domain was affected by fixes
   - e.g., cosmetic fixes -> `clean-code-reviewer` + `regression-reviewer` only
-  - Consensus lead: `regression-reviewer` (focus on fix correctness)
+
+**Adaptive mode (default):**
+- **Cycle 1**: `code-simplifier` (always) + optional reviewers selected by DA in Phase 3.5. If DA selected zero optional reviewers, only `code-simplifier` runs as a reviewer (DA participated in Phase 3 decisions).
+- **Cycle 2+**: Before starting the cycle, team lead asks DA to **re-evaluate** reviewer selection:
+  1. Send DA a message with: what was fixed, what changed, current risk assessment
+  2. DA responds with updated reviewer list (may add new reviewers or drop ones no longer needed)
+  3. Spawn any newly recommended reviewers on-demand (parallel `Task` calls with `team_name`)
+  4. Message already-spawned reviewers that are still selected
+  5. Display updated selection to user (same format as Phase 3.5 step 4)
 
 #### Step 2 — Trigger Reviews in Parallel
 
@@ -245,18 +344,14 @@ Send `SendMessage` to each selected reviewer using the **Reviewer Activation Per
 
 Reviewers may DM impl agents to ask "why did you implement X this way?" before finalizing findings. This happens naturally in parallel during the review. Team lead does not need to mediate.
 
-#### Step 4 — Consensus Round (Protocol 1)
+#### Step 4 — Team Lead Consolidation (Protocol 1)
 
-After all reviewers finish individual analysis, team lead messages the appointed consensus lead using the **Consensus Lead Activation** template:
-- "You are the consolidation lead for cycle N"
-- "Collect findings from all reviewers, deduplicate, resolve conflicts, and send me a single consolidated report"
-
-Consensus lead:
-1. DMs each reviewer to collect their findings
-2. Deduplicates overlapping issues
-3. Resolves conflicts (with reasoning)
-4. Produces consolidated report with attribution per issue
-5. Sends consolidated report to team lead
+After all reviewers finish and send their findings directly to the team lead:
+1. Collect all reviewer findings as they arrive via `SendMessage`
+2. Deduplicate overlapping issues (same file/lines flagged by multiple reviewers)
+3. Resolve conflicts between reviewers (with reasoning)
+4. Produce a consolidated list with attribution per issue
+5. Proceed to triage
 
 #### Step 5 — Triage Each Issue Individually
 
@@ -327,6 +422,15 @@ Output the following to the conversation (NOT a file):
 ## Devils Advocate Decisions
 | Decision Point | Challenge | Resolution |
 |----------------|-----------|------------|
+
+## Review Mode
+- **Mode**: {adaptive | full}
+- **If adaptive — Reviewer Selection Per Cycle**:
+
+| Cycle | Selected Reviewers | DA Reasoning |
+|-------|--------------------|--------------|
+| 1     | {list}             | {summary}    |
+| 2     | {list or "re-evaluated: ..."} | {summary} |
 
 ================================================================
 ```
@@ -410,17 +514,10 @@ Before flagging a potential issue, you MAY DM the impl agent that owns the file 
 - If not, include it in your findings with the context from the conversation
 - This reduces false positives
 
-### Consensus Round (Protocol 1)
-When appointed as consolidation lead:
-1. DM each reviewer to collect their findings
-2. Deduplicate overlapping issues (same file/lines flagged by multiple reviewers)
-3. Resolve conflicts between reviewers (with reasoning)
-4. Produce a single consolidated report with attribution per issue
-5. Send the consolidated report to the team lead
-
-When NOT the consolidation lead:
-- Complete your individual review and wait
-- When the consolidation lead DMs you, send them your complete findings
+### Direct Reporting (Protocol 1)
+After completing your review, send your findings directly to the team lead via `SendMessage`.
+- Do NOT wait for another reviewer to collect your findings
+- The team lead consolidates all findings
 
 ## Output Format
 For each issue found:
@@ -458,37 +555,13 @@ For each issue found:
 ### Implementation Agents
 {List of impl agent names — you may DM them to clarify decisions (Protocol 2)}
 
-### Consensus Lead This Cycle
-{Name of the consensus lead — they will collect your findings after you finish}
-
 ### Instructions
 1. Review the listed files against the spec and your expertise
 2. Before flagging uncertain issues, consider DMing the impl agent for context
-3. Respond with your structured findings
-4. Wait for the consensus lead to collect your findings
+3. Send your structured findings directly to the team lead via SendMessage
 ```
 
-### Template 4: Consensus Lead Activation
-
-```
-## You are the Consolidation Lead for Review Cycle {N}
-
-### Your Task
-1. DM each of these reviewers to collect their findings: {list of reviewer names}
-2. Deduplicate overlapping issues (same file/lines flagged by multiple reviewers)
-3. Resolve any conflicts between reviewers (e.g., one says "extract to service", another says "keep inline") — explain your reasoning
-4. Produce a SINGLE consolidated report with:
-   - Deduplicated issues list
-   - Attribution (which reviewer found each issue)
-   - Conflict resolutions with reasoning
-   - Severity and category per issue
-5. Send the consolidated report to the team lead
-
-### Previous Cycle Context
-{For cycle 2+: what was fixed, what to focus on}
-```
-
-### Template 5: Fix Assignment
+### Template 4: Fix Assignment
 
 ```
 ## Fix Assignment — Cycle {N}
@@ -511,7 +584,7 @@ The following issues were found in your files. Please fix them:
 3. Message the team lead when done
 ```
 
-### Template 6: Devils-Advocate Invocation
+### Template 5: Devils-Advocate Invocation
 
 ```
 ## Decision Point — Challenge This
@@ -535,6 +608,48 @@ The following issues were found in your files. Please fix them:
    - Mitigations suggested
 ```
 
+### Template 6: Reviewer Recommendation Request (Adaptive Mode)
+
+Sent to devils-advocate at end of Phase 3 (and before cycle 2+ in Phase 4 for re-evaluation).
+
+```
+## Reviewer Recommendation Request
+
+### Spec Summary
+{Brief spec description}
+
+### Implementation Summary
+- **Files created**: {list with brief descriptions}
+- **Files modified**: {list with brief descriptions}
+- **Key decisions made**: {list of architectural/design decisions from Phase 3}
+- **Scope**: {small / medium / large}
+
+### Available Reviewers
+| Reviewer | What It Catches |
+|----------|-----------------|
+| arch-reviewer | Clean Architecture violations, SOLID at module/service level, DDD boundary integrity |
+| clean-code-reviewer | DRY violations, code smells, SOLID at method/class level |
+| regression-reviewer | Behavioral regressions, breaking changes in modified code |
+| linebyline-reviewer | Block-by-block spec fidelity, correctness, optimality of every decision |
+{For each available external plugin agent:}
+| {agent-name} | {description from Task tool's agent list} |
+
+### Previous Cycle Context (cycle 2+ only)
+- **Findings from last cycle**: {summary}
+- **Fixes applied**: {what changed}
+- **Current risk assessment**: {team lead's view}
+
+### Your Task
+Analyze the implementation and recommend which reviewers would add genuine value.
+For each recommendation, explain what specific risks that reviewer would catch in THIS implementation.
+If no optional reviewers are needed, say so — mandatory agents (you + code-simplifier) may be sufficient.
+
+Respond with:
+1. **Selected reviewers**: list with reasoning for each
+2. **Skipped reviewers**: list with reasoning for each
+3. **Summary**: one-paragraph explanation of your overall assessment
+```
+
 ---
 
 ## Best Practices
@@ -552,7 +667,8 @@ The following issues were found in your files. Please fix them:
 
 ### Iteration Control
 - Maximum 3 review cycles
-- Cycle 1 uses ALL reviewers; subsequent cycles are targeted
+- Full mode: Cycle 1 uses ALL reviewers; subsequent cycles are targeted
+- Adaptive mode: Cycle 1 uses DA-selected reviewers; subsequent cycles re-evaluate with DA
 - Each issue is triaged individually — no automatic pass/fail thresholds
 - If 3 cycles reached with remaining issues, document and exit
 
