@@ -1,10 +1,17 @@
 ---
-description: Interview me in detail about a feature requirement, then write the spec to specs/
+description: Interview me in detail about a feature requirement, then write the spec to specs/. Use --plan to also generate a detailed implementation plan.
+argument-hint: "[--plan] Feature description or context"
 allowed-tools: Read, Write, Glob, Grep
 model: opus
 ---
 
 Interview the user in depth about a feature or requirement from the current conversation, then produce a structured specification document.
+
+## Arguments
+
+- `--plan` (optional): After generating the spec, perform deep codebase exploration and generate a comprehensive implementation plan. When `--plan` is present, output goes to a subfolder: `specs/{slug}/spec.md` and `specs/{slug}/implementation-plan.md`. Without `--plan`, output is the flat file `specs/{slug}.md` as before.
+
+Check if `$ARGUMENTS` contains `--plan`. If present, set `GENERATE_PLAN=true` and strip `--plan` from the arguments before processing.
 
 ## Step 1: Context Gathering
 
@@ -29,6 +36,7 @@ Summarize what you found before starting the interview:
  Context from conversation: {1-2 sentence summary}
  Codebase exploration: {key findings}
  Topics to explore: {list of identified ambiguities}
+ Mode: {Spec only | Spec + Implementation Plan}
 ==============================================================
 ```
 
@@ -151,13 +159,14 @@ Convert the feature name to a filename-safe slug:
 
 Example: "User notification preferences panel" -> `user-notification-preferences-panel`
 
-### 2. Create the specs directory if needed
+### 2. Create the output directory
 
-Check if `specs/` exists in the current working directory. Create it if it doesn't.
+- If `GENERATE_PLAN=true`: Create `specs/{slug}/` directory and write the spec to `specs/{slug}/spec.md`
+- Otherwise: Check if `specs/` exists (create if needed) and write to `specs/{slug}.md`
 
 ### 3. Write the spec file
 
-Write `specs/{slug}.md` with the following structure:
+Write the spec with the following structure:
 
 ```markdown
 # {Feature Name}
@@ -225,9 +234,9 @@ Write `specs/{slug}.md` with the following structure:
 ...
 ```
 
-### 4. Confirm completion
+### 4. Confirm completion or proceed to plan
 
-Display:
+**If `GENERATE_PLAN=false`** — display completion and stop:
 
 ```
 ==============================================================
@@ -236,6 +245,173 @@ Display:
  File: specs/{slug}.md
  Requirements: {count}
  Decisions: {count}
+ Open questions: {count or "None"}
+==============================================================
+```
+
+**If `GENERATE_PLAN=true`** — display transition message and continue to Step 5:
+
+```
+==============================================================
+ SPEC COMPLETE — Proceeding to implementation plan...
+==============================================================
+ File: specs/{slug}/spec.md
+ Requirements: {count}
+ Decisions: {count}
+ Open questions: {count or "None"}
+==============================================================
+```
+
+## Step 5: Generate Implementation Plan (only when `GENERATE_PLAN=true`)
+
+This step runs only when the `--plan` flag was provided. The goal is to produce a comprehensive, self-contained implementation plan that a fresh Claude session can execute with zero additional context.
+
+### 5a. Deep codebase exploration
+
+Launch **up to 3 background agents** (Explore or general-purpose subagent_type) in parallel to gather all context needed for the plan. Tailor the exploration topics to the feature — common areas include:
+
+- **Design system**: color enums, theme maps, Themeify usage, SCSS variables and mixins
+- **Component patterns**: file structure conventions, base classes, code-behind patterns, namespace conventions
+- **Icon system**: how Font Awesome icons are referenced, IconComponent API
+- **Related components**: existing features similar to what's being built — find them and read their code as reference examples
+- **Story/test patterns**: BlazingStory story format, existing story examples for similar components
+- **Build & verification**: build commands, SCSS compilation, story compilation steps
+- **API integration**: service patterns, HTTP client usage, endpoint conventions (if the feature involves API calls)
+- **Routing & navigation**: page structure, route conventions (if the feature involves new pages)
+
+Each agent should return **actual code snippets** from the codebase, not just descriptions. The plan must contain enough real code context that a developer with zero prior knowledge of this codebase can implement correctly.
+
+### 5b. Write `specs/{slug}/implementation-plan.md`
+
+Using the spec from Step 4 and the codebase context from Step 5a, write a comprehensive implementation plan.
+
+**Required structure:**
+
+```markdown
+# {Feature Name} Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** {1 sentence — what this plan delivers}
+
+**Architecture:** {2-3 sentences — key architectural decisions and component relationships}
+
+**Tech Stack:** {Frameworks, libraries, and tools used}
+
+---
+
+## Codebase Context (READ THIS FIRST)
+
+{This section gives a developer with ZERO context everything they need to know. Include:}
+
+### Project Paths
+
+| Purpose | Path |
+|---------|------|
+| {key location} | `{actual path}` |
+...
+
+### Build Commands
+
+{Actual build/verify commands from the project}
+
+### Component File Convention
+
+{The exact file structure pattern used in this codebase, with critical rules}
+
+### {Domain-Specific Context Sections}
+
+{Include actual code snippets from the codebase exploration — theme maps, base classes, existing patterns, API conventions, etc. Whatever a developer needs to see to implement correctly.}
+
+---
+
+## Files To Create / Modify
+
+```
+{path/to/dir}/
+├── FileToCreate.razor          (Create)
+├── FileToCreate.razor.cs       (Create)
+├── FileToCreate.razor.scss     (Create)
+└── ExistingFile.razor.cs       (Modify)
+```
+
+---
+
+## Phase 1: {Phase Name}
+
+**Goal:** {What this phase accomplishes}
+
+- [ ] **Task 1.1: {Task Name}** — `{path}` (Create/Modify)
+
+  {Complete implementation code for the file — NOT placeholders, but the actual code to write}
+
+  ```{language}
+  {full file content}
+  ```
+
+  Verify: `{build/test command}` → {expected output}
+  Commit: `git commit -m "{conventional commit message}"`
+
+- [ ] **Task 1.2: {Task Name}** — `{path}` (Create/Modify)
+  ...
+
+---
+
+## Phase 2: {Phase Name}
+...
+
+---
+
+## Decision Reference
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| {from spec} | {what was decided} | {why} |
+...
+
+---
+
+## Design Reference
+
+{Only if the feature involves UI work — include Figma measurements, colors mapped to theme keys, typography, spacing, etc.}
+```
+
+**Plan quality requirements:**
+- Every task must use **`- [ ]` checkbox format** for progress tracking across sessions
+- Every task must have **exact file paths** inline with Create/Modify annotation
+- Every task must include **complete code** (the actual content to write, not pseudocode or "implement X here")
+- Every task must have an inline **verify step** (`Verify: \`command\` → expected`) and **commit step** (`Commit: \`git commit -m "..."\``)
+- The Codebase Context section must contain **real code snippets** from exploration, not generic descriptions
+- Phases should be ordered so each phase builds on the previous one
+- Tasks within a phase should be ordered by dependency (independent tasks can be noted as parallelizable)
+
+### 5c. Offer execution handoff
+
+After writing the plan, present the user with execution options:
+
+```
+Plan complete and saved to `specs/{slug}/implementation-plan.md`. Two execution options:
+
+1. Subagent-Driven (this session) — dispatch fresh subagent per task, review between tasks
+2. Parallel Session (separate) — open new session with executing-plans skill
+
+Which approach?
+```
+
+Use `AskUserQuestion` to let the user choose.
+
+### 5d. Display completion summary
+
+```
+==============================================================
+ SPEC + PLAN COMPLETE
+==============================================================
+ Spec: specs/{slug}/spec.md
+ Plan: specs/{slug}/implementation-plan.md
+ Requirements: {count}
+ Decisions: {count}
+ Plan phases: {count}
+ Plan tasks: {count}
  Open questions: {count or "None"}
 ==============================================================
 ```
