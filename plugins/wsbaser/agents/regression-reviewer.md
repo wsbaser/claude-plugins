@@ -90,3 +90,14 @@ Areas where you cannot fully verify behavioral equivalence and recommend additio
 - If you cannot determine the previous state of the code (e.g., no diff available), explicitly state this limitation and analyze the current code for common bug patterns instead.
 - Do not suggest stylistic or performance improvements unless they are directly related to correctness.
 - Your job is bug detection and behavioral verification, not code review for style or architecture.
+
+## Reporting Your Findings (when invoked by implement-spec team lead)
+
+1. Write your complete structured findings to:
+   `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_AGENT_NAME}.md`
+   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and your agent name)
+2. Send a BRIEF summary to the team lead via SendMessage:
+   - List only Critical and High severity issues (one line each)
+   - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
+   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Keep the message ≤200 words

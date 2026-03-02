@@ -35,6 +35,12 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 ### Steps
 
 1. **Read ALL spec files** from the provided directory
+
+> ⚠️ **CONTEXT BUDGET RULE**: You MUST NOT call Read, Grep, or Glob on any file
+> outside the spec directory. For all codebase exploration (reference components,
+> existing patterns, API interfaces, base classes), spawn Explore subagents that
+> return summaries. Raw file contents must never enter your context window.
+
 2. **Create todo list** tracking all phases/tasks from the spec
 3. **Analyze dependencies** between tasks:
    - Which tasks require previous tasks to complete?
@@ -61,10 +67,9 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
    - If **REVIEW_MODE = adaptive**: note risk areas from spec content — these will be passed to devils-advocate for reviewer selection after implementation
 8. **Present plan to user**:
 
-   If **REVIEW_MODE = adaptive**:
 ```
 ==============================================================
- SPEC ANALYSIS COMPLETE (adaptive review mode)
+ SPEC ANALYSIS COMPLETE ({adaptive | full} review mode)
 ==============================================================
 
  Parallel Tracks:
@@ -75,35 +80,9 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
  Agent Roster:
    Implementation: impl-track-1, impl-track-2 (general-purpose)
    Mandatory Reviewers: devils-advocate, code-simplifier
-   Optional Reviewers: selected adaptively after implementation
-     Available: {list of available optional reviewers}
-   Decision Support: devils-advocate
-
- Decision Points for Devils Advocate:
-   1. {description}
-   2. {description}
-
-==============================================================
-```
-
-   If **REVIEW_MODE = full**:
-```
-==============================================================
- SPEC ANALYSIS COMPLETE (full review mode)
-==============================================================
-
- Parallel Tracks:
-   Track A: [Task 1] -> [Task 2] (sequential within track)
-   Track B: [Task 3] (parallel with Track A)
-   Track C: [Task 4] -> [Task 5] (depends on A and B)
-
- Agent Roster:
-   Implementation: impl-track-1, impl-track-2 (general-purpose)
-   Reviewers: arch-reviewer, clean-code-reviewer, regression-reviewer,
-              linebyline-reviewer, test-analyzer, code-reviewer,
-              code-simplifier
-   Decision Support: devils-advocate
-   External Agents: {list based on analysis, if plugins installed}
+   [If full mode: + arch-reviewer, clean-code-reviewer, regression-reviewer,
+                    linebyline-reviewer, test-analyzer, code-reviewer]
+   [If adaptive: Optional reviewers selected adaptively by devils-advocate]
 
  Decision Points for Devils Advocate:
    1. {description}
@@ -183,10 +162,14 @@ Reviewers and devils-advocate start idle — they wait for messages from team le
 
 All agents are instructed on these protocols in their spawn prompts. Team lead sees brief summaries of peer DMs via idle notifications.
 
-### Protocol 1 — Direct Reviewer Reporting
+### Protocol 1 — File-Based Reviewer Reporting
 
-Each reviewer sends their findings directly to the team lead via `SendMessage` after completing their individual review. The team lead consolidates all findings:
-1. Collects findings from all reviewers as they arrive
+After completing their review, each reviewer:
+1. Writes their FULL findings to `~/.claude/teams/{team_name}/findings-{their-name}.md`
+2. Sends a BRIEF summary message to the team lead (≤200 words): list Critical/High issues only, include the file path for their full report.
+
+The team lead consolidates all findings:
+1. Reads each reviewer's findings file for complete details
 2. Deduplicates overlapping issues (same file/lines flagged by multiple reviewers)
 3. Resolves conflicts (e.g., one reviewer says "extract to service", another says "keep inline")
 4. Produces a single consolidated view for triage
@@ -224,6 +207,10 @@ During implementation, impl agents may freely DM any reviewer to spot-check a sp
 ## Phase 3: Implementation
 
 **Goal**: Execute implementation tracks in parallel, using devils-advocate at decision points.
+
+> ⚠️ **CONTEXT BUDGET RULE**: Do not read implementation files to verify agent work.
+> Trust build results. Only call Read on a file if there is a specific, unresolved
+> error that requires your direct analysis.
 
 ### Steps
 
@@ -346,8 +333,8 @@ Reviewers may DM impl agents to ask "why did you implement X this way?" before f
 
 #### Step 4 — Team Lead Consolidation (Protocol 1)
 
-After all reviewers finish and send their findings directly to the team lead:
-1. Collect all reviewer findings as they arrive via `SendMessage`
+When reviewers send their brief summary messages, read their findings files for complete details:
+1. Read each reviewer's `~/.claude/teams/{team_name}/findings-{reviewer-name}.md` file
 2. Deduplicate overlapping issues (same file/lines flagged by multiple reviewers)
 3. Resolve conflicts between reviewers (with reasoning)
 4. Produce a consolidated list with attribution per issue
@@ -460,23 +447,9 @@ You are an IMPLEMENTATION AGENT on a team. Your job is to write code exactly as 
 
 ## Inter-Agent Communication Protocols
 
-### Decision Protocol
-For non-trivial design decisions (architectural choices, pattern selections, data model decisions):
-- Message the team lead with the decision context and your proposed approach
-- The devils-advocate agent may contact you directly to challenge your decision — engage with their questions honestly
-- Wait for team lead's final call before proceeding on major decisions
-
-### Cross-Track Coordination (Protocol 4)
-If you discover something affecting another track (interface changes, shared patterns):
-- DM the affected impl agent with details
-- AND message the team lead about the cross-track dependency
-- Do NOT modify files you don't own without coordination
-
-### Pre-Review Spot Checks (Protocol 5)
-You may freely DM any reviewer to spot-check a specific pattern or decision:
-- This is non-blocking — continue working, don't wait for the response
-- Incorporate feedback when it arrives
-- Use for genuine uncertainties, not routine validation
+- **Protocol 3** (Decision escalation): For non-trivial design decisions, message team lead with your proposed approach. Devils-advocate may DM you to challenge decisions — engage honestly.
+- **Protocol 4** (Cross-track): If you must modify a file you don't own, DM the owning agent AND message team lead. Do NOT modify files you don't own without coordination.
+- **Protocol 5** (Spot checks): Freely DM any reviewer to spot-check a pattern. Non-blocking — don't wait for a response. Incorporate feedback when it arrives.
 
 ## Working Directory
 {Project working directory}
@@ -506,18 +479,21 @@ You are a REVIEW AGENT on a team. Your expertise: {expertise description}.
 ## Team Members
 {List all team members with names and roles}
 
-## Inter-Agent Communication Protocols
+## Protocols
 
-### Clarification Protocol (Protocol 2)
-Before flagging a potential issue, you MAY DM the impl agent that owns the file to ask "why did you implement it this way?"
-- If their explanation resolves your concern, drop the issue
-- If not, include it in your findings with the context from the conversation
-- This reduces false positives
+- **Protocol 2** (Clarification): Before flagging uncertain issues, DM the impl agent that owns the file to ask why they implemented it that way. If their explanation resolves your concern, drop the issue; otherwise include it with their context.
+- **Protocol 1** (Reporting): Write full findings to file, send brief summary to team lead (see Reporting section below).
 
-### Direct Reporting (Protocol 1)
-After completing your review, send your findings directly to the team lead via `SendMessage`.
-- Do NOT wait for another reviewer to collect your findings
-- The team lead consolidates all findings
+## Reporting Your Findings
+
+After completing your review:
+1. Write your FULL findings to `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
+   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and YOUR_NAME)
+2. Send a BRIEF summary message to the team lead via `SendMessage`:
+   - List only Critical and High severity issues (one line each)
+   - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
+   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Keep the message ≤200 words
 
 ## Output Format
 For each issue found:
@@ -540,8 +516,8 @@ For each issue found:
 ```
 ## Review Cycle {N} — You are activated
 
-### Spec Content
-{Spec content or path to spec files}
+### Spec Path
+{Path to spec file(s) — read the file yourself if you need the content}
 
 ### What Was Implemented / Changed
 {Summary of implementation or changes since last cycle}
@@ -557,8 +533,9 @@ For each issue found:
 
 ### Instructions
 1. Review the listed files against the spec and your expertise
-2. Before flagging uncertain issues, consider DMing the impl agent for context
-3. Send your structured findings directly to the team lead via SendMessage
+2. Before flagging uncertain issues, consider DMing the impl agent for context (Protocol 2)
+3. Write your complete findings to `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
+4. Send team lead a brief summary: critical/high issues only + path to your findings file (≤200 words)
 ```
 
 ### Template 4: Fix Assignment
