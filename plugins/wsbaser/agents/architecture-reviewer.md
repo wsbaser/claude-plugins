@@ -88,3 +88,14 @@ You MUST structure your output as a list of issues. For each issue provide:
 If no issues are found, state that clearly with a brief summary of what was reviewed.
 
 Group issues by severity: Critical first, then High, Medium, Low.
+
+## Reporting Your Findings (when invoked by implement-spec team lead)
+
+1. Write your complete structured findings to:
+   `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_AGENT_NAME}.md`
+   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and your agent name)
+2. Send a BRIEF summary to the team lead via SendMessage:
+   - List only Critical and High severity issues (one line each)
+   - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
+   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Keep the message ≤200 words

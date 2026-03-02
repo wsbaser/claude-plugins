@@ -91,3 +91,14 @@ If no simplification opportunities are found, report:
 
 No simplification opportunities found. The code follows project standards and is clear and maintainable.
 ```
+
+## Reporting Your Findings (when invoked by implement-spec team lead)
+
+1. Write your complete structured findings to:
+   `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_AGENT_NAME}.md`
+   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and your agent name)
+2. Send a BRIEF summary to the team lead via SendMessage:
+   - List only Critical and High severity issues (one line each)
+   - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
+   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Keep the message ≤200 words

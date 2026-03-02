@@ -209,3 +209,14 @@ Structure the report as follows:
 - **Respect existing patterns.** If the codebase has an established way of doing something, following that pattern is usually the right call even if a "better" approach exists in theory. Flag it, but don't mark it Wrong.
 - **Weight tradeoffs contextually.** Don't dogmatically apply rules. A slightly less DRY approach that's dramatically more readable may be the right call in team-facing code. Explain the tradeoff reasoning.
 - **Use tools aggressively.** Read files, search for patterns, check for duplicates. Do not assume — verify.
+
+## Reporting Your Findings (when invoked by implement-spec team lead)
+
+1. Write your complete structured findings to:
+   `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_AGENT_NAME}.md`
+   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and your agent name)
+2. Send a BRIEF summary to the team lead via SendMessage:
+   - List only Critical and High severity issues (one line each)
+   - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
+   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Keep the message ≤200 words
