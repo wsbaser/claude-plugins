@@ -372,55 +372,114 @@ No automatic thresholds — each issue judged in context of the spec and codebas
 
 Output the following to the conversation (NOT a file):
 
-```
+~~~
 ================================================================
  IMPLEMENTATION COMPLETE: {spec title}
+================================================================
+ Cycles completed : {N}       Build status: {PASSED | FAILED}
+ Issues found     : {total}   Fixed: {N}   Dismissed: {N}   Deferred: {N}
+ Files touched    : {N}       Mode: {adaptive | full}
 ================================================================
 
 ## Review Summary
 
-| Cycle | Reviewers Run | Issues Found | Accepted | Fixed | Dismissed |
-|-------|---------------|--------------|----------|-------|-----------|
-| 1     | {count} (all) | {N}          | {N}      | {N}   | {N}       |
-| 2     | {count}       | {N}          | {N}      | {N}   | {N}       |
+| Cycle | Reviewers | Found | Accepted | Fixed | Dismissed |
+|-------|-----------|-------|----------|-------|-----------|
+| 1     | {count}   | {N}   | {N}      | {N}   | {N}       |
+| 2     | {count}   | {N}   | {N}      | {N}   | {N}       |
+{Omit rows for cycles that did not run.}
 
-## All Issues Found
+---
 
-### Fixed Issues
-| # | Reviewer | Severity | Category | File:Lines | Description | Cycle |
-|---|----------|----------|----------|------------|-------------|-------|
+## Fixed Issues
 
-### Dismissed Issues (with reasons)
-| # | Reviewer | Severity | File | Description | Reason |
-|---|----------|----------|------|-------------|--------|
+{If none: "No issues were accepted and fixed."}
 
-### Deferred Issues
-| # | Reviewer | Description | Reason for Deferral |
-|---|----------|-------------|---------------------|
+**[C1]** {Severity} — {Category} — Cycle {N}
+  Reviewer : {reviewer name(s)}
+  File     : {relative/path/to/file.cs}:{lines}
+  Issue    : {what was wrong — one or two sentences}
+  Fix      : {what was done to resolve it}
+
+**[H1]** {Severity} — {Category} — Cycle {N}
+  Reviewer : {reviewer name(s)}
+  File     : {relative/path/to/file.cs}:{lines}
+  Issue    : {what was wrong}
+  Fix      : {what was done}
+
+{Repeat for each fixed issue, ordered by severity then cycle.}
+
+---
+
+## Dismissed Issues
+
+{If none: "No issues were dismissed."}
+
+- **[D1]** {Severity} | {reviewer} | {File.cs} — {one-line description}. Reason: {why dismissed}.
+- **[D2]** {Severity} | {reviewer} | {File.cs} — {one-line description}. Reason: {why dismissed}.
+
+{Repeat for each dismissed issue.}
+
+---
+
+## Deferred Issues
+
+{If none: "No issues were deferred."}
+
+- **[Def1]** {reviewer} — {one-line description}. Deferred: {reason}.
+- **[Def2]** {reviewer} — {one-line description}. Deferred: {reason}.
+
+{Repeat for each deferred issue.}
+
+---
 
 ## Files Created / Modified
-| File | Action | Lines Changed |
-|------|--------|---------------|
+
+Created:
+  - {relative/path/to/NewFile.cs}
+
+Modified:
+  - {relative/path/to/ExistingFile.cs}  ({brief description of change})
+  - {relative/path/to/AnotherFile.cs}  ({brief description of change})
+
+{Omit "Created:" or "Modified:" headers entirely if no files in that category.}
+
+---
 
 ## Verification Commands
-- dotnet build {project path}
-- npm run {relevant script}
+
+  - {dotnet build path/to/Project.csproj}
+  - {npm run relevant-script}
+
+---
 
 ## Devils Advocate Decisions
+
+{If no DA decisions were made: "No decision points were escalated to devils-advocate."}
+
 | Decision Point | Challenge | Resolution |
 |----------------|-----------|------------|
+| {short label}  | {1-line}  | {1-line}   |
+
+---
 
 ## Review Mode
-- **Mode**: {adaptive | full}
-- **If adaptive — Reviewer Selection Per Cycle**:
 
-| Cycle | Selected Reviewers | DA Reasoning |
-|-------|--------------------|--------------|
-| 1     | {list}             | {summary}    |
-| 2     | {list or "re-evaluated: ..."} | {summary} |
+Mode: {adaptive | full}
+
+{If full mode, omit the table below entirely.}
+
+Reviewer Selection Per Cycle:
+
+| Cycle | Selected Reviewers      | DA Reasoning (summary)  |
+|-------|-------------------------|-------------------------|
+| 1     | {comma-separated names} | {1-sentence summary}    |
+| 2     | {names (re-evaluated)}  | {1-sentence summary}    |
+
+{Omit rows for cycles that did not run.}
 
 ================================================================
-```
+~~~
 
 ### Team Shutdown
 
