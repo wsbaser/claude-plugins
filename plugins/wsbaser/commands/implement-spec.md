@@ -370,116 +370,19 @@ No automatic thresholds — each issue judged in context of the spec and codebas
 
 ### Summary Report
 
-Output the following to the conversation (NOT a file):
+Output a concise, scannable implementation summary to the conversation (NOT a file). Include the following information:
 
-~~~
-================================================================
- IMPLEMENTATION COMPLETE: {spec title}
-================================================================
- Cycles completed : {N}       Build status: {PASSED | FAILED}
- Issues found     : {total}   Fixed: {N}   Dismissed: {N}   Deferred: {N}
- Files touched    : {N}       Mode: {adaptive | full}
-================================================================
+- Top-level stats: cycles completed, build status, issues found/fixed/dismissed/deferred, files touched, review mode
+- Review summary per cycle: reviewer count, issues found/accepted/fixed/dismissed
+- Fixed issues: severity, category, cycle, reviewer(s), file(s), what was wrong, what was done
+- Dismissed issues: severity, reviewer, file, description, reason for dismissal
+- Deferred issues: reviewer, description, reason for deferral
+- Files created and modified (with brief description of changes)
+- Verification commands used
+- Devils advocate decisions: decision point, challenge, resolution
+- Review mode info (adaptive only: reviewer selection and reasoning per cycle)
 
-## Review Summary
-
-| Cycle | Reviewers | Found | Accepted | Fixed | Dismissed |
-|-------|-----------|-------|----------|-------|-----------|
-| 1     | {count}   | {N}   | {N}      | {N}   | {N}       |
-| 2     | {count}   | {N}   | {N}      | {N}   | {N}       |
-{Omit rows for cycles that did not run.}
-
----
-
-## Fixed Issues
-
-{If none: "No issues were accepted and fixed."}
-
-**[C1]** {Severity} — {Category} — Cycle {N}
-  Reviewer : {reviewer name(s)}
-  File     : {relative/path/to/file.cs}:{lines}
-  Issue    : {what was wrong — one or two sentences}
-  Fix      : {what was done to resolve it}
-
-**[H1]** {Severity} — {Category} — Cycle {N}
-  Reviewer : {reviewer name(s)}
-  File     : {relative/path/to/file.cs}:{lines}
-  Issue    : {what was wrong}
-  Fix      : {what was done}
-
-{Repeat for each fixed issue, ordered by severity then cycle.}
-
----
-
-## Dismissed Issues
-
-{If none: "No issues were dismissed."}
-
-- **[D1]** {Severity} | {reviewer} | {File.cs} — {one-line description}. Reason: {why dismissed}.
-- **[D2]** {Severity} | {reviewer} | {File.cs} — {one-line description}. Reason: {why dismissed}.
-
-{Repeat for each dismissed issue.}
-
----
-
-## Deferred Issues
-
-{If none: "No issues were deferred."}
-
-- **[Def1]** {reviewer} — {one-line description}. Deferred: {reason}.
-- **[Def2]** {reviewer} — {one-line description}. Deferred: {reason}.
-
-{Repeat for each deferred issue.}
-
----
-
-## Files Created / Modified
-
-Created:
-  - {relative/path/to/NewFile.cs}
-
-Modified:
-  - {relative/path/to/ExistingFile.cs}  ({brief description of change})
-  - {relative/path/to/AnotherFile.cs}  ({brief description of change})
-
-{Omit "Created:" or "Modified:" headers entirely if no files in that category.}
-
----
-
-## Verification Commands
-
-  - {dotnet build path/to/Project.csproj}
-  - {npm run relevant-script}
-
----
-
-## Devils Advocate Decisions
-
-{If no DA decisions were made: "No decision points were escalated to devils-advocate."}
-
-| Decision Point | Challenge | Resolution |
-|----------------|-----------|------------|
-| {short label}  | {1-line}  | {1-line}   |
-
----
-
-## Review Mode
-
-Mode: {adaptive | full}
-
-{If full mode, omit the table below entirely.}
-
-Reviewer Selection Per Cycle:
-
-| Cycle | Selected Reviewers      | DA Reasoning (summary)  |
-|-------|-------------------------|-------------------------|
-| 1     | {comma-separated names} | {1-sentence summary}    |
-| 2     | {names (re-evaluated)}  | {1-sentence summary}    |
-
-{Omit rows for cycles that did not run.}
-
-================================================================
-~~~
+Omit any section that has no content.
 
 ### Team Shutdown
 
