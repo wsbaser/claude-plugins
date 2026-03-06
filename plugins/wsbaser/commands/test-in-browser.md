@@ -222,18 +222,219 @@ All results saved to: `.reports/`
 
 Invoke the `frontend-design` skill to generate `.reports/report.html`.
 
-Provide the skill with all collected test data (aggregated from all agent results) and the following requirements:
+Provide the skill with all collected test data (aggregated from all agent results) and the following requirements. These requirements are prescriptive — follow the specified patterns and code structure exactly, while using your design judgment for visual polish, typography, and layout details.
+
+---
 
 **Requirements for the HTML report:**
+
+#### Core constraints
 - Single self-contained HTML file (inline CSS + JS, no external dependencies)
 - All screenshots embedded as base64 data URIs (read each screenshot file and encode it)
-- **Tabbed interface:** one tab per journey tested, plus a summary tab
-- **Filter by status:** pass / fail / issue (filter tabs or journey steps)
-- **Search functionality** across step descriptions and issue text
-- **Per-journey breakdown:** steps taken in order, inline screenshots, issues found during that journey
-- **Summary dashboard:** total journeys, total screenshots, issues by severity, pass rate
-- **Bug hunt findings section:** all findings from the code analysis sub-agent (Sub-agent 3), with file paths and line numbers
+- Light theme by default: white/near-white background (`#ffffff` / `#f6f8fa`), dark text (`#1f2328`), colored status accents
+- System font for UI (`-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`), monospace for code/paths
+- All UI updates are instant — no "Apply" buttons anywhere
+
+#### State management pattern (required)
+
+Use a single state object. Every filter, search, and preset writes to it; every render reads from it:
+
+```javascript
+const state = {
+  filterStatus: 'all',       // 'all' | 'pass' | 'fail' | 'issue'
+  filterSeverity: 'all',     // 'all' | 'high' | 'medium' | 'low'
+  filterSource: 'all',       // 'all' | 'browser' | 'code-analysis' | 'db-validation'
+  filterJourney: 'all',      // 'all' | journey slug
+  searchQuery: '',
+  activePreset: 'full',      // 'executive' | 'developer' | 'qa' | 'full'
+  lightboxIndex: null        // index into screenshots array, or null
+};
+
+function updateAll() {
+  renderFilters();
+  renderIssueList();
+  renderJourneyTabs();
+  updatePresetHighlight();
+  syncUrlHash();
+}
+// Every control calls updateAll() on change
+```
+
+#### Stakeholder presets
+
+Four named presets that snap all filters to predefined combinations. Activating a preset updates `window.location.hash` (e.g., `#preset=developer`). On page load, read the hash and auto-activate the matching preset.
+
+| Preset | filterStatus | filterSeverity | filterSource | What's visible |
+|--------|-------------|----------------|-------------|----------------|
+| **Executive Summary** | `issue` | `high` | `all` | Summary dashboard + high-severity issues only |
+| **Developer View** | `issue` | `all` | `all` | All issues with file paths, line numbers, fix prompts |
+| **QA View** | `all` | `all` | `browser` | All browser test steps with inline screenshots |
+| **Full Report** | `all` | `all` | `all` | Everything (default) |
+
+Preset buttons are displayed as a pill group at the top of the page. The active preset is highlighted.
+
+```javascript
+const PRESETS = {
+  executive: { filterStatus: 'issue', filterSeverity: 'high', filterSource: 'all', filterJourney: 'all' },
+  developer: { filterStatus: 'issue', filterSeverity: 'all', filterSource: 'all', filterJourney: 'all' },
+  qa:        { filterStatus: 'all',   filterSeverity: 'all', filterSource: 'browser', filterJourney: 'all' },
+  full:      { filterStatus: 'all',   filterSeverity: 'all', filterSource: 'all', filterJourney: 'all' }
+};
+
+function applyPreset(name) {
+  Object.assign(state, PRESETS[name], { activePreset: name });
+  updateAll();
+}
+
+function syncUrlHash() {
+  window.location.hash = state.activePreset === 'full' ? '' : `preset=${state.activePreset}`;
+}
+
+// On load:
+const hash = window.location.hash.replace('#', '');
+const presetFromHash = hash.startsWith('preset=') ? hash.split('=')[1] : 'full';
+if (PRESETS[presetFromHash]) applyPreset(presetFromHash);
+```
+
+#### Filter tabs with live counts
+
+Display filter tabs for each dimension. Update counts live as other filters change:
+
+```javascript
+function getFilteredIssues() {
+  return allIssues.filter(issue => {
+    if (state.filterStatus !== 'all' && issue.status !== state.filterStatus) return false;
+    if (state.filterSeverity !== 'all' && issue.severity !== state.filterSeverity) return false;
+    if (state.filterSource !== 'all' && issue.source !== state.filterSource) return false;
+    if (state.filterJourney !== 'all' && issue.journeySlug !== state.filterJourney) return false;
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      return issue.description.toLowerCase().includes(q)
+          || issue.filePath?.toLowerCase().includes(q)
+          || issue.journeyName.toLowerCase().includes(q)
+          || issue.steps?.some(s => s.description.toLowerCase().includes(q));
+    }
+    return true;
+  });
+}
+```
+
+Each tab label shows the count for that filter value across the current filtered set (excluding its own dimension filter).
+
+#### Live search
+
+A search bar that filters across issue descriptions, step descriptions, file paths, and journey names. Calls `updateAll()` on every `input` event (not `change`).
+
+#### Per-issue fix prompt
+
+Each issue card has a "Copy fix prompt" button. When clicked:
+1. Build a self-contained natural-language prompt for Claude to fix the bug
+2. Include: issue description, severity, file path and line number (if available), steps to reproduce, error message or console output (if available), and the base64-encoded screenshot (if available)
+3. Copy to clipboard
+4. Show a brief "Copied!" toast (fades out after 1.5s)
+
+```javascript
+function buildFixPrompt(issue) {
+  let prompt = `Please fix the following bug found during E2E testing:\n\n`;
+  prompt += `**Issue:** ${issue.description}\n`;
+  prompt += `**Severity:** ${issue.severity}\n`;
+  if (issue.filePath) prompt += `**File:** ${issue.filePath}${issue.lineNumber ? `:${issue.lineNumber}` : ''}\n`;
+  prompt += `\n**Steps to reproduce:**\n`;
+  issue.steps?.forEach((s, i) => { prompt += `${i+1}. ${s}\n`; });
+  if (issue.consoleError) prompt += `\n**Console error:**\n\`\`\`\n${issue.consoleError}\n\`\`\`\n`;
+  if (issue.screenshotBase64) {
+    prompt += `\n**Screenshot showing the issue:**\n`;
+    prompt += `data:image/png;base64,${issue.screenshotBase64}`;
+  }
+  return prompt;
+}
+
+function copyFixPrompt(issueId) {
+  const issue = allIssues.find(i => i.id === issueId);
+  navigator.clipboard.writeText(buildFixPrompt(issue));
+  showToast('Copied!');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 1500);
+}
+```
+
+Toast CSS:
+```css
+#toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1f2328; color: #fff;
+  padding: 8px 16px; border-radius: 6px;
+  opacity: 0; transition: opacity 0.2s;
+  pointer-events: none; z-index: 1000;
+}
+#toast.visible { opacity: 1; }
+```
+
+#### Screenshots: thumbnail grid + lightbox
+
+Display screenshots as a thumbnail grid (3–4 per row) within each journey step. Clicking a thumbnail opens a full-screen lightbox with prev/next navigation:
+
+```javascript
+// Lightbox open/close
+function openLightbox(screenshotIndex) {
+  state.lightboxIndex = screenshotIndex;
+  document.getElementById('lightbox').classList.add('active');
+  renderLightboxImage();
+}
+
+function closeLightbox() {
+  state.lightboxIndex = null;
+  document.getElementById('lightbox').classList.remove('active');
+}
+
+function navigateLightbox(delta) {
+  const total = allScreenshots.length;
+  state.lightboxIndex = (state.lightboxIndex + delta + total) % total;
+  renderLightboxImage();
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (state.lightboxIndex === null) return;
+  if (e.key === 'ArrowRight') navigateLightbox(1);
+  if (e.key === 'ArrowLeft') navigateLightbox(-1);
+  if (e.key === 'Escape') closeLightbox();
+});
+```
+
+Thumbnail CSS:
+```css
+.screenshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.screenshot-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; cursor: pointer;
+  border-radius: 4px; border: 1px solid #d0d7de; transition: border-color 0.15s; }
+.screenshot-thumb:hover { border-color: #0969da; }
+```
+
+#### Status color coding (from playground document-critique pattern)
+
+| Status | Border color | Background tint |
+|--------|-------------|-----------------|
+| pass | `#1a7f37` (green) | `rgba(26,127,55,0.08)` |
+| fail | `#cf222e` (red) | `rgba(207,34,46,0.08)` |
+| issue | `#bf8700` (amber) | `rgba(191,135,0,0.08)` |
+
+Apply as left border + background on issue cards and step rows.
+
+#### Report sections (required content)
+
+- **Summary dashboard** (always visible, not filtered): total journeys tested, total screenshots, issues by severity (high/med/low), pass rate, bug hunt findings count
+- **Preset pill group**: Executive Summary | Developer View | QA View | Full Report (active preset highlighted)
+- **Filter bar**: status tabs + severity tabs + source tabs + journey dropdown + search input
+- **Issue list**: filtered and sorted by severity (high first), each card shows journey, source, description, file:line, severity badge, "Copy fix prompt" button, screenshot thumbnails
+- **Journey tabs**: one tab per journey, showing ordered steps with pass/fail status, screenshots, and inline issues for that journey
+- **Bug hunt findings section**: all findings from code analysis (Sub-agent 3), with file paths and line numbers, not affected by browser/db filters
 - **Database validation results** section (if database validation was performed)
-- **Recommendations** for every unresolved issue found during testing
+
+---
 
 After the HTML file is successfully generated, delete the `.reports/screenshots/` directory — all screenshots are embedded in the report as base64 data URIs and the folder is no longer needed.
