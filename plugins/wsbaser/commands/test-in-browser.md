@@ -1,6 +1,6 @@
 ---
 description: Comprehensive E2E browser testing — parallel codebase research, Playwright user journey testing, screenshots, DB validation, and HTML report
-allowed-tools: Agent, Task, TaskCreate, TaskUpdate, Bash, Read, Write, Glob, Grep, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_click, mcp__plugin_playwright_playwright__browser_fill_form, mcp__plugin_playwright_playwright__browser_type, mcp__plugin_playwright_playwright__browser_press_key, mcp__plugin_playwright_playwright__browser_select_option, mcp__plugin_playwright_playwright__browser_take_screenshot, mcp__plugin_playwright_playwright__browser_console_messages, mcp__plugin_playwright_playwright__browser_resize, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_close
+allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop, TaskUpdate, Bash, Read, Write, Glob, Grep, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_click, mcp__plugin_playwright_playwright__browser_fill_form, mcp__plugin_playwright_playwright__browser_type, mcp__plugin_playwright_playwright__browser_press_key, mcp__plugin_playwright_playwright__browser_select_option, mcp__plugin_playwright_playwright__browser_take_screenshot, mcp__plugin_playwright_playwright__browser_console_messages, mcp__plugin_playwright_playwright__browser_resize, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_close
 ---
 
 # End-to-End Application Testing
@@ -14,7 +14,7 @@ Before starting any research, verify that Playwright MCP tools are accessible by
 
 ## Phase 1: Parallel Research
 
-Launch **three sub-agents simultaneously** using the Task tool. All three run in parallel.
+Launch **three sub-agents simultaneously** using the Agent tool. All three run in parallel.
 
 ### Sub-agent 1: Application Structure & User Journeys
 
@@ -69,7 +69,7 @@ Using Sub-agent 1's startup instructions:
 
 **If the application fails to start** (process exits immediately, port never becomes available, or a fatal error is printed): print the error to the console and **stop** — do NOT generate `.reports/` or any report. Ask the user to fix the startup issue and re-run.
 
-## Phase 3: Create Task List
+## Phase 3: Create Task List & Parallelization Plan
 
 Using the user journeys from Sub-agent 1 and findings from Sub-agent 3, create a task (using TaskCreate) for each user journey. Each task should include:
 
@@ -79,76 +79,120 @@ Using the user journeys from Sub-agent 1 and findings from Sub-agent 3, create a
 
 Also create a final task: "Responsive testing across viewports."
 
-## Phase 4: User Journey Testing
+### Parallelization Analysis
 
-For each task, mark it `in_progress` with TaskUpdate and execute the following.
+After creating all tasks, analyze the journeys and group them into **parallel tracks**:
 
-### 4a. Browser Testing with Playwright MCP
+- **Independent journeys** can run in parallel — they start from a clean state or use isolated test data and do not depend on outcomes of other journeys.
+- **Sequential journeys** must run one after another within the same track — they depend on state created by a prior journey (e.g., "delete account" requires "create account" to have completed first).
 
-Use the Playwright MCP tools for all browser interaction: navigating to pages, clicking elements, filling forms, selecting options, pressing keys, taking screenshots, and reading page content.
+Group journeys into tracks such that within each track journeys run sequentially, but all tracks can run concurrently. The maximum number of concurrent tracks is **5**.
 
-**Key principles:**
+Print the execution plan to the console before starting any tests:
 
-- After navigation or DOM changes, always re-snapshot to get fresh element references
-- Take screenshots at every meaningful step and save them to descriptive paths under `.reports/screenshots/` organized by journey (e.g., `.reports/screenshots/profile-creation/03-form-submitted.png`)
-- **Analyze each screenshot** — use the Read tool to view the screenshot image. Check for visual correctness, UX issues, broken layouts, missing content, error states
-- Check the browser console periodically for JavaScript errors
+```
+## Test Execution Plan
 
-For each step in a user journey:
+Track 1: Journey A
+Track 2: Journey B → Journey E
+Track 3: Journey C → Journey F → Journey G
+Track 4: Journey D
+Track 5: Journey H
 
-1. Get current page state and interactive elements
-2. Perform the interaction
-3. Wait for the page to settle
-4. **Take a screenshot** and save to the organized path
-5. **Analyze the screenshot** for visual and UX issues
-6. Check console for JS errors
+Total: [N] scenarios across [M] tracks
+```
 
-**Mid-journey failure handling:** If a step fails (500 error, element not found, timeout, unexpected redirect):
-1. Screenshot the error state and save it (e.g., `.reports/screenshots/profile-creation/ERROR-03-form-submitted.png`)
-2. Document the failure: what step failed, what was expected, what happened
-3. **Continue** with the remaining steps of the journey if possible, and with all other journeys — do not abort the full test run
+## Phase 4: Parallel Journey Execution
 
-Be thorough. Go through EVERY interaction, EVERY form field, EVERY button. The goal is that by the time this finishes, every part of the UI has been exercised and screenshotted.
+Execute all tracks in parallel using a rolling agent queue. At any moment, up to **5 agents** run concurrently, each handling exactly **one scenario**. When an agent finishes its scenario, the next unstarted scenario from the same track (if any) is immediately dispatched.
 
-### 4b. Database Validation (Optional)
+### 4.1 Orchestration Loop
 
-**Skip this section if Sub-agent 2 reported no database layer.**
+Repeat until all scenarios are complete:
 
-After any interaction that should modify data (form submits, deletions, updates):
+1. Identify all scenarios that are **ready to start** — either they have no prerequisite, or their prerequisite scenario (the previous one in the same track) has already completed.
+2. From the ready list, pick enough scenarios to bring the number of running agents up to 5 (or fewer if there are not enough ready scenarios).
+3. For each selected scenario, print:
+   ```
+   ▶ [scenario_number/total] Starting: [Journey Name] (Track [N])
+   ```
+4. Launch one Agent per selected scenario **in parallel** (all in the same tool call batch). Each agent receives the self-contained scenario prompt described in Section 4.2.
+5. Wait for all launched agents to complete.
+6. For each completed agent, print:
+   ```
+   ✓ [scenario_number/total] Complete: [Journey Name] — [X issues, Y screenshots]
+   ```
+   Or, if the agent reported a failure:
+   ```
+   ✗ [scenario_number/total] Failed: [Journey Name] — [brief reason]
+   ```
+7. Mark the corresponding task as `completed` (or `failed`) using TaskUpdate.
+8. Collect the structured result returned by the agent (issues found, screenshots taken, DB validation results, steps log).
 
-1. Query the database to verify records. Use the environment variable from Sub-agent 2's research for the connection string and the schema docs to know what to check.
-   - **Postgres:** use `psql` directly — e.g., `psql "$DATABASE_URL" -c "SELECT theme FROM profiles WHERE username = 'testuser'"`
-   - **SQLite:** use `sqlite3` directly — e.g., `sqlite3 db.sqlite "SELECT theme FROM profiles WHERE username = 'testuser'"`
-   - **Other databases:** write a small ad hoc script in the application's language, run it, then delete it
-2. Verify:
-   - Records created/updated/deleted as expected
-   - Values match what was entered in the UI
-   - Relationships between records are correct
-   - No orphaned or duplicate records
+### 4.2 Per-Scenario Agent Prompt
 
-### 4c. Issue Documentation
+Each agent is dispatched with the following self-contained prompt. Fill in all bracketed values before dispatching.
 
-When an issue is found (UI bug, database mismatch, JS error):
+---
 
-1. **Document it:** what was expected vs what happened, screenshot path, relevant DB query results
-2. **Do NOT fix the code** — only document the issue for the report
-3. **Continue testing** the remaining steps in the journey
+> You are running a single E2E browser test scenario. Execute it completely and return a structured result.
+>
+> **App URL:** [app_url]
+> **Authentication:** [how to log in — credentials, sign-up steps, or "no auth required"]
+> **Database:** [db_type and connection env var, or "no database"]
+> **DB Schema summary:** [relevant tables and columns for this journey]
+>
+> **Journey: [Journey Name]**
+> Steps:
+> [numbered list of steps from the task description]
+>
+> Expected outcomes: [what should be true at the end]
+>
+> **Related bug findings to watch for:**
+> [relevant findings from Sub-agent 3, or "none"]
+>
+> **Instructions:**
+>
+> 1. Use Playwright MCP tools for all browser interaction.
+> 2. After every navigation or DOM change, re-snapshot to get fresh element references.
+> 3. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
+> 4. Check browser console after each significant interaction for JavaScript errors.
+> 5. If a step fails (500 error, element not found, timeout, unexpected redirect): screenshot the error state as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
+> 6. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
+> 7. Do NOT fix bugs — only document them.
+> 8. Print each step to the console as you execute it:
+>    ```
+>    [Journey Name] > Step 1: [description]
+>    [Journey Name] > Step 2: [description]
+>    ...
+>    ```
+>
+> **Return a structured result** with these sections:
+> - **Steps completed:** numbered list with pass/fail status
+> - **Issues found:** each issue with description, severity (high/medium/low), screenshot path, and DB query result if applicable
+> - **Screenshots taken:** list of all screenshot paths
+> - **DB validation results:** pass/fail for each query run
+> - **Console errors:** any JS errors encountered
 
-### 4d. Responsive Testing
+---
 
-For the responsive testing task, revisit key pages at these viewports:
+### 4.3 Responsive Testing
 
-- **Mobile:** 375x812
-- **Tablet:** 768x1024
-- **Desktop:** 1440x900
+The "Responsive testing across viewports" task is always independent (dispatch it as its own agent at the end, or include it in the last batch). Its agent receives the same context but with these instructions instead of a journey:
 
-At each viewport, screenshot every major page. Analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
-
-After completing each journey, mark its task as `completed` with TaskUpdate.
+> Revisit every major page at three viewport sizes. At each viewport, take a screenshot of every major page and analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
+>
+> Viewports:
+> - **Mobile:** 375x812
+> - **Tablet:** 768x1024
+> - **Desktop:** 1440x900
+>
+> Print each page+viewport combination to the console as you test it.
+> Return the same structured result format.
 
 ## Phase 5: Cleanup
 
-After all testing is complete:
+After all agents have completed:
 1. Stop the dev server background process
 2. Close the browser session
 
@@ -178,7 +222,7 @@ All results saved to: `.reports/`
 
 Invoke the `frontend-design` skill to generate `.reports/report.html`.
 
-Provide the skill with all collected test data and the following requirements:
+Provide the skill with all collected test data (aggregated from all agent results) and the following requirements:
 
 **Requirements for the HTML report:**
 - Single self-contained HTML file (inline CSS + JS, no external dependencies)
