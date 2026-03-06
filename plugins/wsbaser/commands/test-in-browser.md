@@ -1,7 +1,6 @@
 ---
-name: test-in-browser
-description: Comprehensive end-to-end testing skill. Launches parallel sub-agents to research the codebase (structure, database schema, potential bugs), then uses Playwright MCP tools to test every user journey — taking screenshots, validating UI/UX, and optionally querying the database to verify records. Run after implementation to validate everything before code review.
-disable-model-invocation: true
+description: Comprehensive E2E browser testing — parallel codebase research, Playwright user journey testing, screenshots, DB validation, and HTML report
+allowed-tools: Agent, Task, TaskCreate, TaskUpdate, Bash, Read, Write, Glob, Grep, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_click, mcp__plugin_playwright_playwright__browser_fill_form, mcp__plugin_playwright_playwright__browser_type, mcp__plugin_playwright_playwright__browser_press_key, mcp__plugin_playwright_playwright__browser_select_option, mcp__plugin_playwright_playwright__browser_take_screenshot, mcp__plugin_playwright_playwright__browser_console_messages, mcp__plugin_playwright_playwright__browser_resize, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_close
 ---
 
 # End-to-End Application Testing
