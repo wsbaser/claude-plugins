@@ -218,7 +218,7 @@ All results saved to: `.reports/[REPORT_FILENAME]`
 
 ### HTML Report
 
-**First, derive a descriptive report filename** (3–5 words, kebab-case) that summarizes the journeys tested (e.g., `login-profile-dashboard.html`, `checkout-cart-orders.html`, `signup-onboarding-settings.html`). Name it after the key journeys or feature areas covered — do not include the app name. Store this as `REPORT_FILENAME`.
+**First, derive a descriptive report filename** (3–5 words, kebab-case) that summarizes the journeys tested (e.g., `login-profile-dashboard.html`, `checkout-cart-orders.html`, `signup-onboarding-settings.html`). Store this as `REPORT_FILENAME`.
 
 Invoke the `frontend-design` skill to generate `.reports/[REPORT_FILENAME]`.
 
