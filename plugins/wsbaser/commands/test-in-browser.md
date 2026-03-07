@@ -20,11 +20,10 @@ Launch **three sub-agents simultaneously** using the Agent tool. All three run i
 
 > Research this codebase thoroughly. Return a structured summary covering:
 >
-> 1. **How to start the application** — exact commands to install dependencies and run the dev server, including the URL and port it serves on
-> 2. **Authentication/login** — if the app has protected routes, how to create a test account or log in (credentials from .env.example, seed data, or sign-up flow)
-> 3. **Every user-facing route/page** — each URL path and what it renders
-> 4. **Every user journey** — complete flows a user can take (e.g., "sign up -> create profile -> view public page"). For each journey, list the specific steps, interactions (clicks, form fills, navigation), and expected outcomes
-> 5. **Key UI components** — forms, modals, dropdowns, pickers, toggles, and other interactive elements that need testing
+> 1. **Authentication/login** — if the app has protected routes, how to create a test account or log in (credentials from .env.example, seed data, or sign-up flow)
+> 2. **Every user-facing route/page** — each URL path and what it renders
+> 3. **Every user journey** — complete flows a user can take (e.g., "sign up -> create profile -> view public page"). For each journey, list the specific steps, interactions (clicks, form fills, navigation), and expected outcomes
+> 4. **Key UI components** — forms, modals, dropdowns, pickers, toggles, and other interactive elements that need testing
 >
 > Be exhaustive. Testing will only cover what you identify here.
 
@@ -61,11 +60,11 @@ Before starting the application:
 
 ## Phase 2: Start the Application
 
-Using Sub-agent 1's startup instructions:
-
-1. Install dependencies if needed
-2. Start the dev server **in the background** (e.g., `npm run dev &`)
-3. Wait for the server to be ready
+1. **Read CLAUDE.md** (already in context) to find the dev server startup command. Look for a section like "Run with hot reload" or "Run dev server". Use that exact command.
+2. **Determine the correct dev URL**: From the startup command identified in step 1, find which launch profile it maps to, then read `launchSettings.json` (search for it under `Properties/launchSettings.json`) to get the `applicationUrl` for that exact profile. Use **only that URL** for all subsequent steps — do not guess a port or use a different profile's port.
+3. **Check if the app is already running** by probing that exact URL (e.g., `curl -s -o /dev/null -w "%{http_code}" http://localhost:PORT`). If it returns 200, skip to Phase 4 — do not start a second instance.
+4. If not running: install dependencies if needed, then start the dev server **in the background**.
+5. Wait for the server to be ready (poll the port until it responds).
 
 **If the application fails to start** (process exits immediately, port never becomes available, or a fatal error is printed): print the error to the console and **stop** — do NOT generate `.reports/` or any report. Ask the user to fix the startup issue and re-run.
 
@@ -215,12 +214,14 @@ Output a brief summary to the console:
 ### Bug Hunt Findings (from code analysis)
 - [Description] — [severity] — [file:line]
 
-All results saved to: `.reports/`
+All results saved to: `.reports/[REPORT_FILENAME]`
 ```
 
 ### HTML Report
 
-Invoke the `frontend-design` skill to generate `.reports/report.html`.
+**First, derive a descriptive report filename** (3–5 words, kebab-case) that summarizes the journeys tested (e.g., `login-profile-dashboard.html`, `checkout-cart-orders.html`, `signup-onboarding-settings.html`). Store this as `REPORT_FILENAME`.
+
+Invoke the `frontend-design` skill to generate `.reports/[REPORT_FILENAME]`.
 
 Provide the skill with all collected test data (aggregated from all agent results) and the following requirements. These requirements are prescriptive — follow the specified patterns and code structure exactly, while using your design judgment for visual polish, typography, and layout details.
 
@@ -438,3 +439,5 @@ Apply as left border + background on issue cards and step rows.
 ---
 
 After the HTML file is successfully generated, delete the `.reports/screenshots/` directory — all screenshots are embedded in the report as base64 data URIs and the folder is no longer needed.
+
+Print the report path to the console: `Report saved to: .reports/[REPORT_FILENAME]`
