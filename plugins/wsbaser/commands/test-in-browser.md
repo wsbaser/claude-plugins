@@ -218,7 +218,7 @@ All results saved to: `.reports/[REPORT_FILENAME]`
 
 ### HTML Report
 
-**First, derive a descriptive report filename** (3–5 words, kebab-case) that captures what was tested — typically the app name plus the key area or scope (e.g., `todo-app-full-e2e.html`, `auth-profile-dashboard.html`, `shop-checkout-cart.html`). Base it on the project name from CLAUDE.md or `package.json` and the journeys tested. Store this as `REPORT_FILENAME`.
+**First, derive a descriptive report filename** (3–5 words, kebab-case) that summarizes the journeys tested (e.g., `login-profile-dashboard.html`, `checkout-cart-orders.html`, `signup-onboarding-settings.html`). Name it after the key journeys or feature areas covered — do not include the app name. Store this as `REPORT_FILENAME`.
 
 Invoke the `frontend-design` skill to generate `.reports/[REPORT_FILENAME]`.
 
