@@ -20,11 +20,10 @@ Launch **three sub-agents simultaneously** using the Agent tool. All three run i
 
 > Research this codebase thoroughly. Return a structured summary covering:
 >
-> 1. **How to start the application** — exact commands to install dependencies and run the dev server, including the URL and port it serves on
-> 2. **Authentication/login** — if the app has protected routes, how to create a test account or log in (credentials from .env.example, seed data, or sign-up flow)
-> 3. **Every user-facing route/page** — each URL path and what it renders
-> 4. **Every user journey** — complete flows a user can take (e.g., "sign up -> create profile -> view public page"). For each journey, list the specific steps, interactions (clicks, form fills, navigation), and expected outcomes
-> 5. **Key UI components** — forms, modals, dropdowns, pickers, toggles, and other interactive elements that need testing
+> 1. **Authentication/login** — if the app has protected routes, how to create a test account or log in (credentials from .env.example, seed data, or sign-up flow)
+> 2. **Every user-facing route/page** — each URL path and what it renders
+> 3. **Every user journey** — complete flows a user can take (e.g., "sign up -> create profile -> view public page"). For each journey, list the specific steps, interactions (clicks, form fills, navigation), and expected outcomes
+> 4. **Key UI components** — forms, modals, dropdowns, pickers, toggles, and other interactive elements that need testing
 >
 > Be exhaustive. Testing will only cover what you identify here.
 
@@ -61,11 +60,10 @@ Before starting the application:
 
 ## Phase 2: Start the Application
 
-Using Sub-agent 1's startup instructions:
-
-1. Install dependencies if needed
-2. Start the dev server **in the background** (e.g., `npm run dev &`)
-3. Wait for the server to be ready
+1. **Read CLAUDE.md** (already in context) to find the dev server startup command. Look for a section like "Run with hot reload" or "Run dev server". Use that exact command.
+2. **Check if the app is already running** by probing the expected port (e.g., `curl -s -o /dev/null -w "%{http_code}" http://localhost:PORT`). If it returns 200, skip to Phase 3 — do not start a second instance.
+3. If not running: install dependencies if needed, then start the dev server **in the background**.
+4. Wait for the server to be ready (poll the port until it responds).
 
 **If the application fails to start** (process exits immediately, port never becomes available, or a fatal error is printed): print the error to the console and **stop** — do NOT generate `.reports/` or any report. Ask the user to fix the startup issue and re-run.
 
