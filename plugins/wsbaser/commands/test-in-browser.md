@@ -61,9 +61,10 @@ Before starting the application:
 ## Phase 2: Start the Application
 
 1. **Read CLAUDE.md** (already in context) to find the dev server startup command. Look for a section like "Run with hot reload" or "Run dev server". Use that exact command.
-2. **Check if the app is already running** by probing the expected port (e.g., `curl -s -o /dev/null -w "%{http_code}" http://localhost:PORT`). If it returns 200, skip to Phase 3 — do not start a second instance.
-3. If not running: install dependencies if needed, then start the dev server **in the background**.
-4. Wait for the server to be ready (poll the port until it responds).
+2. **Determine the correct dev URL**: From the startup command identified in step 1, find which launch profile it maps to, then read `launchSettings.json` (search for it under `Properties/launchSettings.json`) to get the `applicationUrl` for that exact profile. Use **only that URL** for all subsequent steps — do not guess a port or use a different profile's port.
+3. **Check if the app is already running** by probing that exact URL (e.g., `curl -s -o /dev/null -w "%{http_code}" http://localhost:PORT`). If it returns 200, skip to Phase 4 — do not start a second instance.
+4. If not running: install dependencies if needed, then start the dev server **in the background**.
+5. Wait for the server to be ready (poll the port until it responds).
 
 **If the application fails to start** (process exits immediately, port never becomes available, or a fatal error is printed): print the error to the console and **stop** — do NOT generate `.reports/` or any report. Ask the user to fix the startup issue and re-run.
 
