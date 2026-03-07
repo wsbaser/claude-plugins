@@ -213,12 +213,14 @@ Output a brief summary to the console:
 ### Bug Hunt Findings (from code analysis)
 - [Description] — [severity] — [file:line]
 
-All results saved to: `.reports/`
+All results saved to: `.reports/[REPORT_FILENAME]`
 ```
 
 ### HTML Report
 
-Invoke the `frontend-design` skill to generate `.reports/report.html`.
+**First, derive a descriptive report filename** (3–5 words, kebab-case) that captures what was tested — typically the app name plus the key area or scope (e.g., `todo-app-full-e2e.html`, `auth-profile-dashboard.html`, `shop-checkout-cart.html`). Base it on the project name from CLAUDE.md or `package.json` and the journeys tested. Store this as `REPORT_FILENAME`.
+
+Invoke the `frontend-design` skill to generate `.reports/[REPORT_FILENAME]`.
 
 Provide the skill with all collected test data (aggregated from all agent results) and the following requirements. These requirements are prescriptive — follow the specified patterns and code structure exactly, while using your design judgment for visual polish, typography, and layout details.
 
@@ -436,3 +438,5 @@ Apply as left border + background on issue cards and step rows.
 ---
 
 After the HTML file is successfully generated, delete the `.reports/screenshots/` directory — all screenshots are embedded in the report as base64 data URIs and the folder is no longer needed.
+
+Print the report path to the console: `Report saved to: .reports/[REPORT_FILENAME]`
