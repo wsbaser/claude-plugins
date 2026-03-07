@@ -5,6 +5,10 @@ allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop,
 
 # End-to-End Application Testing
 
+## Flags
+
+- **`--responsive`** — Also run responsive testing across Mobile (375x812), Tablet (768x1024), and Desktop (1440x900) viewports. Without this flag, only desktop viewport is used.
+
 ## Pre-flight: Playwright MCP Availability Check
 
 Before starting any research, verify that Playwright MCP tools are accessible by attempting a simple operation (e.g., check if `playwright_navigate` is available).
@@ -76,7 +80,7 @@ Using the user journeys from Sub-agent 1 and findings from Sub-agent 3, create a
 - **description:** Steps to execute, expected outcomes, database records to verify (if applicable), and any related bug findings from Sub-agent 3
 - **activeForm:** Present continuous (e.g., "Testing profile creation flow")
 
-Also create a final task: "Responsive testing across viewports."
+If the `--responsive` flag was passed, also create a final task: "Responsive testing across viewports."
 
 ### Parallelization Analysis
 
@@ -153,13 +157,14 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 > **Instructions:**
 >
 > 1. Use Playwright MCP tools for all browser interaction.
-> 2. After every navigation or DOM change, re-snapshot to get fresh element references.
-> 3. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
-> 4. Check browser console after each significant interaction for JavaScript errors.
-> 5. If a step fails (500 error, element not found, timeout, unexpected redirect): screenshot the error state as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
-> 6. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
-> 7. Do NOT fix bugs — only document them.
-> 8. Print each step to the console as you execute it:
+> 2. Before the first navigation, set the viewport to **1440x900** (desktop) using `browser_resize`.
+> 3. After every navigation or DOM change, re-snapshot to get fresh element references.
+> 4. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
+> 5. Check browser console after each significant interaction for JavaScript errors.
+> 6. If a step fails (500 error, element not found, timeout, unexpected redirect): screenshot the error state as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
+> 7. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
+> 8. Do NOT fix bugs — only document them.
+> 9. Print each step to the console as you execute it:
 >    ```
 >    [Journey Name] > Step 1: [description]
 >    [Journey Name] > Step 2: [description]
@@ -176,6 +181,8 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 ---
 
 ### 4.3 Responsive Testing
+
+**Only run this section if the `--responsive` flag was passed.** Otherwise skip entirely.
 
 The "Responsive testing across viewports" task is always independent (dispatch it as its own agent at the end, or include it in the last batch). Its agent receives the same context but with these instructions instead of a journey:
 
