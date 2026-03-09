@@ -126,9 +126,10 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
 
 ### Turn Management
 
-- Track question count internally.
-- At approximately **10 turns**, assess coverage across selected categories.
-- If coverage is near complete, offer to wrap up:
+- Continue the interview until all categories are covered AND all clarifying questions are resolved.
+- Do NOT offer to wrap up if there are unanswered questions that could be resolved by asking the user.
+- If a question arises that you need answered, ask it rather than deferring to the spec.
+- When coverage is complete and no questions remain, offer to wrap up:
 
 ```json
 {
@@ -228,7 +229,7 @@ Write the spec with the following structure:
 
 ## Open Questions
 
-{Any unresolved items that need further investigation or decisions — omit section if none}
+{Any unresolved items that need external input — omit section if none. Only include questions that CANNOT be answered by the user in this interview (e.g., require stakeholder input, team decisions, external API verification).}
 
 - {Question}
 ...
