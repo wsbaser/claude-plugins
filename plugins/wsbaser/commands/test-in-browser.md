@@ -1,6 +1,104 @@
 ---
-description: Comprehensive E2E browser testing — parallel codebase research, Playwright user journey testing, screenshots, DB validation, and HTML report
-allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop, TaskUpdate, Bash, Read, Write, Glob, Grep, mcp__plugin_playwright_playwright__browser_navigate, mcp__plugin_playwright_playwright__browser_snapshot, mcp__plugin_playwright_playwright__browser_click, mcp__plugin_playwright_playwright__browser_fill_form, mcp__plugin_playwright_playwright__browser_type, mcp__plugin_playwright_playwright__browser_press_key, mcp__plugin_playwright_playwright__browser_select_option, mcp__plugin_playwright_playwright__browser_take_screenshot, mcp__plugin_playwright_playwright__browser_console_messages, mcp__plugin_playwright_playwright__browser_resize, mcp__plugin_playwright_playwright__browser_evaluate, mcp__plugin_playwright_playwright__browser_wait_for, mcp__plugin_playwright_playwright__browser_close
+description: Comprehensive E2E browser testing — parallel codebase research, 5 isolated Chrome DevTools MCP instances, screenshots, DB validation, and HTML report
+allowed-tools: Agent,
+  Task,
+  TaskCreate,
+  TaskGet,
+  TaskList,
+  TaskOutput,
+  TaskStop,
+  TaskUpdate,
+  Bash,
+  Read,
+  Write,
+  Glob,
+  Grep,
+  WebFetch,
+  mcp__chrome-1__navigate_page,
+  mcp__chrome-1__take_snapshot,
+  mcp__chrome-1__take_screenshot,
+  mcp__chrome-1__click,
+  mcp__chrome-1__type_text,
+  mcp__chrome-1__fill,
+  mcp__chrome-1__fill_form,
+  mcp__chrome-1__press_key,
+  mcp__chrome-1__hover,
+  mcp__chrome-1__wait_for,
+  mcp__chrome-1__resize_page,
+  mcp__chrome-1__evaluate_script,
+  mcp__chrome-1__list_console_messages,
+  mcp__chrome-1__close_page,
+  mcp__chrome-1__new_page,
+  mcp__chrome-1__select_page,
+  mcp__chrome-1__list_pages,
+  mcp__chrome-2__navigate_page,
+  mcp__chrome-2__take_snapshot,
+  mcp__chrome-2__take_screenshot,
+  mcp__chrome-2__click,
+  mcp__chrome-2__type_text,
+  mcp__chrome-2__fill,
+  mcp__chrome-2__fill_form,
+  mcp__chrome-2__press_key,
+  mcp__chrome-2__hover,
+  mcp__chrome-2__wait_for,
+  mcp__chrome-2__resize_page,
+  mcp__chrome-2__evaluate_script,
+  mcp__chrome-2__list_console_messages,
+  mcp__chrome-2__close_page,
+  mcp__chrome-2__new_page,
+  mcp__chrome-2__select_page,
+  mcp__chrome-2__list_pages,
+  mcp__chrome-3__navigate_page,
+  mcp__chrome-3__take_snapshot,
+  mcp__chrome-3__take_screenshot,
+  mcp__chrome-3__click,
+  mcp__chrome-3__type_text,
+  mcp__chrome-3__fill,
+  mcp__chrome-3__fill_form,
+  mcp__chrome-3__press_key,
+  mcp__chrome-3__hover,
+  mcp__chrome-3__wait_for,
+  mcp__chrome-3__resize_page,
+  mcp__chrome-3__evaluate_script,
+  mcp__chrome-3__list_console_messages,
+  mcp__chrome-3__close_page,
+  mcp__chrome-3__new_page,
+  mcp__chrome-3__select_page,
+  mcp__chrome-3__list_pages,
+  mcp__chrome-4__navigate_page,
+  mcp__chrome-4__take_snapshot,
+  mcp__chrome-4__take_screenshot,
+  mcp__chrome-4__click,
+  mcp__chrome-4__type_text,
+  mcp__chrome-4__fill,
+  mcp__chrome-4__fill_form,
+  mcp__chrome-4__press_key,
+  mcp__chrome-4__hover,
+  mcp__chrome-4__wait_for,
+  mcp__chrome-4__resize_page,
+  mcp__chrome-4__evaluate_script,
+  mcp__chrome-4__list_console_messages,
+  mcp__chrome-4__close_page,
+  mcp__chrome-4__new_page,
+  mcp__chrome-4__select_page,
+  mcp__chrome-4__list_pages,
+  mcp__chrome-5__navigate_page,
+  mcp__chrome-5__take_snapshot,
+  mcp__chrome-5__take_screenshot,
+  mcp__chrome-5__click,
+  mcp__chrome-5__type_text,
+  mcp__chrome-5__fill,
+  mcp__chrome-5__fill_form,
+  mcp__chrome-5__press_key,
+  mcp__chrome-5__hover,
+  mcp__chrome-5__wait_for,
+  mcp__chrome-5__resize_page,
+  mcp__chrome-5__evaluate_script,
+  mcp__chrome-5__list_console_messages,
+  mcp__chrome-5__close_page,
+  mcp__chrome-5__new_page,
+  mcp__chrome-5__select_page,
+  mcp__chrome-5__list_pages
 ---
 
 # End-to-End Application Testing
@@ -9,12 +107,110 @@ allowed-tools: Agent, Task, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop,
 
 - **`--responsive`** — Also run responsive testing across Mobile (375x812), Tablet (768x1024), and Desktop (1440x900) viewports. Without this flag, only desktop viewport is used.
 
-## Pre-flight: Playwright MCP Availability Check
+## Pre-flight: Chrome DevTools MCP Setup
 
-Before starting any research, verify that Playwright MCP tools are accessible by attempting a simple operation (e.g., check if `playwright_navigate` is available).
+### Step 1 — Detect configured instances
 
-- **If Playwright MCP tools ARE available:** Proceed normally through all phases.
-- **If Playwright MCP tools are NOT available:** Run in **research-only mode** — execute Phase 1 (parallel research) only, then skip directly to Phase 6 (report) with just the bug hunt and schema findings. Do not attempt to start the app or run browser tests.
+Read `~/.claude.json` using the `Read` tool. Parse the JSON and count how many keys in `mcpServers` match the pattern `chrome-[1-5]` (i.e., `chrome-1`, `chrome-2`, `chrome-3`, `chrome-4`, `chrome-5`).
+
+**If fewer than 5 chrome-N entries exist:**
+
+1. Determine which of `chrome-1` through `chrome-5` are missing.
+2. For each missing entry, add it to the `mcpServers` object using these exact values:
+
+```json
+"chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9222"] },
+"chrome-2": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9223"] },
+"chrome-3": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9224"] },
+"chrome-4": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9225"] },
+"chrome-5": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9226"] }
+```
+
+3. Write the updated JSON back to `~/.claude.json` using the `Write` tool (preserve all other keys).
+4. Print:
+```
+════════════════════════════════════════════════════════
+ Chrome DevTools MCP: Configuration Updated
+════════════════════════════════════════════════════════
+ Added: chrome-[N] entries to ~/.claude.json
+
+ ACTION REQUIRED:
+ 1. Restart Claude Code
+ 2. Re-run /wsbaser:test-in-browser
+════════════════════════════════════════════════════════
+```
+5. **STOP** — do not proceed with any further phases.
+
+**If all 5 chrome-N entries are present:** proceed to Step 2.
+
+---
+
+### Step 2 — Launch 5 headless Chrome instances
+
+Run the following Bash script to launch 5 headless Chrome instances. Store PIDs in variables `CHROME_PID_1` through `CHROME_PID_5` for cleanup in Phase 5.
+
+```bash
+CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
+
+launch_chrome() {
+  local N=$1 PORT=$2
+  local PROFILE_DIR
+  PROFILE_DIR=$(mktemp -d "/tmp/chrome-test-${N}-XXXXXX")
+  "$CHROME" \
+    --headless=new \
+    --disable-gpu \
+    --disable-dev-shm-usage \
+    --disable-extensions \
+    --no-first-run \
+    --no-default-browser-check \
+    --remote-debugging-port="$PORT" \
+    --user-data-dir="$PROFILE_DIR" \
+    2>/dev/null &
+  echo $!
+}
+
+CHROME_PID_1=$(launch_chrome 1 9222)
+CHROME_PID_2=$(launch_chrome 2 9223)
+CHROME_PID_3=$(launch_chrome 3 9224)
+CHROME_PID_4=$(launch_chrome 4 9225)
+CHROME_PID_5=$(launch_chrome 5 9226)
+
+echo "Launched Chrome instances (PIDs: $CHROME_PID_1 $CHROME_PID_2 $CHROME_PID_3 $CHROME_PID_4 $CHROME_PID_5)"
+
+# Store PIDs immediately (same shell session) for Phase 5 cleanup
+echo "$CHROME_PID_1 $CHROME_PID_2 $CHROME_PID_3 $CHROME_PID_4 $CHROME_PID_5" > /tmp/chrome-test-pids.txt
+```
+
+### Step 3 — Verify all 5 instances are responsive
+
+For each port 9222–9226, poll `http://127.0.0.1:{PORT}/json/version` until it returns HTTP 200, with a 15-second timeout. If any port does not respond within 15 seconds, print an error and **STOP**:
+
+```bash
+wait_for_chrome() {
+  local PORT=$1 N=$2
+  for i in $(seq 1 15); do
+    if curl -s "http://127.0.0.1:${PORT}/json/version" >/dev/null 2>&1; then
+      echo "  chrome-${N}: port ${PORT} ✓"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "  chrome-${N}: port ${PORT} TIMEOUT — Chrome failed to start"
+  return 1
+}
+
+echo "Verifying Chrome instances..."
+wait_for_chrome 9222 1 || exit 1
+wait_for_chrome 9223 2 || exit 1
+wait_for_chrome 9224 3 || exit 1
+wait_for_chrome 9225 4 || exit 1
+wait_for_chrome 9226 5 || exit 1
+echo "All 5 Chrome instances ready."
+```
+
+If any `wait_for_chrome` call returns non-zero (bash exits with code 1), **STOP immediately** — do not proceed with any further phases.
+
+**If all 5 respond:** proceed to Phase 1 (Parallel Research).
 
 ## Phase 1: Parallel Research
 
@@ -119,7 +315,7 @@ Repeat until all scenarios are complete:
    ```
    ▶ [scenario_number/total] Starting: [Journey Name] (Track [N])
    ```
-4. Launch one Agent per selected scenario **in parallel** (all in the same tool call batch). Each agent receives the self-contained scenario prompt described in Section 4.2.
+4. Launch one Agent per selected scenario **in parallel** (all in the same tool call batch). Each agent receives the self-contained scenario prompt described in Section 4.2, with `[TRACK_NUMBER]` set to the agent's track number (Track 1 → 1, Track 2 → 2, etc.). Each agent uses exclusively its own `mcp__chrome-[TRACK_NUMBER]__*` tools.
 5. Wait for all launched agents to complete.
 6. For each completed agent, print:
    ```
@@ -154,14 +350,16 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 > **Related bug findings to watch for:**
 > [relevant findings from Sub-agent 3, or "none"]
 >
+> **Browser Instance:** chrome-[TRACK_NUMBER] (use ONLY `mcp__chrome-[TRACK_NUMBER]__*` tools — do NOT use any other chrome-N namespace)
+>
 > **Instructions:**
 >
-> 1. Use Playwright MCP tools for all browser interaction.
-> 2. Before the first navigation, set the viewport to **1440x900** (desktop) using `browser_resize`.
-> 3. After every navigation or DOM change, re-snapshot to get fresh element references.
+> 1. Use `mcp__chrome-[TRACK_NUMBER]__*` tools **exclusively** for all browser interaction. Do not use any other chrome-N namespace.
+> 2. Before the first navigation, set the viewport to **1440x900** (desktop) using `mcp__chrome-[TRACK_NUMBER]__resize_page` with width=1440, height=900.
+> 3. After every navigation or DOM change, re-snapshot using `mcp__chrome-[TRACK_NUMBER]__take_snapshot` to get fresh element references.
 > 4. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
-> 5. Check browser console after each significant interaction for JavaScript errors.
-> 6. If a step fails (500 error, element not found, timeout, unexpected redirect): screenshot the error state as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
+> 5. Check browser console after each significant interaction for JavaScript errors using `mcp__chrome-[TRACK_NUMBER]__list_console_messages`.
+> 6. If a step fails (500 error, element not found, timeout, unexpected redirect): screenshot the error state using `mcp__chrome-[TRACK_NUMBER]__take_screenshot` as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
 > 7. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
 > 8. Do NOT fix bugs — only document them.
 > 9. Print each step to the console as you execute it:
@@ -184,14 +382,16 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 
 **Only run this section if the `--responsive` flag was passed.** Otherwise skip entirely.
 
-The "Responsive testing across viewports" task is always independent (dispatch it as its own agent at the end, or include it in the last batch). Its agent receives the same context but with these instructions instead of a journey:
+The "Responsive testing across viewports" task runs **after all main tracks have completed**, using `chrome-1` (which is free by then). Dispatch it as its own agent with these instructions:
 
-> Revisit every major page at three viewport sizes. At each viewport, take a screenshot of every major page and analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
+> **Browser Instance:** chrome-1 (use ONLY `mcp__chrome-1__*` tools)
+>
+> Revisit every major page at three viewport sizes using `mcp__chrome-1__resize_page`. At each viewport, take a screenshot of every major page using `mcp__chrome-1__take_screenshot` and analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
 >
 > Viewports:
-> - **Mobile:** 375x812
-> - **Tablet:** 768x1024
-> - **Desktop:** 1440x900
+> - **Mobile:** 375x812 — `mcp__chrome-1__resize_page` width=375, height=812
+> - **Tablet:** 768x1024 — `mcp__chrome-1__resize_page` width=768, height=1024
+> - **Desktop:** 1440x900 — `mcp__chrome-1__resize_page` width=1440, height=900
 >
 > Print each page+viewport combination to the console as you test it.
 > Return the same structured result format.
@@ -199,8 +399,25 @@ The "Responsive testing across viewports" task is always independent (dispatch i
 ## Phase 5: Cleanup
 
 After all agents have completed:
-1. Stop the dev server background process
-2. Close the browser session
+
+1. **Kill all 5 Chrome instances** launched in Pre-flight Step 2. Read PIDs from `/tmp/chrome-test-pids.txt` and terminate each:
+
+```bash
+if [ -f /tmp/chrome-test-pids.txt ]; then
+  read -r PIDS < /tmp/chrome-test-pids.txt
+  echo "Killing Chrome instances..."
+  for PID in $PIDS; do
+    if kill -0 "$PID" 2>/dev/null; then
+      taskkill /PID "$PID" /F 2>/dev/null || kill "$PID" 2>/dev/null
+      echo "  Killed PID $PID ✓"
+    fi
+  done
+  rm -f /tmp/chrome-test-pids.txt
+  echo "All Chrome instances stopped."
+fi
+```
+
+2. Stop the dev server background process (if started in Phase 2).
 
 ## Phase 6: Report
 
