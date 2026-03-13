@@ -170,21 +170,7 @@ Using the outputs from Agents A and B, execute the browser verification test dir
 
 ### Login
 
-Read `CLAUDE.local.md` to get the `App Credentials` (email and password). Log in using this script via `mcp__chrome-1__evaluate_script` (or equivalent navigate + fill steps):
-
-```js
-async (page) => {
-  await page.goto('APP_URL');
-  await page.getByRole('textbox').first().fill('EMAIL');
-  await page.getByRole('textbox').nth(1).fill('PASSWORD');
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.locator('.select-company-option-wrap').first().waitFor();
-  await page.locator('.select-company-option-wrap').first().click();
-  await page.locator('text=Continue').click();
-  await page.waitForURL('**/overview');
-  return 'Logged in';
-}
-```
+Read `CLAUDE.local.md` to get the `App Credentials` (email and password). Check `CLAUDE.md` for a "Playwright Login Shortcut" section — if one exists, use that exact script. Otherwise, navigate to `APP_URL`, fill the email and password fields, submit the login form, and wait until the app's main page is loaded.
 
 ### Network monitoring
 
