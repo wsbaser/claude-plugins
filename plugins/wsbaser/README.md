@@ -15,6 +15,7 @@ A collection of commands and agents for Claude Code that streamline development 
 | `/wsbaser:code-simplifier` | Simplify and refine code for clarity, consistency, and maintainability |
 | `/wsbaser:learn` | Extract session learnings to CLAUDE.md files |
 | `/wsbaser:thorough` | 3-pass verification checklist for correctness, edge cases, and maintainability |
+| `/wsbaser:generate-test-report` | Generate a comprehensive Allure-style HTML test report from browser test results in conversation |
 
 ## Agents
 

@@ -64,7 +64,7 @@ Read `~/.claude.json` using the Read tool. Parse the JSON and check whether `mcp
 Add it to `mcpServers`:
 
 ```json
-"chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9222"] }
+"chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] }
 ```
 
 Write the updated JSON back to `~/.claude.json`, then print:
@@ -101,31 +101,7 @@ If `--no-start` was NOT passed:
 
 If `--no-start` WAS passed: determine `APP_URL` by reading `launchSettings.json` as above (do not start the server).
 
-## Step 4 — Launch Chrome
-
-Run this script to launch one headless Chrome instance and store its PID:
-
-```bash
-CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
-PROFILE_DIR=$(mktemp -d "/tmp/chrome-verify-XXXXXX")
-"$CHROME" \
-  --headless=new \
-  --disable-gpu \
-  --disable-dev-shm-usage \
-  --disable-extensions \
-  --no-first-run \
-  --no-default-browser-check \
-  --remote-debugging-port=9222 \
-  --user-data-dir="$PROFILE_DIR" \
-  2>/dev/null &
-CHROME_PID=$!
-echo "$CHROME_PID" > /tmp/chrome-verify-pid.txt
-echo "Chrome launched (PID: $CHROME_PID)"
-```
-
-Then poll `http://127.0.0.1:9222/json/version` until it returns HTTP 200, with a 15-second timeout. If it does not respond in time, print an error and **STOP**.
-
-## Step 5 — Parallel Research
+## Step 4 — Parallel Research
 
 Launch **two agents simultaneously** using the Agent tool. Both run in parallel (send in a single message with two tool calls).
 
@@ -164,7 +140,7 @@ Launch **two agents simultaneously** using the Agent tool. Both run in parallel 
 
 **Wait for both agents to complete before proceeding.**
 
-## Step 6 — Browser Test
+## Step 5 — Browser Test
 
 Using the outputs from Agents A and B, execute the browser verification test directly (do not dispatch a sub-agent — run the browser steps yourself using `mcp__chrome-1__*` tools).
 
@@ -205,11 +181,11 @@ Print a summary:
 ════════════════════════════════════════════
 ```
 
-## Step 7 — Generate Report
+## Step 6 — Generate Report
 
 Invoke the `wsbaser:generate-bug-report` skill. The skill reads all context from this conversation — the bug description, code analysis, reproduction steps, network findings, screenshots, and verdict — and writes `.reports/{slug}.html`.
 
-## Step 8 — Cleanup
+## Step 7 — Cleanup
 
 ### Delete screenshots
 
@@ -217,17 +193,6 @@ After the report is generated (all screenshots are now embedded as base64 in the
 
 ```bash
 rm -rf .reports/screenshots/
-```
-
-### Kill Chrome
-
-```bash
-if [ -f /tmp/chrome-verify-pid.txt ]; then
-  PID=$(cat /tmp/chrome-verify-pid.txt)
-  taskkill /PID "$PID" /F 2>/dev/null || kill "$PID" 2>/dev/null
-  rm -f /tmp/chrome-verify-pid.txt
-  echo "Chrome stopped (PID: $PID)"
-fi
 ```
 
 ### Final output

@@ -40,7 +40,7 @@ Read the entire conversation and extract:
 | `date` | Test date YYYY-MM-DD (today if not in context) |
 | `app_url` | Base URL of app tested, e.g. "http://localhost:7000" |
 | `tester` | Who ran the test, e.g. "Claude automated browser test" |
-| `stats[]` | Array of 3–4 metric cards: `{label, value, sub, color?}` |
+| `stats[]` | Array of 3–4 stat bar items: `{label, value, color?}` |
 | `test_steps[]` | `{n, title, description, status: "pass"\|"fail"\|"info"}` |
 | `network_summary` | `{count, unit, description}` — e.g. `{count: "0", unit: "DELETE requests captured", description: "..."}` |
 | `call_chain[]` | Execution path nodes: `{label, type: "trigger"\|"normal"\|"blocked"}` |
@@ -134,11 +134,11 @@ code{font-family:var(--mono);font-size:12px;background:rgba(0,0,0,.05);padding:1
 .verdict{margin:28px 40px;border-radius:var(--r);padding:20px 28px;display:flex;align-items:center;gap:20px}
 .vi{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:22px}
 .vt{font-size:20px;font-weight:700;margin-bottom:4px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:0 40px 28px}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;box-shadow:var(--sh)}
-.sl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px}
-.sv{font-family:var(--mono);font-size:22px;font-weight:700}.sv.g{color:var(--green)}.sv.r{color:var(--red)}.sv.sm{font-size:16px;margin-top:4px}
-.ss2{font-size:11px;color:var(--light);margin-top:3px}
+.stats{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 40px;display:flex;gap:32px;flex-shrink:0}
+.stat{display:flex;align-items:center;gap:8px}
+.sl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.sv{font-family:var(--mono);font-size:20px;font-weight:700}.sv.g{color:var(--green)}.sv.r{color:var(--red)}.sv.sm{font-size:16px}
+.sdiv{width:1px;background:var(--border);height:32px;margin:0 4px}
 .con{padding:0 40px 48px}
 .sec{margin-bottom:36px}
 .stit{font-size:16px;font-weight:600;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bsub);display:flex;align-items:center;gap:8px}
@@ -289,14 +289,13 @@ tr:last-child td{border-bottom:none}
 
 ## Snippet Reference
 
-### Stats card
+### Stats bar item
 ```html
-<div class="stat">
-  <div class="sl">LABEL</div>
-  <div class="sv g">VALUE</div>  <!-- .g green | .r red | omit for default -->
-  <div class="ss2">SUBLABEL</div>
-</div>
+<div class="stat"><div class="sv g">VALUE</div><div class="sl">LABEL</div></div>
+<!-- .g green | .r red | omit for default -->
 ```
+
+Add `<div class="sdiv"></div>` between each stat item in `{{STATS_HTML}}`.
 
 ### Test step
 ```html
