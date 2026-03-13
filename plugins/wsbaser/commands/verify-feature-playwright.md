@@ -42,20 +42,6 @@ playwright-cli --version 2>/dev/null
    ```bash
    playwright-cli install chromium
    ```
-3. Print:
-```
-════════════════════════════════════════════════════════
- Playwright CLI: Installation Complete
-════════════════════════════════════════════════════════
- Installed: @playwright/cli (global)
- Browser:   Chromium
-
- ACTION REQUIRED:
- 1. Restart Claude Code (so the new PATH entry takes effect)
- 2. Re-run /wsbaser:verify-feature-playwright
-════════════════════════════════════════════════════════
-```
-4. **STOP** — do not proceed with any further phases.
 
 **If `playwright-cli` is available:** proceed to Phase 1.
 
