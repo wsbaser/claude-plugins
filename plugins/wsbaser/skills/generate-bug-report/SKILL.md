@@ -1,29 +1,28 @@
 ---
-name: bug-report-generator
-description: "Generates a self-contained HTML bug verification report from conversation context.
-  Use after manually or programmatically verifying a bug found in a code review.
+name: generate-bug-report
+description: "Generates a self-contained HTML bug verification report from current conversation context.
+  Use after manually or programmatically verifying a bug — the skill reads all test results,
+  screenshots, call chain, and code snippets from the conversation and writes .reports/{slug}.html.
 
   Examples:
 
   - Example 1:
-    user: 'I just verified the delete-on-dispose bug in the browser — no DELETE calls fired'
-    assistant: 'Let me use the bug-report-generator agent to produce a verification report from this session.'
-    <Task tool call to launch bug-report-generator agent>
+    user: 'I just verified the delete-on-dispose bug — no DELETE calls fired'
+    assistant: 'Using generate-bug-report to produce the verification report.'
+    <Skill tool call: wsbaser:generate-bug-report>
 
   - Example 2:
-    user: 'The null reference bug is confirmed — it crashes when the list is empty'
-    assistant: 'Confirmed. Launching bug-report-generator to document the finding.'
-    <Task tool call to launch bug-report-generator agent>
+    user: '/wsbaser:generate-bug-report'
+    assistant: 'Invoking the generate-bug-report skill.'
+    <Skill tool call: wsbaser:generate-bug-report>
 
   - Example 3:
-    user: 'Run /wsbaser:generate-bug-report'
-    assistant: 'Dispatching the bug-report-generator agent.'
-    <Task tool call to launch bug-report-generator agent>"
-model: sonnet
-color: blue
+    user: 'The null reference is confirmed. Generate the report.'
+    assistant: 'Using generate-bug-report skill to document this finding.'
+    <Skill tool call: wsbaser:generate-bug-report>"
 ---
 
-You are a specialist report writer. Your sole job is to extract bug verification details from the current conversation and produce a polished, self-contained HTML report saved to `.reports/{slug}.html`.
+Extract bug verification details from the current conversation and produce a polished, self-contained HTML report saved to `.reports/{slug}.html`.
 
 ## Phase 1 — Context Extraction
 
@@ -32,13 +31,13 @@ Read the entire conversation and extract:
 | Field | Description |
 |-------|-------------|
 | `bug_name` | Human-readable title, e.g. "DisposeData → DELETE /invoices/0" |
-| `slug` | Kebab-case filename, e.g. "delete-on-dispose-new-invoice" |
+| `slug` | Kebab-case filename, 4–6 words, e.g. "delete-on-dispose-new-invoice" |
 | `subtitle` | File + method context, e.g. "InvoiceSliderDialog.razor.cs · FormBehavior.DisposeData()" |
 | `verdict` | One of: `MITIGATED` / `CONFIRMED` / `INCONCLUSIVE` |
 | `verdict_label` | Human sentence, e.g. "Bug Mitigated — Guard Is In Place" |
 | `verdict_description` | 1–2 sentence explanation of what was found |
-| `branch_name` | Git branch under test |
-| `date` | Test date (YYYY-MM-DD) |
+| `branch_name` | Git branch under test (run `git branch --show-current` if not in context) |
+| `date` | Test date YYYY-MM-DD (today if not in context) |
 | `app_url` | Base URL of app tested, e.g. "http://localhost:7000" |
 | `tester` | Who ran the test, e.g. "Claude automated browser test" |
 | `stats[]` | Array of 3–4 metric cards: `{label, value, sub, color?}` |
@@ -46,11 +45,13 @@ Read the entire conversation and extract:
 | `network_summary` | `{count, unit, description}` — e.g. `{count: "0", unit: "DELETE requests captured", description: "..."}` |
 | `call_chain[]` | Execution path nodes: `{label, type: "trigger"\|"normal"\|"blocked"}` |
 | `call_chain_note` | (optional) explanatory note below the call chain |
-| `code_snippet` | `{filename, line_start, line_end, language, html}` — pre-rendered HTML with spans for syntax highlighting |
+| `code_snippet` | `{filename, line_start, line_end, language, html}` — pre-rendered HTML with syntax-highlight spans |
 | `code_explanation` | What the snippet does and why it matters |
 | `findings_rows[]` | `{finding, actual, status: "mitigated"\|"confirmed"\|"inconclusive"}` |
-| `screenshot_paths[]` | Absolute or relative paths to screenshots (empty = omit section) |
+| `screenshot_paths[]` | Paths to screenshots saved during the test (empty = omit screenshot section) |
 | `trace_path` | (optional) path to a trace file |
+
+If any field cannot be determined from context, use a sensible default (e.g., `verdict = INCONCLUSIVE`, `tester = "Manual test"`).
 
 ## Phase 2 — Screenshot Encoding
 
@@ -64,15 +65,15 @@ If the list is empty, omit the screenshot grid section entirely.
 
 ## Phase 3 — HTML Report Generation
 
-Write `.reports/{slug}.html` using the exact template below. Replace all `{{PLACEHOLDER}}` tokens with extracted data.
+Write `.reports/{slug}.html` using the exact template below. Replace all `{{PLACEHOLDER}}` tokens with extracted data. Create `.reports/` if it does not exist.
 
 ### Verdict color mapping
 
-| Verdict | CSS var | Icon |
-|---------|---------|------|
-| MITIGATED | `--green` / `--gbg` / `--gbd` | `&#10003;` |
-| CONFIRMED | `--red` / `rgba(207,34,46,.08)` / `rgba(207,34,46,.3)` | `&#9888;` |
-| INCONCLUSIVE | `--amber` / `rgba(191,135,0,.08)` / `rgba(191,135,0,.3)` | `&#63;` |
+| Verdict | Banner style | Icon bg | Text color | Icon |
+|---------|-------------|---------|------------|------|
+| MITIGATED | `background:var(--gbg);border:1.5px solid var(--gbd)` | `background:var(--green)` | `color:var(--green)` | `&#10003;` |
+| CONFIRMED | `background:rgba(207,34,46,.08);border:1.5px solid rgba(207,34,46,.3)` | `background:var(--red)` | `color:var(--red)` | `&#9888;` |
+| INCONCLUSIVE | `background:var(--abg);border:1.5px solid rgba(191,135,0,.3)` | `background:var(--amber)` | `color:var(--amber)` | `&#63;` |
 
 ### Step badge mapping
 
@@ -84,13 +85,13 @@ Write `.reports/{slug}.html` using the exact template below. Replace all `{{PLAC
 
 ### Call chain node type mapping
 
-| Type | CSS class | Notes |
-|------|-----------|-------|
-| trigger | `fn trig` | Entry point |
-| normal | `fn` | Standard step |
-| blocked | `fn blk` | Blocked/prevented step (strikethrough) |
+| Type | CSS class |
+|------|-----------|
+| trigger | `fn trig` — amber border, entry point |
+| normal | `fn` — default |
+| blocked | `fn blk` — green border + strikethrough (mitigated path) |
 
-Nodes are separated by `<div class="fa">&rarr;</div>`.
+Nodes separated by `<div class="fa">&rarr;</div>`.
 
 ### Findings status badge mapping
 
@@ -196,7 +197,6 @@ tr:last-child td{border-bottom:none}
 </head>
 <body>
 
-<!-- 1. HEADER BAR -->
 <header class="hdr">
   <div>
     <div class="hl">Bug Verification Report</div>
@@ -211,11 +211,7 @@ tr:last-child td{border-bottom:none}
   </div>
 </header>
 
-<!-- 2. VERDICT BANNER -->
-<!-- For MITIGATED: style="background:var(--gbg);border:1.5px solid var(--gbd)" vi style="background:var(--green)" vt style="color:var(--green)" -->
-<!-- For CONFIRMED:  style="background:rgba(207,34,46,.08);border:1.5px solid rgba(207,34,46,.3)" vi style="background:var(--red)" vt style="color:var(--red)" -->
-<!-- For INCONCLUSIVE: style="background:var(--abg);border:1.5px solid rgba(191,135,0,.3)" vi style="background:var(--amber)" vt style="color:var(--amber)" -->
-<div class="verdict" style="{{VERDICT_STYLE}}">
+<div class="verdict" style="{{VERDICT_BANNER_STYLE}}">
   <div class="vi" style="{{VERDICT_ICON_STYLE}}">{{VERDICT_ICON}}</div>
   <div>
     <div class="vt" style="{{VERDICT_TEXT_STYLE}}">{{VERDICT_LABEL}}</div>
@@ -223,24 +219,15 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
-<!-- 3. STATS ROW -->
-<div class="stats">
-  <!-- Repeat per stat. color classes: .g (green), .r (red), or omit for default -->
-  {{STATS_HTML}}
-</div>
+<div class="stats">{{STATS_HTML}}</div>
 
-<!-- CONTENT -->
 <div class="con">
 
-  <!-- 4. TEST EXECUTION TIMELINE -->
   <div class="sec">
     <div class="stit">Test Execution</div>
-    <div class="tl">
-      {{STEPS_HTML}}
-    </div>
+    <div class="tl">{{STEPS_HTML}}</div>
   </div>
 
-  <!-- 5. NETWORK CAPTURE RESULT -->
   <div class="sec">
     <div class="stit">Network Capture Result</div>
     <div class="nr">
@@ -252,17 +239,13 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 
-  <!-- 6. CALL CHAIN -->
   <div class="sec">
     <div class="stit">{{CALL_CHAIN_TITLE}}</div>
     <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px">{{CALL_CHAIN_INTRO}}</p>
-    <div class="flow">
-      {{CALL_CHAIN_HTML}}
-    </div>
+    <div class="flow">{{CALL_CHAIN_HTML}}</div>
     {{CALL_CHAIN_NOTE_HTML}}
   </div>
 
-  <!-- 7. CODE SECTION -->
   <div class="sec">
     <div class="stit">{{CODE_SECTION_TITLE}}</div>
     <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px"><code>{{CODE_FILENAME}}</code> lines {{CODE_LINE_START}}&ndash;{{CODE_LINE_END}}:</p>
@@ -276,33 +259,26 @@ tr:last-child td{border-bottom:none}
     <p style="font-size:13.5px;color:var(--muted);margin-top:14px">{{CODE_EXPLANATION}}</p>
   </div>
 
-  <!-- 8. FINDINGS STATUS TABLE -->
   <div class="sec">
     <div class="stit">Review Finding vs Actual Result</div>
     <div class="tw">
       <table>
         <thead><tr><th>Review Finding</th><th>Actual Result</th><th>Status</th></tr></thead>
-        <tbody>
-          {{FINDINGS_HTML}}
-        </tbody>
+        <tbody>{{FINDINGS_HTML}}</tbody>
       </table>
     </div>
   </div>
 
-  <!-- 9. SCREENSHOT GRID (omit entire section if no screenshots) -->
   {{SCREENSHOTS_SECTION_HTML}}
 
-</div><!-- /con -->
+</div>
 
-<!-- 10. FOOTER -->
 <footer class="ftr">
   <div>Branch: <code>{{BRANCH_NAME}}</code> &middot; Date: {{DATE}} &middot; Tester: {{TESTER}}</div>
   <div>{{TRACE_HTML}}</div>
 </footer>
 
-<!-- LIGHTBOX (only include if screenshots present) -->
 {{LIGHTBOX_HTML}}
-
 {{LIGHTBOX_SCRIPT}}
 
 </body>
@@ -311,78 +287,52 @@ tr:last-child td{border-bottom:none}
 
 ---
 
-## Snippet templates for generated HTML blocks
+## Snippet Reference
 
 ### Stats card
-
 ```html
 <div class="stat">
-  <div class="sl">{{LABEL}}</div>
-  <div class="sv {{COLOR_CLASS}}">{{VALUE}}</div>
-  <div class="ss2">{{SUB}}</div>
+  <div class="sl">LABEL</div>
+  <div class="sv g">VALUE</div>  <!-- .g green | .r red | omit for default -->
+  <div class="ss2">SUBLABEL</div>
 </div>
 ```
 
 ### Test step
-
 ```html
 <div class="tstep">
-  <div class="tn">{{N}}</div>
+  <div class="tn">N</div>
   <div class="tb">
-    <div class="tt">{{TITLE}}</div>
-    <div class="td2">{{DESCRIPTION}}</div>
+    <div class="tt">TITLE</div>
+    <div class="td2">DESCRIPTION</div>
   </div>
-  <span class="badge {{STATUS_CLASS}}">{{STATUS_ICON}} {{STATUS_TEXT}}</span>
+  <span class="badge pass">&#10003; PASS</span>  <!-- or .fail / .info -->
 </div>
 ```
 
-### Call chain node (normal)
-
-```html
-<div class="fn">{{LABEL}}</div>
-```
-
-### Call chain arrow
-
-```html
-<div class="fa">&rarr;</div>
-```
-
 ### Findings row
-
 ```html
 <tr>
-  <td>{{FINDING}}</td>
-  <td>{{ACTUAL}}</td>
-  <td>{{STATUS_BADGE}}</td>
+  <td>FINDING</td>
+  <td>ACTUAL</td>
+  <td><span class="badge pass">&#10003; MITIGATED</span></td>
 </tr>
 ```
 
-### Screenshot grid (when screenshots present)
-
+### Screenshot grid (omit section entirely if no screenshots)
 ```html
 <div class="sec">
   <div class="stit">Screenshots</div>
   <div class="sg" id="shots">
-    {{SCREENSHOT_CARDS}}
+    <div class="sc" onclick="openLb(0)">
+      <img src="DATA_URI" alt="CAPTION" loading="lazy">
+      <div class="scap"><span>CAPTION</span><span class="sst">Step N</span></div>
+    </div>
   </div>
 </div>
 ```
 
-### Screenshot card
-
-```html
-<div class="sc" onclick="openLb({{INDEX}})">
-  <img src="{{DATA_URI}}" alt="{{CAPTION}}" loading="lazy">
-  <div class="scap">
-    <span>{{CAPTION}}</span>
-    <span class="sst">{{STEP_LABEL}}</span>
-  </div>
-</div>
-```
-
-### Lightbox HTML (include only when screenshots present)
-
+### Lightbox (include only when screenshots present)
 ```html
 <div id="lb">
   <button id="lbx" onclick="closeLb()" title="Close (ESC)">&times;</button>
@@ -393,11 +343,6 @@ tr:last-child td{border-bottom:none}
     <button onclick="lbNext()">&#8594;</button>
   </div>
 </div>
-```
-
-### Lightbox script (include only when screenshots present)
-
-```html
 <script>
 const shots=document.querySelectorAll('#shots .sc img');
 const srcs=[...shots].map(i=>i.src);
@@ -412,29 +357,23 @@ document.addEventListener('keydown',function(e){if(!document.getElementById('lb'
 ```
 
 ### Call chain note variants
-
 ```html
-<!-- Success/mitigated note -->
-<div class="na">{{NOTE_TEXT}}</div>
-
-<!-- Warning/amber note -->
-<div class="nb"><strong style="color:var(--amber)">Note:</strong> {{NOTE_TEXT}}</div>
+<div class="na">SUCCESS NOTE — green box</div>
+<div class="nb"><strong style="color:var(--amber)">Note:</strong> WARNING NOTE — amber box</div>
 ```
 
-### Trace footer (when trace_path present)
-
+### Trace footer link
 ```html
-Trace: <a href="{{TRACE_PATH}}">{{TRACE_FILENAME}}</a>
+Trace: <a href="TRACE_PATH">TRACE_FILENAME</a>
 ```
 
 ---
 
 ## Output Rules
 
-1. Write a **single self-contained file** — no external resources. No Google Fonts import. Use system fonts only (already set in CSS template).
-2. All screenshots must be embedded as `data:` URIs — never external paths.
-3. The file must be saved to `.reports/{slug}.html` in the project root.
-4. If `.reports/` directory doesn't exist, create it first.
-5. Do not add extra sections not in the template. Do not remove mandatory sections.
-6. For syntax highlighting in code blocks, use the span classes: `.kw` (keywords), `.ty` (types), `.fnn` (function names), `.nm` (numbers/literals), `.co` (comments), `.hlr` (highlighted line — wraps the whole line).
-7. The HTML must open correctly in a browser with no console errors.
+1. Single self-contained file — no external resources, no CDN imports.
+2. Screenshots embedded as `data:` URIs only — never file paths.
+3. Save to `.reports/{slug}.html`. Create `.reports/` if it does not exist.
+4. Mandatory sections: header, verdict, stats, test execution, network capture, call chain, code section, findings table, footer. Screenshot section only if screenshots exist.
+5. Syntax highlight spans: `.kw` keywords · `.ty` types · `.fnn` function names · `.nm` literals · `.co` comments · `.hlr` highlighted line block.
+6. The HTML must open in a browser with no console errors.
