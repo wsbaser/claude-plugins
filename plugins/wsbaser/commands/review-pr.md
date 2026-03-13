@@ -6,6 +6,10 @@ disable-model-invocation: false
 
 Provide a code review for the given pull request and save the results to a local markdown file (not to the PR).
 
+**Usage:**
+- `review-pr {PR_ID}` — review a specific PR
+- `review-pr --next` — find the oldest active PR assigned to you as reviewer and review it
+
 To do this, follow these steps precisely:
 
 ## Part 0: Azure CLI Authentication Check (MUST DO FIRST)
@@ -29,6 +33,45 @@ To do this, follow these steps precisely:
       - Do NOT attempt to continue the review
    c. If `az account show` succeeds, display a brief confirmation (e.g., "Azure CLI authenticated as: {user}") and proceed to PR Metadata Extraction
 
+## Part 0.1: `--next` PR Discovery (only if `--next` was passed)
+
+a. Validate usage: if both `--next` AND an explicit PR ID were provided, display an error and stop:
+   ```
+   ERROR: --next cannot be combined with an explicit PR ID.
+   Usage: review-pr --next   OR   review-pr {PR_ID}
+   ```
+
+b. Extract the current user's UPN (email) from the `az account show` output already retrieved in Part 0.
+
+c. Fetch active, non-draft PRs where the current user is a reviewer:
+   ```bash
+   az repos pr list \
+     --status active \
+     --reviewer "{CURRENT_USER_UPN}" \
+     --output json
+   ```
+
+d. Filter the results:
+   - Exclude PRs where `isDraft == true`
+   - Exclude PRs that already have a local review file at `./code-reviews/PR-{pullRequestId}-review.md`
+
+e. From the remaining PRs, select the one with the **oldest `creationDate`**.
+
+f. If no PRs remain after filtering, display this message and stop:
+   ```
+   No PRs to review. All active PRs assigned to you have already been reviewed locally,
+   or there are no active PRs assigned to you as a reviewer.
+   ```
+
+g. Display the selected PR and proceed immediately (no confirmation needed):
+   ```
+   Selected PR for review:
+   PR #{pullRequestId}: {title}
+   Created: {creationDate}
+   ```
+
+h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5, 0.6, 1, 2) use this value unchanged.
+
 ## Part 0.5: PR Metadata Extraction (MANDATORY)
 
 **CRITICAL: You MUST extract the PR's actual source and target branches from Azure DevOps. NEVER assume the locally checked-out branch is the PR's source branch.**
@@ -49,6 +92,10 @@ To do this, follow these steps precisely:
       Source: {SOURCE_BRANCH}
       Target: {TARGET_BRANCH}
       ```
+   e. **If an explicit PR ID was provided** (i.e., `--next` was NOT used) and `./code-reviews/PR-{PR_ID}-review.md` already exists locally:
+      - Delete `./code-reviews/PR-{PR_ID}-review.md`
+      - Delete `./code-reviews/PR-{PR_ID}-changes-analysis.md` (if it exists)
+      - Display: `Removed existing review files for PR #{PR_ID}. Starting fresh review.`
 
 ## Part 0.6: PR Diff Scope Resolution (MANDATORY)
 
