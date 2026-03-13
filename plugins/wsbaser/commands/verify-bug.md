@@ -170,7 +170,7 @@ Using the outputs from Agents A and B, execute the browser verification test dir
 
 ### Login
 
-Read `CLAUDE.local.md` to get the `App Credentials` (email and password). Check `CLAUDE.md` for a "Playwright Login Shortcut" section — if one exists, use that exact script. Otherwise, navigate to `APP_URL`, fill the email and password fields, submit the login form, and wait until the app's main page is loaded.
+Read `CLAUDE.local.md` to get the `App Credentials` (email and password). Navigate to `APP_URL`, fill the email and password fields, submit the login form, and wait until the app's main page is loaded.
 
 ### Network monitoring
 
