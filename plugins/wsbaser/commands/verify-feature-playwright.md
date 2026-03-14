@@ -21,6 +21,7 @@ allowed-tools: Agent,
 ## Flags
 
 - **`--responsive`** — Also run responsive testing across Mobile (375x812), Tablet (768x1024), and Desktop (1440x900) viewports. Without this flag, only desktop viewport is used.
+- **`--headed`** — Run browsers in headed (visible) mode. Useful for watching test execution in real time. When passed, all `playwright-cli` commands will include the `--headed` flag.
 
 ## Pre-flight: Scenario Detection
 
@@ -219,27 +220,29 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 > **Related bug findings to watch for:**
 > [relevant findings from Sub-agent 3, or "none"]
 >
-> **Session:** `track[TRACK_NUMBER]` — use ONLY `playwright-cli -s=track[TRACK_NUMBER]` for ALL browser commands. Never use a different session name.
+> **Session:** `track[TRACK_NUMBER]` — use ONLY `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` for ALL browser commands. Never use a different session name.
 >
-> **Playwright CLI command reference:**
-> - Navigate: `playwright-cli -s=track[TRACK_NUMBER] goto <url>`
-> - Snapshot (get element refs): `playwright-cli -s=track[TRACK_NUMBER] snapshot`
-> - Click element: `playwright-cli -s=track[TRACK_NUMBER] click <ref>`
-> - Fill input: `playwright-cli -s=track[TRACK_NUMBER] fill <ref> "<value>"`
-> - Type text: `playwright-cli -s=track[TRACK_NUMBER] type "<text>"`
-> - Press key: `playwright-cli -s=track[TRACK_NUMBER] press <key>` (e.g. `Enter`, `Tab`, `Escape`)
-> - Hover: `playwright-cli -s=track[TRACK_NUMBER] hover <ref>`
-> - Select dropdown: `playwright-cli -s=track[TRACK_NUMBER] select <ref> "<value>"`
-> - Screenshot: `playwright-cli -s=track[TRACK_NUMBER] screenshot --filename=<path>`
-> - Console messages: `playwright-cli -s=track[TRACK_NUMBER] console`
-> - Resize viewport: `playwright-cli -s=track[TRACK_NUMBER] resize <width> <height>`
-> - Run JS: `playwright-cli -s=track[TRACK_NUMBER] run-code "<js expression>"`
-> - Wait: use `playwright-cli -s=track[TRACK_NUMBER] snapshot` (it waits for the page to stabilize)
+> **Headed mode:** [HEADED_FLAG] — if `--headed` was passed to the skill, this is `--headed`; otherwise it is empty and should be omitted from commands.
+>
+> **Playwright CLI command reference** (include `[HEADED_FLAG]` after `playwright-cli` on every command):
+> - Navigate: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] goto <url>`
+> - Snapshot (get element refs): `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] snapshot`
+> - Click element: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] click <ref>`
+> - Fill input: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] fill <ref> "<value>"`
+> - Type text: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] type "<text>"`
+> - Press key: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] press <key>` (e.g. `Enter`, `Tab`, `Escape`)
+> - Hover: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] hover <ref>`
+> - Select dropdown: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] select <ref> "<value>"`
+> - Screenshot: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] screenshot --filename=<path>`
+> - Console messages: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] console`
+> - Resize viewport: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize <width> <height>`
+> - Run JS: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] run-code "<js expression>"`
+> - Wait: use `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] snapshot` (it waits for the page to stabilize)
 >
 > **Instructions:**
 >
-> 1. Use `playwright-cli -s=track[TRACK_NUMBER]` **exclusively** for all browser interaction via the Bash tool. Never use a different session name.
-> 2. Before the first navigation, set the viewport to **1440x900** (desktop): `playwright-cli -s=track[TRACK_NUMBER] resize 1440 900`
+> 1. Use `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` **exclusively** for all browser interaction via the Bash tool. Never use a different session name.
+> 2. Before the first navigation, set the viewport to **1440x900** (desktop): `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize 1440 900`
 > 3. After every navigation or DOM change, run `snapshot` to get fresh element references before clicking or filling.
 > 4. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
 > 5. Check browser console after each significant interaction for JavaScript errors: `playwright-cli -s=track[TRACK_NUMBER] console`
@@ -268,16 +271,16 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 
 The "Responsive testing across viewports" task runs **after all main tracks have completed**, using `track1` session (which is free by then). Dispatch it as its own agent with these instructions:
 
-> **Session:** `track1` — use ONLY `playwright-cli -s=track1` for all browser commands.
+> **Session:** `track1` — use ONLY `playwright-cli [HEADED_FLAG] -s=track1` for all browser commands (same `[HEADED_FLAG]` as the main scenarios).
 >
 > Revisit every major page at three viewport sizes. At each viewport, take a screenshot of every major page and analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
 >
 > Viewports:
-> - **Mobile:** 375x812 — `playwright-cli -s=track1 resize 375 812`
-> - **Tablet:** 768x1024 — `playwright-cli -s=track1 resize 768 1024`
-> - **Desktop:** 1440x900 — `playwright-cli -s=track1 resize 1440 900`
+> - **Mobile:** 375x812 — `playwright-cli [HEADED_FLAG] -s=track1 resize 375 812`
+> - **Tablet:** 768x1024 — `playwright-cli [HEADED_FLAG] -s=track1 resize 768 1024`
+> - **Desktop:** 1440x900 — `playwright-cli [HEADED_FLAG] -s=track1 resize 1440 900`
 >
-> After resizing, navigate to each major page and take a screenshot: `playwright-cli -s=track1 screenshot --filename=<path>`
+> After resizing, navigate to each major page and take a screenshot: `playwright-cli [HEADED_FLAG] -s=track1 screenshot --filename=<path>`
 >
 > Print each page+viewport combination to the console as you test it.
 > Return the same structured result format.

@@ -106,6 +106,7 @@ allowed-tools: Agent,
 ## Flags
 
 - **`--responsive`** — Also run responsive testing across Mobile (375x812), Tablet (768x1024), and Desktop (1440x900) viewports. Without this flag, only desktop viewport is used.
+- **`--headed`** — Run Chrome instances in headed (visible) mode. Useful for watching test execution in real time. When passed, Chrome is launched without `--headless` so you can see the browser window.
 
 ## Pre-flight: Scenario Detection
 
@@ -130,14 +131,22 @@ Found N predefined scenario(s) — research phase will be adjusted.
 
 ## Pre-flight: Chrome DevTools MCP Setup
 
-### Step 1 — Detect configured instances
+### Step 1 — Determine target configuration
 
-Read `~/.claude.json` using the `Read` tool. Parse the JSON and count how many keys in `mcpServers` match the pattern `chrome-[1-5]` (i.e., `chrome-1`, `chrome-2`, `chrome-3`, `chrome-4`, `chrome-5`).
+Based on the flags passed:
+- If `--headed` was passed: target config has **no** `--headless` arg → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable"]`
+- Otherwise: target config includes `--headless` → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"]`
 
-**If fewer than 5 chrome-N entries exist:**
+### Step 2 — Detect and validate configured instances
 
-1. Determine which of `chrome-1` through `chrome-5` are missing.
-2. For each missing entry, add it to the `mcpServers` object using these exact values:
+Read `~/.claude.json` using the `Read` tool. For each of `chrome-1` through `chrome-5` in `mcpServers`:
+
+- Check whether it **exists**.
+- Check whether its `args` array **matches the target configuration** determined in Step 1 (specifically whether `--headless` is present or absent as required).
+
+**If any entry is missing OR has the wrong headless/headed configuration:**
+
+1. Update all `chrome-1` through `chrome-5` entries in `mcpServers` to the target configuration:
 
 ```json
 "chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] },
@@ -147,22 +156,25 @@ Read `~/.claude.json` using the `Read` tool. Parse the JSON and count how many k
 "chrome-5": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] }
 ```
 
-3. Write the updated JSON back to `~/.claude.json` using the `Write` tool (preserve all other keys).
-4. Print:
+(If `--headed` was passed, omit `--headless` from every entry's `args`.)
+
+2. Write the updated JSON back to `~/.claude.json` using the `Write` tool (preserve all other keys).
+3. Print:
 ```
 ════════════════════════════════════════════════════════
  Chrome DevTools MCP: Configuration Updated
 ════════════════════════════════════════════════════════
- Added: chrome-[N] entries to ~/.claude.json
+ Mode: [headless / headed]
+ Updated: chrome-1 through chrome-5 in ~/.claude.json
 
  ACTION REQUIRED:
  1. Restart Claude Code
- 2. Re-run /wsbaser:verify-feature
+ 2. Re-run /wsbaser:verify-feature [with same flags]
 ════════════════════════════════════════════════════════
 ```
-5. **STOP** — do not proceed with any further phases.
+4. **STOP** — do not proceed with any further phases.
 
-**If all 5 chrome-N entries are present:** proceed to Phase 1.
+**If all 5 chrome-N entries are present and correctly configured:** proceed to Phase 1.
 
 ## Phase 1: Parallel Research
 
