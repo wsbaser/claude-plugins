@@ -243,9 +243,9 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 >
 > 1. Use `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` **exclusively** for all browser interaction via the Bash tool. Never use a different session name.
 > 2. Before the first navigation, set the viewport to **1440x900** (desktop): `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize 1440 900`
-> 3. After every navigation or DOM change, run `snapshot` to get fresh element references before clicking or filling.
+> 3. After every navigation or DOM change, run `snapshot` to get fresh element references before clicking or filling. If the snapshot returns fewer than 3 interactive elements (inputs, buttons, or links), the page is likely still loading — wait 2 seconds and snapshot again, up to 3 retries, before proceeding. Never attempt to click or fill based on a sparse snapshot.
 > 4. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
-> 5. Check browser console after each significant interaction for JavaScript errors: `playwright-cli -s=track[TRACK_NUMBER] console`
+> 5. Check browser console after each significant interaction for JavaScript errors: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] console`
 > 6. If a step fails (500 error, element not found, unexpected redirect): take a screenshot as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
 > 7. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
 > 8. Do NOT fix bugs — only document them.
