@@ -284,8 +284,6 @@ pre{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overfl
 #toast{position:fixed;bottom:20px;right:20px;background:#1f2328;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:2000}
 #toast.visible{opacity:1}
 
-/* Footer */
-.ftr{border-top:1px solid var(--border);background:var(--surface);padding:16px 40px;font-size:12px;color:var(--muted);flex-shrink:0}
 </style>
 </head>
 <body>
@@ -312,7 +310,6 @@ pre{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overfl
   </div>
 </div>
 
-<footer class="ftr" id="rptFooter"></footer>
 
 <div id="lb">
   <button id="lbx" onclick="closeLb()" title="Close (ESC)">&times;</button>
@@ -541,9 +538,6 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('visible'),1500);
 }
 
-// ── FOOTER ───────────────────────────────────────────────────
-$('rptFooter').textContent =
-  `Branch: ${D.branch||'—'}  ·  Date: ${D.date}  ·  Tester: ${D.tester}`;
 
 // Auto-select first scenario
 if(D.scenarios.length) selectScenario(0);

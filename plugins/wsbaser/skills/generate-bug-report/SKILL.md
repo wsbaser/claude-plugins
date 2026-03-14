@@ -274,7 +274,6 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <footer class="ftr">
-  <div>Branch: <code>{{BRANCH_NAME}}</code> &middot; Date: {{DATE}} &middot; Tester: {{TESTER}}</div>
   <div>{{TRACE_HTML}}</div>
 </footer>
 
