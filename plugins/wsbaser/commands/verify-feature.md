@@ -134,8 +134,8 @@ Found N predefined scenario(s) — research phase will be adjusted.
 ### Step 1 — Determine target configuration
 
 Based on the flags passed:
-- If `--headed` was passed: target config has **no** `--headless` arg → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable"]`
-- Otherwise: target config includes `--headless` → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"]`
+- If `--headed` was passed: target config has **no** `--headless` arg → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--isolated"]`
+- Otherwise: target config includes `--headless` → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"]`
 
 ### Step 2 — Detect and validate configured instances
 
@@ -149,14 +149,14 @@ Read `~/.claude.json` using the `Read` tool. For each of `chrome-1` through `chr
 1. Update all `chrome-1` through `chrome-5` entries in `mcpServers` to the target configuration:
 
 ```json
-"chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] },
-"chrome-2": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] },
-"chrome-3": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] },
-"chrome-4": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] },
-"chrome-5": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless"] }
+"chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-2": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-3": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-4": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-5": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] }
 ```
 
-(If `--headed` was passed, omit `--headless` from every entry's `args`.)
+(If `--headed` was passed, omit `--headless` from every entry's `args` but keep `--isolated`.)
 
 2. Write the updated JSON back to `~/.claude.json` using the `Write` tool (preserve all other keys).
 3. Print:
