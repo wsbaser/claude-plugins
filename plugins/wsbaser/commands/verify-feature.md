@@ -107,6 +107,27 @@ allowed-tools: Agent,
 
 - **`--responsive`** — Also run responsive testing across Mobile (375x812), Tablet (768x1024), and Desktop (1440x900) viewports. Without this flag, only desktop viewport is used.
 
+## Pre-flight: Scenario Detection
+
+Before any other pre-flight steps, determine whether the user has provided predefined test scenarios. Scenarios can come from three sources:
+
+1. **Inline in prompt** — scenarios listed directly in the invocation arguments (e.g., `/verify-feature Test login flow, Test profile page`)
+2. **File path** — a path to a file containing scenarios (e.g., `/verify-feature scenarios.json` or `/verify-feature path/to/scenarios.md`)
+3. **Conversation context** — the user explicitly references prior scenarios (e.g., "use the scenarios above", "run the scenarios we discussed")
+
+### Detection logic
+
+1. Check the invocation prompt/args for inline scenario names (comma-separated items that describe test journeys) or a file path (ends in `.json`, `.md`, `.txt`, `.yaml`, `.yml`).
+2. If a file path is found: read the file using the `Read` tool and extract the scenario list from its contents. If the file cannot be read or contains no recognizable scenario content, fall back to treating the argument as inline scenario text (or trigger the full research flow if no scenarios can be extracted).
+3. If the prompt explicitly mentions scenarios from conversation context (e.g., "use the scenarios above", "test the scenarios we discussed", "run the scenarios"): scan prior conversation messages for scenario definitions.
+4. If no scenarios are mentioned in the invocation prompt at all: set `PREDEFINED_SCENARIOS = false` and proceed to the next pre-flight section. Do NOT scan conversation context unprompted.
+
+When scenarios are found: set `PREDEFINED_SCENARIOS = true`, store the scenario list, and print:
+
+```
+Found N predefined scenario(s) — research phase will be adjusted.
+```
+
 ## Pre-flight: Chrome DevTools MCP Setup
 
 ### Step 1 — Detect configured instances
@@ -145,7 +166,16 @@ Read `~/.claude.json` using the `Read` tool. Parse the JSON and count how many k
 
 ## Phase 1: Parallel Research
 
-Launch **three sub-agents simultaneously** using the Agent tool. All three run in parallel.
+**If PREDEFINED_SCENARIOS = false:** Launch all three sub-agents below simultaneously. This is the default full-research flow.
+
+**If PREDEFINED_SCENARIOS = true:**
+- **Sub-agent 1: SKIP** — journeys are already defined by the predefined scenarios.
+- **Sub-agent 3: SKIP** — bug hunting is always skipped with predefined scenarios.
+- **Sub-agent 2 (DB schema):** Use LLM judgment — run it ONLY if the provided scenarios appear to lack sufficient data validation detail (no DB queries mentioned, no expected record changes, no mention of database). If scenarios already include DB validation steps or the feature clearly does not touch the database, skip it too.
+- Print what was decided:
+  ```
+  Predefined scenarios detected — skipping journey discovery and bug hunting. Running DB research: [yes/no — reason].
+  ```
 
 ### Sub-agent 1: Application Structure & User Journeys
 
@@ -180,7 +210,7 @@ Launch **three sub-agents simultaneously** using the Agent tool. All three run i
 >
 > Return a prioritized list with file paths and line numbers.
 
-**Wait for all three sub-agents to complete before proceeding.**
+**Wait for all sub-agents that were launched to complete before proceeding.**
 
 ## Phase 1.5: Setup .reports/
 
@@ -201,10 +231,14 @@ Before starting the application:
 
 ## Phase 3: Create Task List & Parallelization Plan
 
-Using the user journeys from Sub-agent 1 and findings from Sub-agent 3, create a task (using TaskCreate) for each user journey. Each task should include:
+Determine the source of journeys:
+- **If PREDEFINED_SCENARIOS = true:** use the predefined scenario list directly as the source of journeys. Each predefined scenario becomes one task. For minimal scenarios (just a name or brief description with no detailed steps), include in the task description: "Steps not fully defined — execution agent will discover them from the app's UI." If Sub-agent 2 ran, include its DB info in the task description.
+- **If PREDEFINED_SCENARIOS = false:** use the user journeys from Sub-agent 1 and findings from Sub-agent 3.
+
+Create a task (using TaskCreate) for each journey. Each task should include:
 
 - **subject:** The journey name (e.g., "Test profile creation flow")
-- **description:** Steps to execute, expected outcomes, database records to verify (if applicable), and any related bug findings from Sub-agent 3
+- **description:** Steps to execute, expected outcomes, database records to verify (if applicable), and any related bug findings from Sub-agent 3 (if it ran)
 - **activeForm:** Present continuous (e.g., "Testing profile creation flow")
 
 If the `--responsive` flag was passed, also create a final task: "Responsive testing across viewports."
@@ -275,6 +309,8 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 > **Journey: [Journey Name]**
 > Steps:
 > [numbered list of steps from the task description]
+>
+> If the steps above are not fully defined (e.g. just a journey name), explore the app's UI to discover the appropriate steps for this journey. Use the snapshot/DOM inspection tools after navigating to the relevant page to identify available interactions.
 >
 > Expected outcomes: [what should be true at the end]
 >
@@ -349,7 +385,7 @@ Output a brief summary to the console:
 ### Issues Found During Testing
 - [Description] — [severity: high/medium/low] — [screenshot path]
 
-### Bug Hunt Findings (from code analysis)
+### Bug Hunt Findings (from code analysis) — only include if Sub-agent 3 was run
 - [Description] — [severity] — [file:line]
 
 All results saved to: `.reports/[REPORT_FILENAME]`
