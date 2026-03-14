@@ -59,7 +59,31 @@ playwright-cli --version 2>/dev/null
    playwright-cli install chromium
    ```
 
-**If `playwright-cli` is available:** proceed to Phase 1.
+### Step 2 — Install skills
+
+Check if the playwright-cli skills are installed in the current workspace by looking for `.claude/skills/playwright-cli/SKILL.md`.
+
+**If the file does not exist:**
+
+1. Run:
+   ```bash
+   playwright-cli install --skills
+   ```
+2. Print:
+   ```
+   ════════════════════════════════════════════════════════
+    Playwright CLI: Skills Installed
+   ════════════════════════════════════════════════════════
+    Installed: .claude/skills/playwright-cli/
+
+    ACTION REQUIRED:
+    1. Restart Claude Code
+    2. Re-run /wsbaser:verify-feature-playwright [with same flags]
+   ════════════════════════════════════════════════════════
+   ```
+3. **STOP** — do not proceed with any further phases.
+
+**If `.claude/skills/playwright-cli/SKILL.md` already exists:** proceed to Phase 1.
 
 > **How browser sessions work:** each track uses a named session (`-s=track1` through `-s=track5`). Named sessions are independent browser contexts — you can run up to 5 in parallel without interference. After all tests complete, sessions are cleaned up with `playwright-cli kill-all`.
 
@@ -119,7 +143,7 @@ playwright-cli --version 2>/dev/null
 
 Before starting the application:
 
-1. Check if `.reports/` is listed in the project's `.gitignore`. If it is not present, append `.reports/` to `.gitignore`.
+1. Check if `.reports/` and `.playwright-cli` are listed in the project's `.gitignore`. Append any that are missing.
 2. Create the directory `.reports/screenshots/` if it does not already exist.
 
 ## Phase 2: Start the Application
@@ -224,32 +248,62 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 >
 > **Headed mode:** [HEADED_FLAG] — if `--headed` was passed to the skill, this is `--headed`; otherwise it is empty and should be omitted from commands.
 >
-> **Playwright CLI command reference** (include `[HEADED_FLAG]` after `playwright-cli` on every command):
-> - Navigate: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] goto <url>`
-> - Snapshot (get element refs): `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] snapshot`
-> - Click element: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] click <ref>`
-> - Fill input: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] fill <ref> "<value>"`
-> - Type text: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] type "<text>"`
-> - Press key: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] press <key>` (e.g. `Enter`, `Tab`, `Escape`)
-> - Hover: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] hover <ref>`
-> - Select dropdown: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] select <ref> "<value>"`
-> - Screenshot: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] screenshot --filename=<path>`
-> - Console messages: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] console`
-> - Resize viewport: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize <width> <height>`
-> - Run JS: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] run-code "<js expression>"`
-> - Wait: use `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] snapshot` (it waits for the page to stabilize)
+> **Playwright CLI command reference** — prepend `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` to every command:
+> ```
+> # Session start (MUST be first command — opens the browser for this session)
+> open [url]                          # open browser, optionally navigate to url
+>
+> # Navigation
+> goto <url>                          # navigate (use after open)
+> reload                              # reload the current page
+> go-back                             # go back
+> go-forward                          # go forward
+>
+> # Interaction
+> snapshot                            # capture page state to get element refs (also waits for page to stabilize)
+> click <ref>                         # click element
+> dblclick <ref>                      # double-click element
+> fill <ref> "<text>"                 # fill input field
+> type "<text>"                       # type into focused element
+> press <key>                         # e.g. Enter, Tab, Escape, ArrowDown
+> hover <ref>                         # hover over element
+> select <ref> "<value>"              # select dropdown option
+> check <ref>                         # check checkbox/radio
+> uncheck <ref>                       # uncheck checkbox/radio
+>
+> # Screenshots & output
+> screenshot --filename=<path>        # save screenshot to path
+> pdf --filename=<path>               # save page as PDF
+>
+> # DevTools
+> console                             # list console messages
+> network                             # list network requests
+> eval "<expression>"                 # evaluate JS expression
+> run-code "<playwright code>"        # run a Playwright code snippet
+>
+> # Resize
+> resize <width> <height>             # resize viewport
+>
+> # Storage
+> localstorage-get <key>              # read localStorage
+> localstorage-set <key> <value>      # write localStorage
+> cookie-list                         # list cookies
+> state-save <filename>               # save full storage state
+> state-load <filename>               # restore storage state
+> ```
 >
 > **Instructions:**
 >
 > 1. Use `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` **exclusively** for all browser interaction via the Bash tool. Never use a different session name.
-> 2. Before the first navigation, set the viewport to **1440x900** (desktop): `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize 1440 900`
-> 3. After every navigation or DOM change, run `snapshot` to get fresh element references before clicking or filling. If the snapshot returns fewer than 3 interactive elements (inputs, buttons, or links), the page is likely still loading — wait 2 seconds and snapshot again, up to 3 retries, before proceeding. Never attempt to click or fill based on a sparse snapshot.
-> 4. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
-> 5. Check browser console after each significant interaction for JavaScript errors: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] console`
-> 6. If a step fails (500 error, element not found, unexpected redirect): take a screenshot as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
-> 7. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
-> 8. Do NOT fix bugs — only document them.
-> 9. Print each step to the console as you execute it:
+> 2. **Open the browser first** — the very first command in a session MUST be `open`: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] open`. This starts the browser process for the session. Use `goto` for all subsequent navigations.
+> 3. Immediately after `open`, set the viewport: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize 1440 900`
+> 4. After every navigation or DOM change, run `snapshot` to get fresh element references before clicking or filling. If the snapshot returns fewer than 3 interactive elements (inputs, buttons, or links), the page is likely still loading — wait 2 seconds and snapshot again, up to 3 retries, before proceeding. Never attempt to click or fill based on a sparse snapshot.
+> 5. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
+> 6. Check browser console after each significant interaction for JavaScript errors: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] console`
+> 7. If a step fails (500 error, element not found, unexpected redirect): take a screenshot as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
+> 8. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
+> 9. Do NOT fix bugs — only document them.
+> 10. Print each step to the console as you execute it:
 >    ```
 >    [Journey Name] > Step 1: [description]
 >    [Journey Name] > Step 2: [description]
@@ -273,7 +327,7 @@ The "Responsive testing across viewports" task runs **after all main tracks have
 
 > **Session:** `track1` — use ONLY `playwright-cli [HEADED_FLAG] -s=track1` for all browser commands (same `[HEADED_FLAG]` as the main scenarios).
 >
-> Revisit every major page at three viewport sizes. At each viewport, take a screenshot of every major page and analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
+> Start with `playwright-cli [HEADED_FLAG] -s=track1 open` to open the browser, then revisit every major page at three viewport sizes. At each viewport, take a screenshot of every major page and analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
 >
 > Viewports:
 > - **Mobile:** 375x812 — `playwright-cli [HEADED_FLAG] -s=track1 resize 375 812`
