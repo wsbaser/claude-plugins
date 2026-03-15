@@ -150,7 +150,35 @@ Before starting the application:
 
 1. **Read CLAUDE.md** (already in context) to find the dev server startup command. Look for a section like "Run with hot reload" or "Run dev server". Use that exact command.
 2. **Determine the correct dev URL**: From the startup command identified in step 1, find which launch profile it maps to, then read `launchSettings.json` (search for it under `Properties/launchSettings.json`) to get the `applicationUrl` for that exact profile. Use **only that URL** for all subsequent steps — do not guess a port or use a different profile's port.
-3. **Check if the app is already running** by probing that exact URL (e.g., `curl -s -o /dev/null -w "%{http_code}" http://localhost:PORT`). If it returns 200, skip to Phase 4 — do not start a second instance.
+3. **Check if the app is already running** by probing that exact URL
+   (e.g., `curl -s -o /dev/null -w "%{http_code}" http://localhost:PORT`).
+
+   **If it returns 200 (app is already running):**
+
+   Print a warning:
+   ```
+   ════════════════════════════════════════════════════════
+    ⚠ Application is already running on [URL]
+    The running instance may be built from a different
+    branch or commit and may NOT contain the changes you
+    want to verify. Restarting ensures tests run against
+    the correct version.
+   ════════════════════════════════════════════════════════
+   ```
+   Ask the user: "Restart the application from the current directory and branch? (yes/no)"
+
+   **If the user says YES (restart):**
+   - Detect OS inline: run `uname -s`. If the output contains `MINGW`, `CYGWIN`, or `MSYS`, this is **Windows**; otherwise Unix/macOS.
+   - Find and kill the process listening on the port:
+     - Unix/macOS: `lsof -ti :<PORT> | xargs kill -9 2>/dev/null || true`
+     - Windows: run `netstat -ano | findstr :<PORT>`, extract the PID from the last column, then `taskkill /PID <PID> /F`
+   - Wait 2 seconds for the port to be freed.
+   - Proceed to step 4 (install dependencies if needed, start the dev server in the background).
+
+   **If the user says NO (keep existing):**
+   - Print: "Using existing running instance."
+   - Skip to Phase 4 — do not start a second instance.
+
 4. If not running: install dependencies if needed, then start the dev server **in the background**.
 5. Wait for the server to be ready (poll the port until it responds).
 
