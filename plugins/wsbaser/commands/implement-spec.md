@@ -29,6 +29,8 @@ Specification path: $ARGUMENTS
 Before analysis, parse the command arguments:
 - If `$ARGUMENTS` contains `--full`, set **REVIEW_MODE = full** and strip `--full` from the spec path
 - Otherwise, set **REVIEW_MODE = adaptive** (default)
+- If `$ARGUMENTS` contains `--verify`, set **VERIFY = true** and strip `--verify` from the spec path
+- Otherwise, set **VERIFY = false**
 
 In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory reviewers — others are selected dynamically based on the implementation. In **full** mode, ALL reviewers are spawned upfront (original behavior).
 
@@ -372,7 +374,7 @@ No automatic thresholds — each issue judged in context of the spec and codebas
 
 Output a concise, scannable implementation summary to the conversation (NOT a file). Include the following information:
 
-- Top-level stats: cycles completed, build status, issues found/fixed/dismissed/deferred, files touched, review mode
+- Top-level stats: cycles completed, build status, issues found/fixed/dismissed/deferred, files touched, review mode, verification status (`enabled (Phase 6 will run after shutdown)` OR `disabled (--verify not passed)`)
 - Review summary per cycle: reviewer count, issues found/accepted/fixed/dismissed
 - Fixed issues: severity, category, cycle, reviewer(s), file(s), what was wrong, what was done
 - Dismissed issues: severity, reviewer, file, description, reason for dismissal
@@ -389,6 +391,52 @@ Omit any section that has no content.
 1. Send `shutdown_request` to ALL teammates via `SendMessage` (one per teammate)
 2. Wait for confirmations
 3. Call `TeamDelete` to clean up team and task directories
+
+After `TeamDelete` completes, check `VERIFY`:
+- If `VERIFY = true`: proceed to Phase 6 (Verification).
+- If `VERIFY = false`: the implementation is complete.
+
+---
+
+## Phase 6: Verification (Only When VERIFY = true)
+
+> **Skip this phase entirely if VERIFY = false.**
+
+**Goal**: Run end-to-end verification of the implemented feature using `wsbaser:verify-feature`, with acceptance criteria from the spec as predefined test scenarios.
+
+### Steps
+
+1. **Extract acceptance criteria** from the spec file that was implemented. Read the spec directory's files and locate the "Acceptance Criteria" section (or similarly named section such as "Acceptance Tests", "Expected Behavior", "Verification Criteria"). Each bullet point or numbered item becomes one predefined scenario.
+
+2. **Determine invocation mode** based on whether acceptance criteria were found:
+
+   **If acceptance criteria were found:** invoke `wsbaser:verify-feature` with predefined scenarios:
+
+   - **PREDEFINED_SCENARIOS = true** — pass the extracted acceptance criteria as the predefined scenario list
+   - **Also run Sub-agent 3 (bug hunting)** — include an explicit instruction at the **start** of the invocation arguments (before the scenario list) to run Sub-agent 3 in addition to predefined scenarios.
+   - App startup is fully delegated to verify-feature's Phase 2 logic — no special handling here.
+
+   Invoke the skill with the instruction and acceptance criteria as inline arguments. Example invocation:
+
+   ```
+   /wsbaser:verify-feature Run sub-agent 3 (bug hunt). Predefined scenarios: User can create an invoice, User can delete a draft invoice, Total is recalculated after line item change
+   ```
+
+   The format is: `Run sub-agent 3 (bug hunt). Predefined scenarios: {scenario1}, {scenario2}, ...` — copy acceptance criteria verbatim from the spec's acceptance criteria section.
+
+   **If NO acceptance criteria section was found in the spec:** print a warning and fall back to full discovery mode:
+
+   ```
+   ⚠ No Acceptance Criteria section found in spec — running verify-feature with full app discovery instead.
+   ```
+
+   Invoke `wsbaser:verify-feature` without predefined scenarios (standard full scan — `PREDEFINED_SCENARIOS = false`). Sub-agent 3 (bug hunting) runs automatically in this mode.
+
+3. **Wait for `verify-feature` to complete.** The HTML report is written to `.reports/{slug}.html` by verify-feature automatically. If verify-feature reports a failure (app failed to start, no scenarios ran), print a warning:
+   ```
+   ⚠ Verification incomplete: {reason}. See verify-feature output above.
+   ```
+   The implementation is still considered done — verification failure does not roll back Phase 5.
 
 ---
 
