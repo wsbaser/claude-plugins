@@ -234,7 +234,7 @@ Task generation varies by `TESTING_MODE`:
 
 Create a **single task**:
 - **subject:** "Smoke test — basic app verification"
-- **description:** "Quick verification that the app loads and core navigation works. Steps: 1) Navigate to app URL, 2) Verify home page renders, 3) Test primary navigation links, 4) Check for console errors. Discover additional interactions from the UI — click visible buttons, test forms that appear accessible. Report any immediate visual or functional issues."
+- **description:** "Adaptive smoke test — navigate to the app, explore the UI to understand what this application does, then design and execute a minimal smoke scenario covering the most critical paths for this specific app. Report any immediate visual or functional issues found."
 - **activeForm:** "Running smoke test"
 
 ### FOCUSED Mode
