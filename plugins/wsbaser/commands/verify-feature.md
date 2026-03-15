@@ -112,6 +112,19 @@ allowed-tools: Agent,
 
 Before any other pre-flight steps, analyze the user's intent to determine the appropriate testing mode. This determines research depth and execution approach.
 
+### Context Gathering
+
+Run the following commands to collect git context before analyzing the prompt:
+
+```bash
+git branch --show-current
+git log --oneline -5
+```
+
+If `git branch --show-current` returns an empty string (detached HEAD), treat the branch as unclassified and do not apply the feature-branch heuristic.
+
+Use this context when the prompt contains no explicit mode indicator — if you're on a feature branch (not `main`, `master`, `develop`, or similar) and the request is ambiguous (no mode keyword), default to verifying the current branch's changes rather than the whole application. Use the recent commit messages to infer the target area for FOCUSED mode when no area is explicitly named.
+
 ### Mode Detection
 
 Analyze the invocation prompt/args to detect the testing mode:
@@ -149,6 +162,31 @@ Print the detected mode and key details:
  FULL:     Complete research + all journeys
 ═══════════════════════════════════════════════════════
 ```
+
+### Scenario Confirmation
+
+Before proceeding, derive the scenario list from the detected mode:
+
+- **SMOKE** — one scenario: "Smoke pass: navigate app, verify key UI elements load without errors"
+- **FOCUSED** — one scenario per logical area implied by `TARGET_AREA` (usually 1–3)
+- **CUSTOM** — the loaded `SCENARIO_LIST`
+- **FULL** — scenarios will be defined after research; skip confirmation and proceed directly
+
+For SMOKE, FOCUSED, and CUSTOM modes only, display the scenarios as a numbered list and ask the user for confirmation before continuing:
+
+> **Planned scenarios:**
+> 1. [scenario 1]
+> 2. [scenario 2]
+> ...
+>
+> Proceed with these scenarios, or would you like to adjust them?
+
+Wait for the user's response.
+- If they confirm (e.g. "yes", "go ahead", "looks good") — proceed with the displayed scenarios.
+- If they request changes — update the scenario list to reflect their input, redisplay the updated list, and ask for confirmation again.
+- If the response is ambiguous — ask a clarifying follow-up before proceeding.
+
+Do not continue until an explicit confirmation is received.
 
 ## Pre-flight: Chrome DevTools MCP Setup
 
