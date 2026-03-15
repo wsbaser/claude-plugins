@@ -116,7 +116,7 @@ Read the entire conversation and extract the following data model. Build it as a
 ### Extraction rules
 
 - Look for structured agent results from `verify-feature` outputs (sections like "Steps completed:", "Issues found:", "Screenshots taken:", "DB validation results:").
-- Also look for inline test notes, browser action logs, and any `mcp__chrome-*` tool output discussed in conversation.
+- Also look for inline test notes, browser action logs, and any `mcp__chrome-*` or `mcp__plugin_playwright_*` tool output in the conversation.
 - If a scenario has no issues and all steps passed, set `status: "pass"`. If it has issues but completed, set `status: "issue"`. If a step explicitly failed or the scenario could not complete, set `status: "fail"`.
 - If any field cannot be determined, use a sensible default (`tester: "Manual test"`, `subtitle: ""`).
 
@@ -124,13 +124,31 @@ Read the entire conversation and extract the following data model. Build it as a
 
 ## Phase 2 — Screenshot Encoding
 
-For each screenshot in `screenshots[]` where `data_uri` is empty:
-1. Read the file as binary.
-2. Base64-encode it.
-3. Determine mime type from extension (`image/png`, `image/jpeg`).
-4. Set `data_uri = "data:{mime};base64,{data}"`.
+Use the bundled Node.js script — do **not** write inline bash/node/python code for encoding. Inline scripts using backticks (template literals) break bash quoting, and `python3` is not available on Windows.
 
-If a file does not exist at the path, set `data_uri: null` and omit that screenshot from rendering.
+**Step 1 — Locate the script:**
+Use Glob to find:
+`~/.claude/plugins/cache/wsbaser-plugins/wsbaser/*/skills/generate-test-report/scripts/encode-screenshots.js`
+Use the **most recently modified** result (Glob returns paths sorted by modification time — use the first).
+
+**Step 2 — Build the path list:**
+Collect all `path` values from `screenshots[]` into a JSON array string, e.g.:
+`'[".reports/screenshots/login/01.png",".reports/screenshots/login/02.png"]'`
+
+If `screenshots[]` is empty, skip to Phase 3 — the script and encoding steps are not needed.
+
+**Step 3 — Run the script:**
+```bash
+node "<script_path>" '<json-array>'
+```
+> Run this in bash (Git Bash on Windows). Single-quoted strings are safe in bash; if running in cmd/PowerShell, use double quotes around the JSON array instead.
+
+The script prints a JSON array of `{"path": "...", "data_uri": "..."}` objects to stdout.
+
+**Step 4 — Apply results:**
+Match each result by `path` back to `screenshots[]` and set `data_uri`. If `data_uri` is `null`, the file was not found — keep the entry in `screenshots[]` with `data_uri: null` (the renderer silently skips it).
+
+**Fallback:** If the script is not found, set `data_uri: null` for all screenshots and continue — the report generates without images.
 
 ---
 
@@ -142,7 +160,7 @@ Locate and read the HTML template:
 
 Write `.reports/{slug}.html`. Create `.reports/` if it does not exist.
 
-Embed `REPORT_DATA` at the `{{REPORT_DATA_JSON}}` placeholder. Replace `{{TITLE}}` in `<title>` with the report title.
+Embed `REPORT_DATA` at the `{{REPORT_DATA_JSON}}` placeholder. Replace `{{TITLE}}` in `<title>` with the report title (fall back to `slug` if `title` is empty).
 
 ### Status color mapping
 

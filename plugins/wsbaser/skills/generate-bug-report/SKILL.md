@@ -47,13 +47,31 @@ If any field cannot be determined from context, use a sensible default (e.g., `v
 
 ## Phase 2 — Screenshot Encoding
 
-For each path in `screenshot_paths[]`:
-1. Read the file as binary.
-2. Base64-encode it.
-3. Determine mime type (`image/png`, `image/jpeg`, etc.) from extension.
-4. Build `data:{mime};base64,{data}` URI.
+Use the bundled Node.js script — do **not** write inline bash/node/python code for encoding. Inline scripts using backticks (template literals) break bash quoting, and `python3` is not available on Windows.
 
-If the list is empty, omit the screenshot grid section entirely.
+**Step 1 — Locate the script:**
+Use Glob to find:
+`~/.claude/plugins/cache/wsbaser-plugins/wsbaser/*/skills/generate-bug-report/scripts/encode-screenshots.js`
+Use the **most recently modified** result (Glob returns paths sorted by modification time — use the first).
+
+**Step 2 — Build the path list:**
+Collect all entries in `screenshot_paths[]` into a JSON array string, e.g.:
+`'[".reports/screenshots/bug/01-before.png",".reports/screenshots/bug/02-after.png"]'`
+
+**Step 3 — Run the script:**
+```bash
+node "<script_path>" '<json-array>'
+```
+> Run this in bash (Git Bash on Windows). Single-quoted strings are safe in bash; if running in cmd/PowerShell, use double quotes around the JSON array instead.
+
+The script prints a JSON array of `{"path": "...", "data_uri": "..."}` objects to stdout.
+
+**Step 4 — Apply results:**
+Use the returned `data_uri` values when generating screenshot HTML. If `data_uri` is `null`, the file was not found — skip that screenshot.
+
+If `screenshot_paths[]` is empty, omit the screenshot grid section entirely.
+
+**Fallback:** If the script is not found, omit all screenshots and continue — the report generates without images.
 
 ## Phase 3 — HTML Report Generation
 
@@ -163,6 +181,7 @@ Add `<div class="sdiv"></div>` between each stat item in `{{STATS_HTML}}`.
     <button onclick="lbNext()">&#8594;</button>
   </div>
 </div>
+<!-- Lightbox script (minified intentionally for compact self-contained output) -->
 <script>
 const shots=document.querySelectorAll('#shots .sc img');
 const srcs=[...shots].map(i=>i.src);
@@ -186,6 +205,18 @@ document.addEventListener('keydown',function(e){if(!document.getElementById('lb'
 ```html
 Trace: <a href="TRACE_PATH">TRACE_FILENAME</a>
 ```
+
+### Code snippet (`code_snippet.html`) — pre-rendered syntax-highlighted HTML
+
+The `html` field of `code_snippet` is a `<pre>` block with inline `<span>` tags. Generate it directly from the source code:
+
+```html
+<pre><span class="kw">if</span> (<span class="nm">id</span> == <span class="nm">0</span>) <span class="co">// guard: skip delete for unsaved records</span>
+  <span class="kw">return</span>;
+<span class="hlr"><span class="fnn">DeleteAsync</span>(<span class="nm">id</span>);</span></pre>
+```
+
+Span classes: `.kw` keywords · `.ty` types · `.fnn` function names · `.nm` literals/identifiers · `.co` comments · `.hlr` highlighted line block (wraps the entire line including its spans).
 
 ---
 
