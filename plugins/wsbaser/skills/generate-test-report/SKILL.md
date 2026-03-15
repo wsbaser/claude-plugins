@@ -189,3 +189,9 @@ Embed `REPORT_DATA` at the `{{REPORT_DATA_JSON}}` placeholder. Replace `{{TITLE}
 5. **`screenshots[]` must include `data_uri` for every screenshot that exists on disk** — set `data_uri: null` for any file not found (silently skipped in rendering).
 6. If no scenarios could be extracted from context, write a minimal report with a single scenario named "No test data found" with `status: "issue"` and one step explaining that no test results were detected in the conversation.
 7. **The HTML must open in a browser with no console errors** — validate all placeholders are replaced before writing.
+
+---
+
+## Phase 4 — Open in Browser
+
+After writing the report file, run `open .reports/{slug}.html` to launch it in the user's default browser.
