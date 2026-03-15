@@ -80,9 +80,9 @@ Print the detected mode and key details:
 
 ### Scenario Confirmation
 
-Before proceeding, derive the scenario list from the detected mode:
+Before proceeding, derive the scenario list from the detected mode. In all cases, use the context gathered (changed files, recent commits, current branch) to focus scenarios on the relevant areas.
 
-- **SMOKE** — one scenario: "Smoke pass: navigate app, verify key UI elements load without errors"
+- **SMOKE** — one scenario
 - **FOCUSED** — one scenario per logical area implied by `TARGET_AREA` (usually 1–3)
 - **CUSTOM** — the loaded `SCENARIO_LIST`
 - **FULL** — scenarios will be defined after research; skip confirmation and proceed directly
@@ -274,8 +274,9 @@ Task generation varies by `TESTING_MODE`:
 ### SMOKE Mode
 
 Create a **single task**:
-- **subject:** "Smoke test — basic app verification"
-- **description:** "Adaptive smoke test — navigate to the app, explore the UI to understand what this application does, then design and execute a minimal smoke scenario covering the most critical paths for this specific app. Report any immediate visual or functional issues found."
+
+- **subject:** "Smoke test"
+- **description:** Based on context gathered, verify the relevant areas of the app. Report any visual issues, broken layouts, or console errors.
 - **activeForm:** "Running smoke test"
 
 ### FOCUSED Mode
