@@ -213,7 +213,7 @@ Before starting the application:
    - Detect OS inline: run `uname -s`. If the output contains `MINGW`, `CYGWIN`, or `MSYS`, this is **Windows**; otherwise Unix/macOS.
    - Find and kill the process listening on the port:
      - Unix/macOS: `lsof -ti :<PORT> | xargs kill -9 2>/dev/null || true`
-     - Windows: run `netstat -ano | findstr :<PORT>`, extract the PID from the last column, then `taskkill /PID <PID> /F`
+     - Windows: run `netstat -ano | findstr :<PORT>`, extract the PID from the last column, then `taskkill //PID <PID> //F` (use `//PID` and `//F` — double slash prevents MINGW64/Git Bash from converting `/PID` to a file path like `C:/Program Files/Git/PID`)
    - Wait 2 seconds for the port to be freed.
    - Proceed to step 4 (install dependencies if needed, start the dev server in the background).
 
