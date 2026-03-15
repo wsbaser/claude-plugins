@@ -115,15 +115,17 @@ Before any other pre-flight steps, analyze the user's intent to determine the ap
 
 ### Context Gathering
 
-Before analyzing the prompt, run:
+Before analyzing the prompt, run each command separately with a labeled echo prefix so the output sections are unambiguous:
 
 ```bash
-git branch --show-current
-git log --oneline -5
-git diff --staged --name-only
-git diff --name-only
-git diff develop...HEAD --name-only
+echo "=== BRANCH ===" && git branch --show-current
+echo "=== LOG ===" && git log --oneline -5
+echo "=== STAGED ===" && git diff --staged --name-only
+echo "=== UNSTAGED ===" && git diff --name-only
+echo "=== BRANCH_DIFF ===" && git diff develop...HEAD --name-only 2>/dev/null || git diff main...HEAD --name-only 2>/dev/null
 ```
+
+Parse each section by its label. The `STAGED` section is the output between `=== STAGED ===` and `=== UNSTAGED ===`, the `UNSTAGED` section is between `=== UNSTAGED ===` and `=== BRANCH_DIFF ===`, and so on.
 
 **Target area inference — always applies regardless of mode:**
 Use this priority order to determine what the current work is about:
