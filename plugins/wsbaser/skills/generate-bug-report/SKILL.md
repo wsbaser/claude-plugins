@@ -228,3 +228,9 @@ Span classes: `.kw` keywords · `.ty` types · `.fnn` function names · `.nm` li
 4. Mandatory sections: header, verdict, stats, test execution, network capture, call chain, code section, findings table, footer. Screenshot section only if screenshots exist.
 5. Syntax highlight spans: `.kw` keywords · `.ty` types · `.fnn` function names · `.nm` literals · `.co` comments · `.hlr` highlighted line block.
 6. **The HTML must open in a browser with no console errors** — validate all placeholders are replaced before writing.
+
+---
+
+## Phase 4 — Open in Browser
+
+After writing the report file, run `open .reports/{slug}.html` to launch it in the user's default browser.
