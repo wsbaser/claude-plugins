@@ -122,9 +122,16 @@ git branch --show-current
 git log --oneline -5
 git diff --staged --name-only
 git diff --name-only
+git diff develop...HEAD --name-only
 ```
 
-When no explicit mode indicator is given: default to FOCUSED on a feature branch, FULL on an integration branch (main/master/develop/etc). Infer the target area by priority: staged changes → unstaged changes → recent commits.
+**Target area inference — always applies regardless of mode:**
+Use this priority order to determine what the current work is about:
+1. **Unstaged changes** (`git diff --name-only`) — highest priority. These are the most recent edits, not yet committed.
+2. **Staged changes** (`git diff --staged --name-only`) — if no unstaged changes.
+3. **Branch diff vs develop** (`git diff develop...HEAD --name-only`) — if no local changes at all, scope to everything this branch adds compared to develop.
+
+Once you have identified which tier has changes, derive the target area **exclusively** from those file paths — do not use the branch name or commit messages to narrow, filter, or corroborate. They will mislead you when staged changes belong to a different feature than the branch name suggests.
 
 ### Mode Detection
 
@@ -166,7 +173,7 @@ Print the detected mode and key details:
 
 ### Scenario Confirmation
 
-Before proceeding, derive the scenario list from the detected mode:
+Before proceeding, derive the scenario list from the detected mode. Use the **target area inferred above** to focus scenarios.
 
 - **SMOKE** — one scenario: "Smoke pass: navigate app, verify key UI elements load without errors"
 - **FOCUSED** — one scenario per logical area implied by `TARGET_AREA` (usually 1–3)
