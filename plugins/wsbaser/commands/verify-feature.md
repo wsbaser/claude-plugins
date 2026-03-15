@@ -133,27 +133,41 @@ Found N predefined scenario(s) — research phase will be adjusted.
 
 ### Step 1 — Determine target configuration
 
-Based on the flags passed:
-- If `--headed` was passed: target config has **no** `--headless` arg → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--isolated"]`
-- Otherwise: target config includes `--headless` → `"args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"]`
+**Detect OS:** Run `uname -s` via Bash. If the output contains `MINGW`, `CYGWIN`, or `MSYS`, this is **Windows**. Otherwise it is Unix/macOS.
+
+Based on the flags and OS:
+- **Windows:** use `"command": "cmd"` with `"/c"` as the first arg, then `"npx"` and the rest of the args.
+- **Unix/macOS:** use `"command": "npx"` directly.
+- If `--headed` was passed: target config has **no** `--headless` arg.
+- Otherwise: target config includes `--headless`.
 
 ### Step 2 — Detect and validate configured instances
 
 Read `~/.claude.json` using the `Read` tool. For each of `chrome-1` through `chrome-5` in `mcpServers`:
 
 - Check whether it **exists**.
-- Check whether its `args` array **matches the target configuration** determined in Step 1 (specifically whether `--headless` is present or absent as required).
+- Check whether its `command` and `args` array **match the target configuration** determined in Step 1 (specifically whether `--headless` is present or absent as required, and whether the Windows `cmd /c` wrapper is used correctly).
 
-**If any entry is missing OR has the wrong headless/headed configuration:**
+**If any entry is missing OR has the wrong configuration:**
 
-1. Update all `chrome-1` through `chrome-5` entries in `mcpServers` to the target configuration:
+1. Update all `chrome-1` through `chrome-5` entries in `mcpServers` to the target configuration.
 
+**Unix/macOS (headless):**
 ```json
 "chrome-1": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
 "chrome-2": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
 "chrome-3": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
 "chrome-4": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
 "chrome-5": { "type": "stdio", "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] }
+```
+
+**Windows (headless):**
+```json
+"chrome-1": { "type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-2": { "type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-3": { "type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-4": { "type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] },
+"chrome-5": { "type": "stdio", "command": "cmd", "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--channel", "stable", "--headless", "--isolated"] }
 ```
 
 (If `--headed` was passed, omit `--headless` from every entry's `args` but keep `--isolated`.)
