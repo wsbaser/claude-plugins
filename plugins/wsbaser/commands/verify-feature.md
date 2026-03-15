@@ -108,25 +108,46 @@ allowed-tools: Agent,
 - **`--responsive`** — Also run responsive testing across Mobile (375x812), Tablet (768x1024), and Desktop (1440x900) viewports. Without this flag, only desktop viewport is used.
 - **`--headed`** — Run Chrome instances in headed (visible) mode. Useful for watching test execution in real time. When passed, Chrome is launched without `--headless` so you can see the browser window.
 
-## Pre-flight: Scenario Detection
+## Pre-flight: Intent Analysis
 
-Before any other pre-flight steps, determine whether the user has provided predefined test scenarios. Scenarios can come from three sources:
+Before any other pre-flight steps, analyze the user's intent to determine the appropriate testing mode. This determines research depth and execution approach.
 
-1. **Inline in prompt** — scenarios listed directly in the invocation arguments (e.g., `/verify-feature Test login flow, Test profile page`)
-2. **File path** — a path to a file containing scenarios (e.g., `/verify-feature scenarios.json` or `/verify-feature path/to/scenarios.md`)
-3. **Conversation context** — the user explicitly references prior scenarios (e.g., "use the scenarios above", "run the scenarios we discussed")
+### Mode Detection
 
-### Detection logic
+Analyze the invocation prompt/args to detect the testing mode:
 
-1. Check the invocation prompt/args for inline scenario names (comma-separated items that describe test journeys) or a file path (ends in `.json`, `.md`, `.txt`, `.yaml`, `.yml`).
-2. If a file path is found: read the file using the `Read` tool and extract the scenario list from its contents. If the file cannot be read or contains no recognizable scenario content, fall back to treating the argument as inline scenario text (or trigger the full research flow if no scenarios can be extracted).
-3. If the prompt explicitly mentions scenarios from conversation context (e.g., "use the scenarios above", "test the scenarios we discussed", "run the scenarios"): scan prior conversation messages for scenario definitions.
-4. If no scenarios are mentioned in the invocation prompt at all: set `PREDEFINED_SCENARIOS = false` and proceed to the next pre-flight section. Do NOT scan conversation context unprompted.
+| Mode | Indicators | Research | Execution |
+|------|------------|----------|-----------|
+| **SMOKE** | "smoke test", "quick test", "sanity check", "just verify", "basic check", "fast check" | Skip all | Single pass with UI discovery |
+| **FOCUSED** | "verify [feature]", "test the [X]", "check if [Y] works", "test [component]", "validate [area]" | Targeted only on mentioned area | Test that area + direct dependencies |
+| **CUSTOM** | Inline scenarios (comma-separated) OR file path (`.json`, `.md`, `.txt`, `.yaml`, `.yml`) OR explicit context reference ("use the scenarios above") | Skip all | Run provided scenarios |
+| **FULL** | No indicators OR "comprehensive", "full regression", "complete test", "all scenarios" | All 3 agents | Complete testing |
 
-When scenarios are found: set `PREDEFINED_SCENARIOS = true`, store the scenario list, and print:
+### Detection Logic
+
+1. **Check for SMOKE indicators** — if any smoke test phrases are present, set `TESTING_MODE = SMOKE`.
+2. **Check for CUSTOM sources** — look for:
+   - Inline scenarios: comma-separated items that describe test journeys
+   - File path: ends in `.json`, `.md`, `.txt`, `.yaml`, `.yml`
+   - Context reference: "use the scenarios above", "run the scenarios we discussed"
+   - If found, read file if needed, extract scenarios, set `TESTING_MODE = CUSTOM` and store `SCENARIO_LIST`.
+3. **Check for FOCUSED indicators** — if prompt mentions testing/verifying/checking a specific feature, component, or area (but not smoke or custom), set `TESTING_MODE = FOCUSED` and store `TARGET_AREA`.
+4. **Default to FULL** — if no other mode matches, set `TESTING_MODE = FULL`.
+
+### Mode Output
+
+Print the detected mode and key details:
 
 ```
-Found N predefined scenario(s) — research phase will be adjusted.
+═══════════════════════════════════════════════════════
+ Testing Mode: [SMOKE | FOCUSED | CUSTOM | FULL]
+═══════════════════════════════════════════════════════
+ [Mode-specific details:]
+ SMOKE:    Skipping research, quick UI verification
+ FOCUSED:  Target: [feature/area name]
+ CUSTOM:   N predefined scenario(s) loaded
+ FULL:     Complete research + all journeys
+═══════════════════════════════════════════════════════
 ```
 
 ## Pre-flight: Chrome DevTools MCP Setup
@@ -190,18 +211,35 @@ Read `~/.claude.json` using the `Read` tool. For each of `chrome-1` through `chr
 
 **If all 5 chrome-N entries are present and correctly configured:** proceed to Phase 1.
 
-## Phase 1: Parallel Research
+## Phase 1: Research (Mode-Conditional)
 
-**If PREDEFINED_SCENARIOS = false:** Launch all three sub-agents below simultaneously. This is the default full-research flow.
+Research depth is determined by `TESTING_MODE`:
 
-**If PREDEFINED_SCENARIOS = true:**
-- **Sub-agent 1: SKIP** — journeys are already defined by the predefined scenarios.
-- **Sub-agent 3: SKIP** — bug hunting is always skipped with predefined scenarios.
-- **Sub-agent 2 (DB schema):** Use LLM judgment — run it ONLY if the provided scenarios appear to lack sufficient data validation detail (no DB queries mentioned, no expected record changes, no mention of database). If scenarios already include DB validation steps or the feature clearly does not touch the database, skip it too.
-- Print what was decided:
-  ```
-  Predefined scenarios detected — skipping journey discovery and bug hunting. Running DB research: [yes/no — reason].
-  ```
+| Mode | Sub-agent 1 (Journeys) | Sub-agent 2 (DB) | Sub-agent 3 (Bugs) |
+|------|------------------------|------------------|---------------------|
+| **SMOKE** | SKIP | SKIP | SKIP |
+| **CUSTOM** | SKIP | Conditional* | SKIP |
+| **FOCUSED** | Targeted only | Targeted only | SKIP |
+| **FULL** | Run | Run | Run |
+
+*For CUSTOM: Run Sub-agent 2 ONLY if scenarios lack DB validation detail.
+
+### Mode-Specific Instructions
+
+**SMOKE:** Skip all research. Print: `Skipping research — smoke test mode.`
+
+**CUSTOM:**
+- Skip Sub-agents 1 and 3.
+- Sub-agent 2: Run ONLY if scenarios lack DB validation detail (no queries, no expected record changes, no DB mention). Otherwise skip.
+- Print: `Predefined scenarios detected — skipping journey discovery and bug hunting. Running DB research: [yes/no — reason].`
+
+**FOCUSED:**
+- Sub-agent 1: Run targeted research on `TARGET_AREA` only — document journeys involving that feature/area.
+- Sub-agent 2: Run targeted research on tables/queries related to `TARGET_AREA` only.
+- Skip Sub-agent 3 (bug hunting).
+- Print: `Focused research on: [TARGET_AREA] — running targeted journey and DB analysis.`
+
+**FULL:** Launch all three sub-agents below simultaneously. This is the default full-research flow.
 
 ### Sub-agent 1: Application Structure & User Journeys
 
@@ -284,11 +322,40 @@ Before starting the application:
 
 ## Phase 3: Create Task List & Parallelization Plan
 
-Determine the source of journeys:
-- **If PREDEFINED_SCENARIOS = true:** use the predefined scenario list directly as the source of journeys. Each predefined scenario becomes one task. For minimal scenarios (just a name or brief description with no detailed steps), include in the task description: "Steps not fully defined — execution agent will discover them from the app's UI." If Sub-agent 2 ran, include its DB info in the task description.
-- **If PREDEFINED_SCENARIOS = false:** use the user journeys from Sub-agent 1 and findings from Sub-agent 3.
+Task generation varies by `TESTING_MODE`:
 
-Create a task (using TaskCreate) for each journey. Each task should include:
+### SMOKE Mode
+
+Create a **single task**:
+- **subject:** "Smoke test — basic app verification"
+- **description:** "Quick verification that the app loads and core navigation works. Steps: 1) Navigate to app URL, 2) Verify home page renders, 3) Test primary navigation links, 4) Check for console errors. Discover additional interactions from the UI — click visible buttons, test forms that appear accessible. Report any immediate visual or functional issues."
+- **activeForm:** "Running smoke test"
+
+### FOCUSED Mode
+
+Create tasks **only for journeys involving `TARGET_AREA`**:
+- From Sub-agent 1 results, filter journeys to only those that touch the target feature/area.
+- Include any prerequisite journeys needed to reach the target (e.g., login before testing profile).
+- **subject:** Journey name (e.g., "Test profile update flow")
+- **description:** Include steps, expected outcomes, and DB queries (from targeted Sub-agent 2 research if run).
+- **activeForm:** Present continuous form.
+
+### CUSTOM Mode
+
+Use the **predefined scenario list**:
+- Each scenario becomes one task.
+- For minimal scenarios (just a name/description), include: "Steps not fully defined — execution agent will discover them from the app's UI."
+- Include DB info from Sub-agent 2 if it was run.
+
+### FULL Mode
+
+Use **all discovered journeys**:
+- From Sub-agent 1 (user journeys) and Sub-agent 3 (bug findings).
+- Create a task for each journey.
+
+---
+
+For all modes, each task should include:
 
 - **subject:** The journey name (e.g., "Test profile creation flow")
 - **description:** Steps to execute, expected outcomes, database records to verify (if applicable), and any related bug findings from Sub-agent 3 (if it ran)
