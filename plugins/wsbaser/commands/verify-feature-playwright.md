@@ -29,21 +29,23 @@ Before any other pre-flight steps, analyze the user's intent to determine the ap
 
 ### Context Gathering
 
-Before analyzing the prompt, run:
+Before analyzing the prompt, run each command separately with a labeled echo prefix so the output sections are unambiguous:
 
 ```bash
-git branch --show-current
-git log --oneline -5
-git diff --staged --name-only
-git diff --name-only
-git diff develop...HEAD --name-only
+echo "=== BRANCH ===" && git branch --show-current
+echo "=== LOG ===" && git log --oneline -5
+echo "=== STAGED ===" && git diff --staged --name-only
+echo "=== UNSTAGED ===" && git diff --name-only
+echo "=== BRANCH_DIFF ===" && git diff develop...HEAD --name-only 2>/dev/null || git diff main...HEAD --name-only 2>/dev/null
 ```
+
+Parse each section by its label. The `STAGED` section is the output between `=== STAGED ===` and `=== UNSTAGED ===`, the `UNSTAGED` section is between `=== UNSTAGED ===` and `=== BRANCH_DIFF ===`, and so on.
 
 **Target area inference — always applies regardless of mode:**
 Use this priority order to determine what the current work is about:
-1. **Unstaged changes** (`git diff --name-only`) — highest priority. These are the most recent edits, not yet committed.
-2. **Staged changes** (`git diff --staged --name-only`) — if no unstaged changes.
-3. **Branch diff vs develop** (`git diff develop...HEAD --name-only`) — if no local changes at all, scope to everything this branch adds compared to develop.
+1. **Unstaged changes** (`=== UNSTAGED ===` section) — highest priority. These are the most recent edits, not yet committed.
+2. **Staged changes** (`=== STAGED ===` section) — if no unstaged changes.
+3. **Branch diff vs develop/main** (`=== BRANCH_DIFF ===` section) — if no local changes at all, scope to everything this branch adds compared to the base branch.
 
 Once you have identified which tier has changes, derive the target area **exclusively** from those file paths — do not use the branch name or commit messages to narrow, filter, or corroborate. They will mislead you when staged changes belong to a different feature than the branch name suggests.
 
