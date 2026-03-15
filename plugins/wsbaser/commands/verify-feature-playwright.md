@@ -29,16 +29,16 @@ Before any other pre-flight steps, analyze the user's intent to determine the ap
 
 ### Context Gathering
 
-Run the following commands to collect git context before analyzing the prompt:
+Before analyzing the prompt, run:
 
 ```bash
 git branch --show-current
 git log --oneline -5
+git diff --staged --name-only
+git diff --name-only
 ```
 
-If `git branch --show-current` returns an empty string (detached HEAD), treat the branch as unclassified and do not apply the feature-branch heuristic.
-
-Use this context when the prompt contains no explicit mode indicator — if you're on a feature branch (not `main`, `master`, `develop`, or similar) and the request is ambiguous (no mode keyword), default to verifying the current branch's changes rather than the whole application. Use the recent commit messages to infer the target area for FOCUSED mode when no area is explicitly named.
+When no explicit mode indicator is given: default to FOCUSED on a feature branch, FULL on an integration branch (main/master/develop/etc). Infer the target area by priority: staged changes → unstaged changes → recent commits.
 
 ### Mode Detection
 
@@ -87,19 +87,22 @@ Before proceeding, derive the scenario list from the detected mode:
 - **CUSTOM** — the loaded `SCENARIO_LIST`
 - **FULL** — scenarios will be defined after research; skip confirmation and proceed directly
 
-For SMOKE, FOCUSED, and CUSTOM modes only, display the scenarios as a numbered list and ask the user for confirmation before continuing:
+For SMOKE, FOCUSED, and CUSTOM modes only, display the scenarios as a numbered list and use the `AskUserQuestion` tool to ask for confirmation before continuing:
 
-> **Planned scenarios:**
-> 1. [scenario 1]
-> 2. [scenario 2]
-> ...
->
-> Proceed with these scenarios, or would you like to adjust them?
+**Question text:**
+```
+Planned scenarios:
+1. [scenario 1]
+2. [scenario 2]
+...
+
+Proceed with these scenarios, or would you like to adjust them?
+```
 
 Wait for the user's response.
 - If they confirm (e.g. "yes", "go ahead", "looks good") — proceed with the displayed scenarios.
-- If they request changes — update the scenario list to reflect their input, redisplay the updated list, and ask for confirmation again.
-- If the response is ambiguous — ask a clarifying follow-up before proceeding.
+- If they request changes — update the scenario list to reflect their input, then use `AskUserQuestion` again with the updated list to ask for confirmation.
+- If the response is ambiguous — use `AskUserQuestion` to ask a clarifying follow-up before proceeding.
 
 Do not continue until an explicit confirmation is received.
 
@@ -245,7 +248,7 @@ Before starting the application:
     the correct version.
    ════════════════════════════════════════════════════════
    ```
-   Ask the user: "Restart the application from the current directory and branch? (yes/no)"
+   Use the `AskUserQuestion` tool to ask: "Restart the application from the current directory and branch? (yes/no)"
 
    **If the user says YES (restart):**
    - Detect OS inline: run `uname -s`. If the output contains `MINGW`, `CYGWIN`, or `MSYS`, this is **Windows**; otherwise Unix/macOS.
