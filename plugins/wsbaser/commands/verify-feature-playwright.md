@@ -357,7 +357,7 @@ Repeat until all scenarios are complete:
    ```
    ▶ [scenario_number/total] Starting: [Journey Name] (Track [N])
    ```
-4. Launch one Agent per selected scenario **in parallel** (all in the same tool call batch). Each agent receives the self-contained scenario prompt described in Section 4.2, with `[TRACK_NUMBER]` set to the agent's track number (Track 1 → 1, Track 2 → 2, etc.). Each agent uses exclusively its own `playwright-cli -s=track[TRACK_NUMBER]` session.
+4. Launch one Agent per selected scenario **in parallel** (all in the same tool call batch). Each agent receives the self-contained scenario prompt described in Section 4.2, with `[TRACK_NUMBER]` set to the agent's track number (Track 1 → 1, Track 2 → 2, etc.). Each agent uses exclusively its own `playwright-cli -s=track[TRACK_NUMBER]` session. Use `run_in_background: true` and set `name` to `"Track [N] - [Journey Name]"` (e.g., `"Track 1 - Customer auto-fill"`) so execution appears as named tracks in the Claude Code UI.
 5. Wait for all launched agents to complete.
 6. For each completed agent, print:
    ```
@@ -473,7 +473,7 @@ Each agent is dispatched with the following self-contained prompt. Fill in all b
 
 **Only run this section if the `--responsive` flag was passed.** Otherwise skip entirely.
 
-The "Responsive testing across viewports" task runs **after all main tracks have completed**, using `track1` session (which is free by then). Dispatch it as its own agent with these instructions:
+The "Responsive testing across viewports" task runs **after all main tracks have completed**, using `track1` session (which is free by then). Dispatch it as its own agent with `run_in_background: true` and `name: "Responsive Testing"` with these instructions:
 
 > **Session:** `track1` — use ONLY `playwright-cli [HEADED_FLAG] -s=track1` for all browser commands (same `[HEADED_FLAG]` as the main scenarios).
 >
