@@ -136,6 +136,9 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
 ## Part 1: Bug Detection Review (Steps 1-7)
 
 1. Use a Haiku agent to check if the pull request (a) is closed, (b) is a draft, or (c) does not need a code review (eg. because it is an automated pull request, or is very simple and obviously ok). If so, do not proceed. **Pass the PR metadata from Part 0.5 (source branch, target branch, PR title) to the agent.**
+
+**After the gatekeeper check passes, launch Part 1 (steps 2-7) and Part 2 (steps 8-12) in parallel as independent tracks.** They share no data dependencies — both use only the PR metadata from Part 0 (`{DIFF_BASE}`, `{DIFF_HEAD}`, PR description). Do not wait for Part 1 to complete before starting Part 2.
+
 2. Use another Haiku agent to give you a list of file paths to (but not the contents of) any relevant CLAUDE.md files from the codebase: the root CLAUDE.md file (if one exists), as well as any CLAUDE.md files in the directories whose files the pull request modified. **Use `git diff {DIFF_BASE}...{DIFF_HEAD} --name-only` to determine which files the PR modified.**
 3. Use a Haiku agent to view the pull request, and ask the agent to return a summary of the change. **Pass the PR metadata from Part 0.5 (source branch, target branch, PR title) to the agent.**
 4. Then, launch 5 parallel Sonnet agents to independently code review the change. **Each agent MUST receive the PR diff commits ({DIFF_BASE}, {DIFF_HEAD}) and use `git diff {DIFF_BASE}...{DIFF_HEAD}` for all diffs.** The agents should do the following, then return a list of issues and the reason each issue was flagged (eg. CLAUDE.md adherence, bug, historical git context, etc.):
@@ -144,7 +147,7 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
    c. Agent #3: Read the git blame and history of the code modified, to identify any bugs in light of that historical context
    d. Agent #4: Read previous pull requests that touched these files, and check for any comments on those pull requests that may also apply to the current pull request.
    e. Agent #5: Read code comments in the modified files, and make sure the changes in the pull request comply with any guidance in the comments.
-5. For each issue found in #4, launch a parallel Haiku agent that takes the PR, issue description, and list of CLAUDE.md files (from step 2), and returns a score to indicate the agent's level of confidence for whether the issue is real or false positive. To do that, the agent should score each issue on a scale from 0-100, indicating its level of confidence. For issues that were flagged due to CLAUDE.md instructions, the agent should double check that the CLAUDE.md actually calls out that issue specifically. The scale is (give this rubric to the agent verbatim):
+5. For each issue found in #4, launch a parallel Sonnet agent that takes the PR, issue description, and list of CLAUDE.md files (from step 2), and returns a score to indicate the agent's level of confidence for whether the issue is real or false positive. To do that, the agent should score each issue on a scale from 0-100, indicating its level of confidence. For issues that were flagged due to CLAUDE.md instructions, the agent should double check that the CLAUDE.md actually calls out that issue specifically. The scale is (give this rubric to the agent verbatim):
    a. 0: Not confident at all. This is a false positive that doesn't stand up to light scrutiny, or is a pre-existing issue.
    b. 25: Somewhat confident. This might be a real issue, but may also be a false positive. The agent wasn't able to verify that it's a real issue. If the issue is stylistic, it is one that was not explicitly called out in the relevant CLAUDE.md.
    c. 50: Moderately confident. The agent was able to verify this is a real issue, but it might be a nitpick or not happen very often in practice. Relative to the rest of the PR, it's not very important.
@@ -161,59 +164,21 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
 
 ## Part 2: Code Changes Analysis (Steps 8-12)
 
-After completing the bug detection review, perform a detailed code changes analysis:
+Perform a detailed code changes analysis (runs in parallel with Part 1):
 
-8. Validate prerequisites for changes analysis:
-   a. Check if Atlassian MCP is available by attempting to list available MCP tools or making a test call
-   b. If Atlassian MCP is NOT available:
-      - Display this warning to the user:
-        ```
-        WARNING: Code Changes Analysis Skipped
+8. Attempt to load Jira story context (optional — analysis always proceeds regardless):
+   a. Parse PR description/body for a Jira link (pattern: `https://*.atlassian.net/browse/*` or similar Jira URL patterns). Store as `{JIRA_URL}` if found.
+   b. If Atlassian MCP appears available AND a Jira link was found, attempt to fetch story details in step 9. Otherwise, set `{STORY_CONTEXT}` = null — then skip to step 10.
 
-        Atlassian MCP is required for code changes analysis but is not available.
-        Please install/enable Atlassian MCP and run the command again.
-
-        The standard code review (bug detection) has been completed and saved to:
-        ./code-reviews/PR-{PR_NUMBER}-review.md
-        ```
-      - Stop here (do not proceed to steps 9-12)
-   c. Parse PR description/body for a Jira link (pattern: `https://*.atlassian.net/browse/*` or similar Jira URL patterns)
-   d. If NO Jira link found in PR description:
-      - Display this warning to the user:
-        ```
-        WARNING: Code Changes Analysis Skipped
-
-        No Jira ticket link found in PR description.
-        Code changes analysis requires a linked Jira story to map changes to requirements.
-
-        Please ensure the PR description contains a Jira link like:
-        https://7c-is.atlassian.net/browse/S7C1-XXXX
-
-        The standard code review (bug detection) has been completed and saved to:
-        ./code-reviews/PR-{PR_NUMBER}-review.md
-        ```
-      - Stop here (do not proceed to steps 9-12)
-
-9. Use Atlassian MCP to retrieve story details:
-   a. Extract the story/issue ID from the Jira URL found in step 8 (e.g., S7C1-2229)
+9. (Only if Jira link and Atlassian MCP are both available) Use Atlassian MCP to retrieve story details:
+   a. Extract the story/issue ID from `{JIRA_URL}` (e.g., S7C1-2229)
    b. Use Atlassian MCP to fetch the Jira issue details (title, description, acceptance criteria, story points if available)
-   c. If the fetch fails:
-      - Display this warning to the user:
-        ```
-        WARNING: Code Changes Analysis Skipped
-
-        Failed to retrieve Jira story {STORY_ID} via Atlassian MCP.
-        Please check your MCP connection and permissions.
-
-        The standard code review (bug detection) has been completed and saved to:
-        ./code-reviews/PR-{PR_NUMBER}-review.md
-        ```
-      - Stop here (do not proceed to steps 10-12)
-   d. Parse the Jira response to extract:
+   c. If the fetch succeeds, parse the Jira response to extract and store as `{STORY_CONTEXT}`:
       - Story ID and title
       - Story description
       - Acceptance criteria / requirements (as numbered list)
       - Any linked parent epic or related stories
+   d. If the fetch fails for any reason, set `{STORY_CONTEXT}` = null, display a brief note (e.g., "Note: Could not fetch Jira story — story alignment will be skipped"), and continue to step 10.
 
 10. Use a Sonnet agent to group changes into logical blocks. **Pass the PR diff commits ({DIFF_BASE}, {DIFF_HEAD}) to the agent.**
     a. Get the full PR diff using `git diff {DIFF_BASE}...{DIFF_HEAD}`. NEVER diff against the local/checked-out branch.
@@ -236,20 +201,20 @@ After completing the bug detection review, perform a detailed code changes analy
        - Brief summary of what the block accomplishes
     f. Return a list of 3-10 logical blocks (combine very small changes, split if too complex)
 
-11. For each logical block from step 10, launch a parallel Sonnet agent to analyze. **Pass the PR diff commits ({DIFF_BASE}, {DIFF_HEAD}) to each agent.**
+11. For each logical block from step 10, launch a parallel Sonnet agent to analyze. **Pass the PR diff commits ({DIFF_BASE}, {DIFF_HEAD}) and `{STORY_CONTEXT}` (may be null) to each agent.**
     a. Extract code BEFORE the change:
        - Use `git show {DIFF_BASE}:{file_path}` to get original file content
        - Show 5-10 lines of relevant context around the changed area
     b. Extract code AFTER the change:
        - Use `git show {DIFF_HEAD}:{file_path}` to get new file content
        - Show the same section with changes applied
-    c. Match to story requirements:
+    c. Match to story requirements (only if `{STORY_CONTEXT}` is not null — otherwise skip entirely, do not infer requirements):
        - Which specific requirement from step 9 does this change address?
        - Is this a "Supporting change" not directly in requirements?
        - Is this potentially "Unrelated" (scope creep)?
     d. Provide concise analysis:
        - **Why**: 1-2 sentences explaining the technical/business reason for this change
-       - **Story Alignment**: Which requirement # it addresses, or "Supporting change"
+       - **Story Alignment**: Which requirement # it addresses, or "Supporting change" — omit this row entirely if `{STORY_CONTEXT}` is null
        - **Correctness**: One of: "Correct" | "Review needed" | "Issue found"
        - **Suggestions**: Only include if there are meaningful improvements (omit if none)
     e. Keep analysis brief - aim for ~15-20 lines per block total
@@ -259,8 +224,8 @@ After completing the bug detection review, perform a detailed code changes analy
     b. Use the Changes Analysis Report format (see template below)
     c. Include:
        - PR metadata header
-       - Story context section with requirements from Jira
-       - Changes overview table for quick scanning
+       - Story context section with requirements from Jira (omit this section if `{STORY_CONTEXT}` is null; instead note "No Jira story linked")
+       - Changes overview table for quick scanning (omit the "Addresses" column if `{STORY_CONTEXT}` is null)
        - Detailed analysis for each logical block
        - Summary statistics
 
@@ -502,9 +467,9 @@ When linking to code, follow the following format precisely, otherwise the Markd
 
 ## Part 3: Browser Verification (only if `--verify` was passed)
 
-**If `{VERIFY}` is false (parsed in the Argument Parsing section above), stop after Part 2 — the review is complete.**
+**If `{VERIFY}` is false (parsed in the Argument Parsing section above), stop after Parts 1 and 2 have both completed — the review is complete.**
 
-If `{VERIFY}` is true, execute the following steps after Parts 0–2 have completed successfully.
+If `{VERIFY}` is true, execute the following steps after both Part 1 and Part 2 have completed successfully.
 
 ### Step 3.1 — Classify Bugs for Browser Verification
 
