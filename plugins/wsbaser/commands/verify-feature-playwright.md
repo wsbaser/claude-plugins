@@ -138,20 +138,20 @@ playwright-cli --version 2>/dev/null
 
 ### Step 2 — Install skills
 
-Check if the playwright-cli skills are installed in the current workspace by looking for `.claude/skills/playwright-cli/SKILL.md`.
+Check if the playwright-cli skills are installed at user level by looking for `~/.claude/skills/playwright-cli/SKILL.md` (or `%USERPROFILE%\.claude\skills\playwright-cli\SKILL.md` on Windows).
 
 **If the file does not exist:**
 
 1. Run:
    ```bash
-   playwright-cli install --skills
+   playwright-cli install --skills --user
    ```
 2. Print:
    ```
    ════════════════════════════════════════════════════════
     Playwright CLI: Skills Installed
    ════════════════════════════════════════════════════════
-    Installed: .claude/skills/playwright-cli/
+    Installed: ~/.claude/skills/playwright-cli/
 
     ACTION REQUIRED:
     1. Restart Claude Code
@@ -160,7 +160,7 @@ Check if the playwright-cli skills are installed in the current workspace by loo
    ```
 3. **STOP** — do not proceed with any further phases.
 
-**If `.claude/skills/playwright-cli/SKILL.md` already exists:** proceed to Phase 1.
+**If the skills file already exists at the user-level path:** proceed to Phase 1.
 
 > **How browser sessions work:** each track uses a named session (`-s=track1` through `-s=track5`). Named sessions are independent browser contexts — you can run up to 5 in parallel without interference. After all tests complete, sessions are cleaned up with `playwright-cli kill-all`.
 
