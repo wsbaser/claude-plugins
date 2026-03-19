@@ -1,5 +1,5 @@
 ---
-description: Interview me in detail about a feature requirement, then write the spec to specs/. Use --plan to also generate a detailed implementation plan.
+description: Conducts a structured multi-turn interview to capture feature requirements, then writes a self-contained spec to specs/. Optionally generates a phased implementation plan with exact file paths and code. Use when a user wants to spec a feature, provides a link to any external source (ticket, doc, design), or says "let's plan this out."
 argument-hint: "[--plan] Feature description or context"
 allowed-tools: Read, Write, Glob, Grep
 model: opus
@@ -15,7 +15,7 @@ Check if `$ARGUMENTS` contains `--plan`. If present, set `GENERATE_PLAN=true` an
 
 ## Step 1: Context Gathering
 
-Review the conversation to identify the feature or requirement being discussed. Extract:
+Review the conversation to identify the feature or requirement being discussed. If `$ARGUMENTS` contains any URLs or external references (tickets, docs, designs, etc.), fetch and read those sources in full before proceeding. Extract:
 - **Feature name / working title**
 - **Initial description** (what the user has said so far)
 - **Known constraints** (technology, timeline, scope limits)
@@ -34,6 +34,8 @@ Summarize what you found before starting the interview:
  INTERVIEW: {Feature Name}
 ==============================================================
  Context from conversation: {1-2 sentence summary}
+ External specs found: {URLs read, or "None"}
+ Technical data extracted: {e.g., "30-value enum with integer assignments" or "None"}
  Codebase exploration: {key findings}
  Topics to explore: {list of identified ambiguities}
  Mode: {Spec only | Spec + Implementation Plan}
@@ -167,6 +169,8 @@ Example: "User notification preferences panel" -> `user-notification-preferences
 
 ### 3. Write the spec file
 
+**Self-containment rule:** The spec must be fully self-contained. Every implementation-critical constant gathered during context gathering — exact enum values with integer assignments, type names, service identifiers, constraints — must be embedded inline in the spec. A developer must be able to implement entirely from the spec without consulting any external source.
+
 Write the spec with the following structure:
 
 ```markdown
@@ -174,12 +178,31 @@ Write the spec with the following structure:
 
 **Date**: {YYYY-MM-DD}
 **Status**: Draft
+**Sources**: {list every URL provided by the user, or "N/A"}
 
 ---
 
 ## Overview
 
 {2-3 sentence summary of the feature, its purpose, and the problem it solves}
+
+---
+
+## Technical Specifications
+
+> Source data extracted from external documents. Implementors must use these exact values.
+
+### {Domain} — {e.g., Enum Values}
+
+| Name | Value | Notes |
+|------|-------|-------|
+| {EnumMember} | {integer} | {e.g., priority / non-priority} |
+
+### {Other technical tables as needed}
+
+{e.g., Type Mappings, Service Dependencies, etc.}
+
+> **Note:** Include this section only when implementation-critical constants were extracted from external sources. Omit entirely if the feature has no external spec data.
 
 ---
 
