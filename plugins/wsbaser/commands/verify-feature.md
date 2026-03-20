@@ -222,7 +222,11 @@ Read `~/.claude.json` using the `Read` tool. For each of `chrome-1` through `chr
 
 **If any entry is missing OR has the wrong configuration:**
 
-1. Update all `chrome-1` through `chrome-5` entries in `mcpServers` to the target configuration.
+1. Use `AskUserQuestion` to ask the user: "Chrome DevTools MCP needs to be configured for [headless/headed] mode. This will update `chrome-1` through `chrome-5` in `~/.claude.json`, overriding any existing configuration for those entries. Configure now?"
+   - Options: "Yes — configure" / "No — cancel"
+   - If user says No: print "Chrome MCP configuration cancelled. Cannot proceed without Chrome MCP." and STOP.
+
+2. Update all `chrome-1` through `chrome-5` entries in `mcpServers` to the target configuration.
 
 **Unix/macOS (headless):**
 ```json

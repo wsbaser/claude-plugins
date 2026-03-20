@@ -1,5 +1,6 @@
 ---
 description: Comprehensive E2E browser testing — parallel codebase research, 5 isolated Playwright CLI sessions, screenshots, DB validation, and HTML report
+disable-model-invocation: true
 allowed-tools: Agent,
   Task,
   TaskCreate,
@@ -142,23 +143,28 @@ Check if the playwright-cli skills are installed at user level by looking for `~
 
 **If the file does not exist:**
 
-1. Run:
+1. Use `AskUserQuestion` to ask the user: "Playwright CLI skills are not installed. Install them now? (This runs `playwright-cli install --skills --user` to add skill files to `~/.claude/skills/playwright-cli/`.)"
+   - Options: "Yes — install" / "No — cancel"
+   - If user says No: print "Skills installation cancelled. Cannot proceed without playwright-cli skills." and STOP.
+
+2. Run:
    ```bash
    playwright-cli install --skills --user
    ```
-2. Print:
-   ```
-   ════════════════════════════════════════════════════════
-    Playwright CLI: Skills Installed
-   ════════════════════════════════════════════════════════
-    Installed: ~/.claude/skills/playwright-cli/
 
-    ACTION REQUIRED:
-    1. Restart Claude Code
-    2. Re-run /wsbaser:verify-feature-playwright [with same flags]
+3. Load the newly installed skill dynamically using the Skill tool:
+   ```
+   Skill {"skill": "playwright-cli"}
+   ```
+
+4. Print:
+   ```
+   ════════════════════════════════════════════════════════
+    Playwright CLI: Skills installed and loaded
    ════════════════════════════════════════════════════════
    ```
-3. **STOP** — do not proceed with any further phases.
+
+5. Proceed to Phase 1 — no restart required.
 
 **If the skills file already exists at the user-level path:** proceed to Phase 1.
 
@@ -372,102 +378,12 @@ Repeat until all scenarios are complete:
 
 ### 4.2 Per-Scenario Agent Prompt
 
-Each agent is dispatched with the following self-contained prompt. Fill in all bracketed values before dispatching.
-
----
-
-> You are running a single E2E browser test scenario using Playwright CLI. Execute it completely and return a structured result.
->
-> **App URL:** [app_url]
-> **Authentication:** [how to log in — credentials, sign-up steps, or "no auth required"]
-> **Database:** [db_type and connection env var, or "no database"]
-> **DB Schema summary:** [relevant tables and columns for this journey]
->
-> **Journey: [Journey Name]**
-> Steps:
-> [numbered list of steps from the task description]
->
-> If the steps above are not fully defined (e.g. just a journey name), explore the app's UI to discover the appropriate steps for this journey. Use `snapshot` after navigating to the relevant page to identify available interactions.
->
-> Expected outcomes: [what should be true at the end]
->
-> **Related bug findings to watch for:**
-> [relevant findings from Sub-agent 3, or "none"]
->
-> **Session:** `track[TRACK_NUMBER]` — use ONLY `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` for ALL browser commands. Never use a different session name.
->
-> **Headed mode:** [HEADED_FLAG] — if `--headed` was passed to the skill, this is `--headed`; otherwise it is empty and should be omitted from commands.
->
-> **Playwright CLI command reference** — prepend `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` to every command:
-> ```
-> # Session start (MUST be first command — opens the browser for this session)
-> open [url]                          # open browser, optionally navigate to url
->
-> # Navigation
-> goto <url>                          # navigate (use after open)
-> reload                              # reload the current page
-> go-back                             # go back
-> go-forward                          # go forward
->
-> # Interaction
-> snapshot                            # capture page state to get element refs (also waits for page to stabilize)
-> click <ref>                         # click element
-> dblclick <ref>                      # double-click element
-> fill <ref> "<text>"                 # fill input field
-> type "<text>"                       # type into focused element
-> press <key>                         # e.g. Enter, Tab, Escape, ArrowDown
-> hover <ref>                         # hover over element
-> select <ref> "<value>"              # select dropdown option
-> check <ref>                         # check checkbox/radio
-> uncheck <ref>                       # uncheck checkbox/radio
->
-> # Screenshots & output
-> screenshot --filename=<path>        # save screenshot to path
-> pdf --filename=<path>               # save page as PDF
->
-> # DevTools
-> console                             # list console messages
-> network                             # list network requests
-> eval "<expression>"                 # evaluate JS expression
-> run-code "<playwright code>"        # run a Playwright code snippet
->
-> # Resize
-> resize <width> <height>             # resize viewport
->
-> # Storage
-> localstorage-get <key>              # read localStorage
-> localstorage-set <key> <value>      # write localStorage
-> cookie-list                         # list cookies
-> state-save <filename>               # save full storage state
-> state-load <filename>               # restore storage state
-> ```
->
-> **Instructions:**
->
-> 1. Use `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER]` **exclusively** for all browser interaction via the Bash tool. Never use a different session name.
-> 2. **Open the browser first** — the very first command in a session MUST be `open`: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] open`. This starts the browser process for the session. Use `goto` for all subsequent navigations.
-> 3. Immediately after `open`, set the viewport: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] resize 1440 900`
-> 4. After every navigation or DOM change, run `snapshot` to get fresh element references before clicking or filling. If the snapshot returns fewer than 3 interactive elements (inputs, buttons, or links), the page is likely still loading — wait 2 seconds and snapshot again, up to 3 retries, before proceeding. Never attempt to click or fill based on a sparse snapshot.
-> 5. At every meaningful step: take a screenshot and save it to `.reports/screenshots/[journey-slug]/[NN]-[step-name].png`. Analyze each screenshot for visual correctness, UX issues, broken layouts, missing content, and error states.
-> 6. Check browser console after each significant interaction for JavaScript errors: `playwright-cli [HEADED_FLAG] -s=track[TRACK_NUMBER] console`
-> 7. If a step fails (500 error, element not found, unexpected redirect): take a screenshot as `ERROR-[NN]-[step-name].png`, document it, and continue with remaining steps.
-> 8. After any interaction that modifies data, run the DB validation query to confirm the record was created/updated/deleted correctly.
-> 9. Do NOT fix bugs — only document them.
-> 10. Print each step to the console as you execute it:
->    ```
->    [Journey Name] > Step 1: [description]
->    [Journey Name] > Step 2: [description]
->    ...
->    ```
->
-> **Return a structured result** with these sections:
-> - **Steps completed:** numbered list with pass/fail status
-> - **Issues found:** each issue with description, severity (high/medium/low), screenshot path, and DB query result if applicable
-> - **Screenshots taken:** list of all screenshot paths
-> - **DB validation results:** pass/fail for each query run
-> - **Console errors:** any JS errors encountered
-
----
+Each agent receives the self-contained prompt from `agent-prompt.md`. Fill in all bracketed values before dispatching:
+- `[app_url]`, `[Authentication]`, `[Database]`, `[DB Schema summary]`
+- `[Journey Name]`, numbered steps from the task description, expected outcomes
+- `[related bug findings]` from Sub-agent 3 (or "none")
+- `[TRACK_NUMBER]` — the agent's track number (1–5)
+- `[HEADED_FLAG]` — `--headed` if flag was passed, otherwise omit
 
 ### 4.3 Responsive Testing
 
@@ -518,8 +434,19 @@ Output a brief summary to the console:
 All results saved to: `.reports/[REPORT_FILENAME]`
 ```
 
-### HTML Report
+### HTML Report (MANDATORY — do not skip)
+
+**CRITICAL**: You MUST invoke the `wsbaser:generate-test-report` skill to generate the HTML report. This is the primary deliverable of the testing workflow — without it, the user has no persistent record of test results. Do not end the workflow without generating this report.
 
 Invoke the `wsbaser:generate-test-report` skill to generate the HTML report from all collected test data.
 
 After the report is successfully generated, delete the `.reports/screenshots/` directory — all screenshots are embedded in the report as base64 data URIs and the folder is no longer needed.
+
+### Completion Checklist
+
+Before ending this workflow, verify all of these are done:
+- [ ] Console summary printed with journey count, screenshot count, issue count
+- [ ] `wsbaser:generate-test-report` skill invoked and HTML report generated
+- [ ] `.reports/screenshots/` directory deleted (screenshots embedded in report)
+- [ ] Dev server stopped (if started in Phase 2)
+- [ ] All playwright-cli sessions cleaned up (`playwright-cli kill-all`)
