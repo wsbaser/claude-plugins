@@ -139,14 +139,12 @@ If `screenshots[]` is empty, skip to Phase 3 — the script and encoding steps a
 
 **Step 3 — Run the script:**
 ```bash
-node "<script_path>" '<json-array>'
+node "<script_path>" '<json-array>' > .reports/screenshot-data.tmp
 ```
-> Run this in bash (Git Bash on Windows). Single-quoted strings are safe in bash; if running in cmd/PowerShell, use double quotes around the JSON array instead.
-
-The script prints a JSON array of `{"path": "...", "data_uri": "..."}` objects to stdout.
+> Run this in bash (Git Bash on Windows). Single-quoted strings are safe in bash; if running in cmd/PowerShell, use double quotes around the JSON array instead. Always redirect to `.reports/screenshot-data.tmp` — never use `/tmp/` or env-var paths, which may not exist or resolve to Windows 8.3 short paths.
 
 **Step 4 — Apply results:**
-Match each result by `path` back to `screenshots[]` and set `data_uri`. If `data_uri` is `null`, the file was not found — keep the entry in `screenshots[]` with `data_uri: null` (the renderer silently skips it).
+Read `.reports/screenshot-data.tmp` with the Read tool. Match each result by `path` back to `screenshots[]` and set `data_uri`. If `data_uri` is `null`, the file was not found — keep the entry in `screenshots[]` with `data_uri: null` (the renderer silently skips it). Delete `.reports/screenshot-data.tmp` after reading.
 
 **Fallback:** If the script is not found, set `data_uri: null` for all screenshots and continue — the report generates without images.
 
