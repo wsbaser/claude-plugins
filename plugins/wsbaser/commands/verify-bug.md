@@ -61,6 +61,10 @@ Read `~/.claude.json` using the Read tool. Parse the JSON and check whether `mcp
 
 **If `chrome-1` is missing:**
 
+Use `AskUserQuestion` to ask the user: "Chrome DevTools MCP (`chrome-1`) is not configured. This will add it to `~/.claude.json`. Configure now?"
+- Options: "Yes — configure" / "No — cancel"
+- If user says No: print "Chrome MCP configuration cancelled. Cannot proceed without Chrome MCP." and STOP.
+
 Add it to `mcpServers`:
 
 ```json
