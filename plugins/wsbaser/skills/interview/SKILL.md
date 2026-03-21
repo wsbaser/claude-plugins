@@ -1,8 +1,6 @@
 ---
+name: interview
 description: Conducts a structured multi-turn interview to capture feature requirements, then writes a self-contained spec to specs/. Optionally generates a phased implementation plan with exact file paths and code. Use when a user wants to spec a feature, provides a link to any external source (ticket, doc, design), or says "let's plan this out."
-argument-hint: "[--plan] Feature description or context"
-allowed-tools: Read, Write, Glob, Grep
-model: opus
 ---
 
 Interview the user in depth about a feature or requirement from the current conversation, then produce a structured specification document.
@@ -11,11 +9,11 @@ Interview the user in depth about a feature or requirement from the current conv
 
 - `--plan` (optional): After generating the spec, perform deep codebase exploration and generate a comprehensive implementation plan. When `--plan` is present, output goes to a subfolder: `specs/{slug}/spec.md` and `specs/{slug}/implementation-plan.md`. Without `--plan`, output is the flat file `specs/{slug}.md` as before.
 
-Check if `$ARGUMENTS` contains `--plan`. If present, set `GENERATE_PLAN=true` and strip `--plan` from the arguments before processing.
+Check if the arguments passed to this skill contain `--plan`. If present, set `GENERATE_PLAN=true` and strip `--plan` from the arguments before processing.
 
 ## Step 1: Context Gathering
 
-Review the conversation to identify the feature or requirement being discussed. If `$ARGUMENTS` contains any URLs or external references (tickets, docs, designs, etc.), fetch and read those sources in full before proceeding. Extract:
+Review the conversation to identify the feature or requirement being discussed. If the arguments or conversation contain any URLs or external references (tickets, docs, designs, etc.), fetch and read those sources in full before proceeding. Extract:
 - **Feature name / working title**
 - **Initial description** (what the user has said so far)
 - **Known constraints** (technology, timeline, scope limits)
