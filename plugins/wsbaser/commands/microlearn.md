@@ -15,10 +15,9 @@ Extract from `$ARGUMENTS`: the topic/subject to teach, and any frequency prefere
 
 ## Step 2: Collect Missing Info
 
-Use `AskUserQuestion` for any missing values.
+Use `AskUserQuestion` if the **TOPIC** is missing. Ask what the user wants to learn. If the answer is a broad category, follow up to get the specific topic name.
 
-- **TOPIC**: Ask what the user wants to learn. If the answer is a broad category, follow up to get the specific topic name.
-- **FREQUENCY**: Ask how often lessons should appear. Offer options around every response, every few responses, or occasionally. Default to `every response` if the user doesn't specify.
+If **FREQUENCY** was not specified in the arguments, don't ask yet — it will be defaulted intelligently in Step 4 after analyzing the topic.
 
 ## Step 3: Classify the Topic
 
@@ -66,6 +65,21 @@ Examples where context-tied is better despite seeming "structured":
 **For LANGUAGE topics:** Context-tied is almost always the right default. No predefined plan needed unless the user specifically wants structured grammar progression.
 
 Store the chosen strategy as `DELIVERY_STRATEGY` (one of: `context-tied`, `curriculum`, `hybrid`).
+
+### Default frequency (only if user didn't specify one)
+
+If the user already provided a frequency, keep it. Otherwise, estimate a smart default based on how much material the topic has. The goal: lessons should last weeks at the user's likely usage rate (heavy users send hundreds of requests per day).
+
+Estimate the topic's **lesson pool** — roughly how many distinct, interesting one-sentence lessons exist for this topic:
+
+- **Vast** (thousands+) — human languages, broad history (all of history), encyclopedic topics → default to `every response`
+- **Large** (hundreds) — focused history (WW2, Roman history), deep sciences (organic chemistry, linear algebra), broad arts (art history) → default to `every other response`
+- **Medium** (50–150) — focused skill domains (chess openings, jazz improvisation, cooking techniques, astronomy) → default to `every 3 responses`
+- **Compact** (under 50) — bounded concept sets (logical fallacies, cognitive biases, design patterns, storytelling techniques) → default to `every 5 responses`
+
+This is a rough guide, not a formula. Use your judgment — the point is that a topic with 30 concepts shouldn't fire every response (exhausted in a day), while a language with 10,000+ words can sustain every response for months.
+
+Store the result as `FREQUENCY`.
 
 ## Step 5: Focused Interview
 
