@@ -25,8 +25,7 @@ Set variables:
 1. Check if `~/.claude/statusline.ps1` or `~/.claude/statusline.sh` exists
 2. Read `~/.claude/settings.json` and check if a `statusline` key exists
 
-If either exists, show the user what's currently configured and ask if they want
-to replace it. If they decline, stop.
+If either exists, show the user what's currently configured and use `AskUserQuestion` to ask if they want to replace it. If they decline, stop.
 
 ## Step 3: Generate the Script
 

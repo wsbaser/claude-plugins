@@ -93,7 +93,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 ==============================================================
 ```
 
-9. **Wait for user confirmation** before proceeding
+9. **Wait for user confirmation** — use `AskUserQuestion` before proceeding
 
 ---
 

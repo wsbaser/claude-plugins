@@ -109,7 +109,7 @@ Order proposals by estimated point impact (highest first).
 
 ## Phase 5: Apply with Approval
 
-Present all proposals to the user and ask which ones to apply. Accept any of these response styles:
+Present all proposals to the user and use `AskUserQuestion` to ask which ones to apply. Accept any of these response styles:
 - "all" — apply everything
 - Specific proposal numbers — e.g., "1, 3, 5"
 - "none" — skip all changes
