@@ -1,8 +1,7 @@
 ---
 name: microlearn
 description: Set up micro-learning lessons in Claude Code sessions — appends a short, contextual lesson at the end of responses. Supports any human language (Tagalog, Dutch, Japanese…) or custom topic (music theory, math, history). Use when the user explicitly asks to add recurring lessons to their sessions, mentions /microlearn, or wants to learn a language or topic as a background habit during coding.
-argument-hint: "[Language or topic] [every N responses]"
-allowed-tools: AskUserQuestion, Read, Write, Edit, Glob, Bash, Agent
+disable-model-invocation: true
 ---
 
 # Microlearn Setup
@@ -11,7 +10,7 @@ Configure a micro-learning system that appends a short, contextual lesson at the
 
 ## Step 1: Parse Arguments
 
-Extract from `$ARGUMENTS`: the topic/subject to teach, and any frequency preference. Leave either unset if absent.
+Extract from arguments passed to this skill: the topic/subject to teach, and any frequency preference. Leave either unset if absent.
 
 ## Step 2: Collect Missing Info
 
