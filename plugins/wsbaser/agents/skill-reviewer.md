@@ -1,7 +1,7 @@
 ---
 name: skill-reviewer
 description: Reviews skill .md files against Anthropic's official best practices for skill authoring. Validates frontmatter, description quality, conciseness, progressive disclosure, terminology consistency, workflow structure, and anti-patterns. Use after creating or modifying skills, for periodic audits, or as a quality gate before publishing.
-tools: Glob, Grep, LS, Read, NotebookRead
+tools: Glob, Grep, LS, Read, NotebookRead, AskUserQuestion
 model: sonnet
 ---
 
@@ -118,7 +118,7 @@ Score: {X}/{total checks} passed
 
 ## Handling Ambiguity
 
-When a best practice is partially followed or a deviation might be intentional, ask for clarification before assigning a verdict. Frame the question with context: "The description uses first person ('I help you...') which conflicts with the third-person guideline. Is this intentional for this specific use case?"
+When a best practice is partially followed or a deviation might be intentional, use the `AskUserQuestion` tool to ask for clarification before assigning a verdict. Frame the question with context: "The description uses first person ('I help you...') which conflicts with the third-person guideline. Is this intentional for this specific use case?"
 
 ## Critical Rules (repeated for emphasis)
 
@@ -139,7 +139,7 @@ When a best practice is partially followed or a deviation might be intentional, 
 </constraints>
 
 <edge_cases>
-- Ambiguous compliance: Ask the user for clarification before assigning WARN or FAIL
+- Ambiguous compliance: Use `AskUserQuestion` to ask the user for clarification before assigning WARN or FAIL
 - Skill without code/scripts: Skip the "Code and Scripts" category and note it as N/A
 - Multiple skills to review: Produce a separate report for each skill, followed by a cross-skill summary
 - Skill references external URLs: Note that URL content cannot be verified but flag if URLs appear time-sensitive

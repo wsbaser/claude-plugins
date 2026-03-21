@@ -107,7 +107,7 @@ Extract the following fields:
 
 ### 2. Check for Sub-tasks
 
-If the story has sub-tasks, ask the user:
+If the story has sub-tasks, use `AskUserQuestion` to ask the user:
 
 ```
 This story has {N} sub-tasks. How would you like to proceed?
@@ -352,7 +352,7 @@ Example question structure:
 
 - Track question count internally
 - At approximately 10 turns, assess coverage
-- If coverage is near complete, gently suggest:
+- If coverage is near complete, use `AskUserQuestion` to gently suggest:
   ```
   We've covered the major technical aspects. Want to:
   1. Continue exploring other areas
@@ -506,7 +506,7 @@ git branch -r --list origin/{BRANCH_NAME}
 
 ### 2. Handle Existing Branch
 
-**If branch exists**, ask the user:
+**If branch exists**, use `AskUserQuestion` to ask the user:
 
 ```
 Branch '{BRANCH_NAME}' already exists. How would you like to proceed?
@@ -690,10 +690,14 @@ Write to: `{SPEC_FOLDER}/IMPLEMENTATION-PLAN.md`
  CHECKPOINT: Implementation plan ready for review
 ==============================================================
  Please review: {SPEC_FOLDER}/IMPLEMENTATION-PLAN.md
-
- Type 'continue' to proceed with implementation
- Or provide feedback to revise the plan
 ==============================================================
+```
+
+Use `AskUserQuestion` to ask the user:
+
+```
+Type 'continue' to proceed with implementation
+Or provide feedback to revise the plan
 ```
 
 Wait for user confirmation before proceeding to Phase 5.
