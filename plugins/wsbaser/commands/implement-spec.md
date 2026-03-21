@@ -399,7 +399,9 @@ Omit any section that has no content.
 
 After `TeamDelete` completes, check `VERIFY`:
 - If `VERIFY = true`: proceed to Phase 6 (Verification).
-- If `VERIFY = false`: the implementation is complete.
+- If `VERIFY = false`: the implementation is complete. Show:
+
+  **Next step:** Run `/wsbaser:verify-feature` to verify the implementation in the browser.
 
 ---
 

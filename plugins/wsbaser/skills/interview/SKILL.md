@@ -271,6 +271,8 @@ Write the spec with the following structure:
 ==============================================================
 ```
 
+**Next step:** Run `/wsbaser:implement-spec specs/{slug}.md` to implement this feature.
+
 **If `GENERATE_PLAN=true`** — display transition message and continue to Step 5:
 
 ```
@@ -437,3 +439,5 @@ Use `AskUserQuestion` to let the user choose.
  Open questions: {count or "None"}
 ==============================================================
 ```
+
+**Next step:** Run `/wsbaser:implement-spec specs/{slug}/` to implement this feature.
