@@ -156,7 +156,7 @@ Store the memory file path as `CURRICULUM_PATH` for use in the template.
 
 ## Step 8: Write to CLAUDE.local.md
 
-Read `$ROOT_DIR/CLAUDE.local.md` if it exists. If a `## Micro` lessons section already exists, replace it; otherwise append.
+Read `$ROOT_DIR/CLAUDE.local.md` if it exists. Only one microlearn section may exist — if the file already has a `## Micro Lessons:` or `## {word} Lesson` heading from a previous setup, warn the user and replace that section, cleaning up orphaned curriculum memory files.
 
 ### Template for LANGUAGE
 
