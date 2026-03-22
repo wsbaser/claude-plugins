@@ -8,6 +8,10 @@ disable-model-invocation: true
 
 Configure a micro-learning system that appends a short, contextual lesson at the end of Claude's responses in this project. The lesson should be concise, tied to the current conversation context, and never interrupt the flow of the technical work.
 
+## Step 0: Check for Existing Configuration
+
+If `CLAUDE.local.md` contains a `## Tagalog Lesson` or `## Micro Lessons:` section, ask the user: **Replace** (new topic/settings, continue from Step 1) or **Update** (tweak current setup, skip to Step 8).
+
 ## Step 1: Parse Arguments
 
 Extract from arguments passed to this skill: the topic/subject to teach, and any frequency preference. Leave either unset if absent.
