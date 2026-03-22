@@ -1,0 +1,82 @@
+[
+  {
+    "query": "write test scenarios for the feature in the worktree at c:\\dev\\main\\frontend\\.worktrees\\feature-auto-fill-vat-isatcode-from-registry",
+    "should_trigger": true
+  },
+  {
+    "query": "give me gherkin for the login page — email + password, forgot password link, remember me checkbox. we also lock the account after 5 failed attempts",
+    "should_trigger": true
+  },
+  {
+    "query": "what should we test for the new user registration flow? need to cover happy path and validation errors",
+    "should_trigger": true
+  },
+  {
+    "query": "generate test cases for the supplier CSV import feature. it accepts up to 500 rows, skips duplicates, and shows a summary with row-level errors",
+    "should_trigger": true
+  },
+  {
+    "query": "I just finished the bulk-delete feature for invoices — help me define the automation scenarios. admins can delete multiple, regular users can't delete at all",
+    "should_trigger": true
+  },
+  {
+    "query": "plan tests for the 3-step checkout wizard (cart review → delivery address → payment). each step validates before proceeding, payment step calls stripe",
+    "should_trigger": true
+  },
+  {
+    "query": "can you write a test plan for the notification preferences screen? users can toggle email/sms/push per event type, changes save immediately via autosave",
+    "should_trigger": true
+  },
+  {
+    "query": "we're about to automate the role-based dashboard — product owner wants coverage for admin, manager, and read-only roles. what scenarios should we write?",
+    "should_trigger": true
+  },
+  {
+    "query": "the s7c1-2710 story is about filtering the journal by date range + account code. need scenarios before i start writing the tests",
+    "should_trigger": true
+  },
+  {
+    "query": "test coverage for the password reset flow — user enters email, gets a link, link expires after 24h, can only be used once",
+    "should_trigger": true
+  },
+  {
+    "query": "implement the e2e test for the login page using the union framework — LoginPage already exists in tests/Pages/Auth/",
+    "should_trigger": false
+  },
+  {
+    "query": "the selector in LoginFlow_DisplayAndNavigationTests.cs is broken after the last refactor, can you fix it",
+    "should_trigger": false
+  },
+  {
+    "query": "write a unit test for IcelandicSsnService.Parse — it should handle null input, valid 10-digit kennitala, and checksum failure",
+    "should_trigger": false
+  },
+  {
+    "query": "which of our existing e2e tests already cover the customer creation dialog?",
+    "should_trigger": false
+  },
+  {
+    "query": "i need a jira ticket for the vat auto-fill feature, can you write one with acceptance criteria",
+    "should_trigger": false
+  },
+  {
+    "query": "explain how the NationalRegistrySearchComponent decides when to show the IsActive toggle",
+    "should_trigger": false
+  },
+  {
+    "query": "review the test plan in docs/test-plan-invoicing.md and tell me if coverage looks reasonable",
+    "should_trigger": false
+  },
+  {
+    "query": "convert these manual test steps into automated nunit tests using the union framework",
+    "should_trigger": false
+  },
+  {
+    "query": "run the e2e suite against staging and show me which tests are failing",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the difference between Scenario Outline and regular Scenario in gherkin?",
+    "should_trigger": false
+  }
+]
