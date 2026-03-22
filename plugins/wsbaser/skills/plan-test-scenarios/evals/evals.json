@@ -1,0 +1,11 @@
+{
+  "skill_name": "plan-test-scenarios",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write test scenarios for the feature implemented in the git worktree at c:\\dev\\main\\frontend\\.worktrees\\feature-auto-fill-vat-isatcode-from-registry",
+      "expected_output": "Gherkin scenarios covering: auto-fill of VAT and ISAT code when national registry lookup finds a company, new vs existing customer/supplier/employee distinction (IsActive auto-set only for new records), individual vs company type branching, delisted company handling, and relevant error/empty states. Should combine related field assertions in single scenarios rather than one scenario per field.",
+      "files": []
+    }
+  ]
+}
