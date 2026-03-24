@@ -1,5 +1,5 @@
 ---
-name: union-testing
+name: wsbaser:union-testing
 description: Enforces correct Union.Playwright.NUnit framework usage when writing, updating, or reviewing E2E tests, page objects, components, scenarios, mocks, or test infrastructure. MUST trigger whenever code imports Union.Playwright.NUnit types (UnionService, UnionPage, UnionTest, UnionInit, BrowserGo, BrowserState, ComponentBase, ContainerBase, ListBase, ItemBase, UnionElement, MatchablePage), creates or modifies .cs files in test projects that reference Union, or when the user mentions "Union framework", "E2E tests", "page objects", or "test automation" in the context of this .NET testing stack. Even if the task seems simple (adding one element to a page), this skill ensures the Union abstraction layer is used correctly.
 ---
 
