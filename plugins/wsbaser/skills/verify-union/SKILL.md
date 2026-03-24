@@ -206,6 +206,8 @@ Spawn all teammates in a **single message with multiple Agent tool calls**, all 
 - **One `wsbaser:union-dev` agent per track** — each with `name: "track-N"` and `team_name: TEAM_NAME`
 - **One persistent `wsbaser:devils-advocate` agent** — with `name: "devils-advocate"` and `team_name: TEAM_NAME`, remains active for all 3 phase gates
 
+**Do NOT spawn the union-testing-reviewer agent during team setup.** It is spawned in Phase 5 immediately after dispatching union-dev agents, so it can perform incremental reviews as each track completes.
+
 All agents must use the `team_name` parameter so they can receive `SendMessage` messages and participate in team coordination.
 
 ---
@@ -237,44 +239,94 @@ Respond with APPROVED or CHANGES REQUESTED (with specific additions/removals/mod
 
 Send each union-dev agent its track scenarios and implementation instructions.
 
-### Union-Dev Activation Message Template
+### Union-Dev Activation Message
+
+Use the template in `references/union-dev-activation.md`, filling in `[N]`, `[TEST_PROJECT_PATH]`, `[TEAM_NAME]`, and the track-specific Gherkin scenarios.
+
+### Monitor Implementation & Dynamic Review
+
+The union-testing-reviewer is spawned once, early in Phase 5, and performs **incremental reviews as each union-dev agent completes its track** plus a **final comprehensive review** after all tracks finish.
+
+#### Step 1 — Spawn Reviewer Agent
+
+Immediately after dispatching union-dev agents, spawn the reviewer as a persistent team member:
+
+Launch a single `Agent` with `subagent_type: "default"` and `team_name: TEAM_NAME`:
 
 ```
-IMPLEMENTATION ASSIGNMENT — Track [N]
-
-Test Project: [TEST_PROJECT_PATH]
-Team: [TEAM_NAME]
-
-Your assigned Gherkin scenarios:
-
-[Insert track-specific Gherkin scenarios here]
-
-File ownership — you are responsible for:
-- Test classes for the scenarios above
-- Page objects and components needed by your scenarios
-- IMPORTANT: Extend existing page objects rather than creating duplicates. Check Pages/ directory first.
-
-After implementation, run your filtered tests:
-  dotnet test [TEST_PROJECT_PATH] --filter "FullyQualifiedName~[YourTestClassName]"
-
-Self-fix protocol:
-- If tests fail, analyze the output and fix the issue
-- Re-run after each fix
-- Maximum 3 self-fix retries
-- If still failing after 3 retries, report the failure with full diagnostics to team lead
-
-Report completion to team lead when done, including:
-- List of files created/modified
-- Test run result (pass/fail)
-- Number of self-fix retries used
-- Any unresolved issues
+name: "union-testing-reviewer"
 ```
 
-### Monitor Implementation
+> **Why `subagent_type: "default"`:** No dedicated `wsbaser:union-testing-reviewer` agent definition exists. The reviewer's behavior is fully defined by its activation message and the `wsbaser:union-testing` skill it loads at startup.
 
-- Wait for all union-dev agents to complete.
-- Collect completion reports from each agent.
-- Track which agents succeeded and which escalated failures.
+#### Step 2 — Reviewer Initialization Message
+
+Send the reviewer its standing instructions immediately after spawn:
+
+```
+UNION-TESTING FRAMEWORK COMPLIANCE REVIEWER
+
+You are a persistent code reviewer specializing in Union.Playwright.NUnit framework compliance. You will receive review requests throughout this session.
+
+SETUP: Load the `wsbaser:union-testing` skill by invoking the Skill tool with skill: "wsbaser:union-testing". This is your single source of truth for all rules. Read it thoroughly and use it for every review.
+
+REVIEW PROTOCOL (applied to every review request you receive):
+
+1. Read every file in the request.
+2. Check each file against ALL rules from the `wsbaser:union-testing` skill.
+3. For each violation, produce:
+   - File path and line number
+   - Rule violated (cite the skill section)
+   - Current code (the violating snippet)
+   - Required fix (what it should be changed to)
+   - Which union-dev agent owns this file (by track)
+4. If violations found: send fix instructions to each relevant union-dev agent via SendMessage, grouped by agent. Then re-review fixed files when agents report back. Maximum 2 re-review cycles per review request. If violations persist after 2 cycles, report remaining violations to team lead and proceed.
+5. When review is complete (clean or after fix cycles), send a single summary to team lead: "REVIEW COMPLETE — [result summary]"
+
+Stand by for review requests.
+```
+
+#### Step 3 — Incremental Per-Track Reviews
+
+As each union-dev agent completes its track and reports to team lead:
+
+1. Collect the agent's file list from its completion report.
+2. Send a review request to the reviewer:
+   ```
+   INCREMENTAL REVIEW — Track [N]
+
+   Track [N] (agent: track-[N]) has completed implementation.
+
+   Files to review:
+   [INSERT FILE LIST FROM THIS TRACK'S COMPLETION REPORT]
+
+   Review these files per your standing protocol. Send violations to track-[N] for fixing.
+   ```
+3. Do not wait for the review to complete before processing the next track completion — reviews run in parallel with other tracks still implementing.
+
+#### Step 4 — Final Comprehensive Review
+
+After **all** union-dev agents have completed and **all** incremental reviews have finished:
+
+1. Collect the complete file list across all tracks.
+2. Send a final review request to the reviewer:
+   ```
+   FINAL COMPREHENSIVE REVIEW
+
+   All tracks have completed implementation. Perform a cross-track review of the complete file set.
+
+   All files created/modified:
+   [INSERT COMPLETE FILE LIST]
+
+   Focus on issues that only appear when viewing files across tracks together:
+   - Duplicate page objects or components created by different tracks
+   - Inconsistent patterns across tracks
+   - Cross-track [UnionInit] compatibility issues
+
+   Per-file rule compliance was already checked in incremental reviews — only re-check files that were modified during fix cycles.
+   ```
+3. Wait for the reviewer to send its "REVIEW COMPLETE" message.
+4. Collect the final reviewer summary and proceed to DA Gate B.
 
 ---
 
@@ -287,24 +339,28 @@ Activate the persistent DA agent with the implemented test code for review.
 ```
 PHASE GATE B — Code Quality Review
 
-Review the implemented test code for quality and correctness.
+Review the implemented test code for quality, coverage completeness, and pattern adherence.
 
-Test Project: [TEST_PROJECT_PATH]
-Implemented files:
-[List all files created/modified by union-dev agents]
+Union-testing-reviewer findings (already addressed):
+[INSERT REVIEWER SUMMARY — what violations were found and fixed, or "No violations found"]
 
-Union-dev agent reports:
-[Summarize each agent's completion report]
+Files created/modified by union-dev agents:
+[INSERT FILE LIST]
 
-Write your full findings to:
-  ~/.claude/teams/[TEAM_NAME]/findings-devils-advocate.md
+Review focus:
+1. Coverage completeness — do the implemented tests fully cover the Gherkin scenarios?
+2. Test quality — are assertions meaningful? Are edge cases handled?
+3. Pattern adherence — consistent naming, proper test structure, appropriate use of scenarios vs inline steps
+4. Cross-track consistency — do page objects from different tracks work together coherently?
 
-Send a brief summary to team lead (critical issues, warnings, positive observations).
+Note: Framework compliance (raw Playwright usage, [UnionInit] correctness, navigation patterns, component base classes) was already verified by the union-testing-reviewer. Focus on higher-level quality concerns.
+
+Send findings to team lead via SendMessage.
 ```
 
 ### Process DA Findings
 
-- Read the DA's findings summary.
+- Review the DA's findings from their message.
 - If critical issues identified: assign fixes to the relevant union-dev agents via `SendMessage`, wait for completion.
 - If only warnings: note them and proceed to Phase 7.
 
