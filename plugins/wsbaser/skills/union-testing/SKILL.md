@@ -27,14 +27,18 @@ Test method bodies must never use raw Playwright APIs:
 
 ## Element Declaration
 
-Every interactive element must be an `[UnionInit]`-annotated field with a CSS selector:
+Every interactive/assertable element must be a `[UnionInit]`-annotated `UnionElement` property — **never expose raw `ILocator` from page objects or components**. Raw `ILocator` bypasses the Union initialization chain and breaks `Expect()` auto-retry semantics.
 
 ```csharp
+// CORRECT: UnionElement with [UnionInit]
 [UnionInit("#username")]
 public UnionElement EmailInput { get; set; }
 
 [UnionInit(".theme-btn:has-text('Continue')")]
 public UnionElement ContinueButton { get; set; }
+
+// WRONG: Raw ILocator exposed from page object
+public ILocator EmailInput => Page.Locator("#username");
 ```
 
 **Selector priority** (use the highest-priority selector available in the markup):
@@ -72,29 +76,50 @@ Read `references/navigation-state.md` for detailed patterns.
 What are you modeling?
   ├─ Repeating list of items ──────→ ListBase<TItem>
   │    └─ Individual item ─────────→ ItemBase
-  ├─ Group reused across pages ────→ ContainerBase
+  ├─ Reusable sub-component ───────→ ContainerBase (composed into pages/dialogs)
   ├─ Modal/dialog ─────────────────→ ComponentBase + IUnionModal
   ├─ Loading indicator ────────────→ ComponentBase + ILoader
   ├─ Overlay/popover ──────────────→ ComponentBase + IOverlay
   └─ Single-page elements ────────→ Flat [UnionInit] on parent (no new class)
 ```
 
+**ContainerBase vs ComponentBase**: `ContainerBase` is for reusable sub-components that are composed into multiple pages or dialogs — it scopes child selectors via `root:` prefix. `ComponentBase` is for top-level wrappers (modals, loaders, overlays) that don't scope child selectors. **Do not use `ComponentBase` for reusable element groups** — use `ContainerBase`.
+
 Only create `ContainerBase` when the component is reused across pages. Nest as deep as the DOM requires — no artificial depth limit. All `ItemBase` fields must use `[UnionInit]`.
 
-Read `references/component-patterns.md` for extending the framework with new types.
+**[UnionInit] compatibility rule**: `[UnionInit]` properties must inherit from a Union base class (`ContainerBase`, `ComponentBase`, `ListBase<T>`, or `ItemBase`). Plain classes are invisible to the initialization chain — `[UnionInit]` will silently leave them `null`.
+
+Read `references/component-patterns.md` for extending the framework with new types and a plain-class anti-pattern example.
 
 ## Page Object Methods
 
 - **Single-page operations** → action methods on the page object (`LoginAsync()`, `SelectCompanyAsync()`)
 - **Multi-page workflows** → Scenario classes under `Infrastructure/Scenarios/`
+- **Action methods must wait for their own completion internally** — e.g., waiting for a spinner to disappear, a network call to finish, or a field to populate before returning. The caller (test) should never need to add waits after calling an action method.
 
 Scenario classes are mandatory for any workflow reused across multiple test classes.
 
 ## Assertions
 
-- **Element state** (visible, text, enabled): Playwright `Expect()` — auto-waits
-- **Data/logic** (counts, booleans, strings): FluentAssertions (`.Should().Be()`)
+- **Element state** (visible, text, enabled, checked): Playwright `Expect(unionElement)` — auto-retries until timeout
+- **Data/logic** (counts, booleans, computed strings): FluentAssertions (`.Should().Be()`)
+- **Never use `IsVisibleAsync()` / `TextContentAsync()` for assertions in tests** — these are instant checks with no retry. Use `Expect().ToBeVisibleAsync()` / `Expect().ToHaveTextAsync()` instead.
 - **No `Thread.Sleep()` / `Task.Delay()`** unless truly last resort (< 500ms, with comment explaining why)
+
+### Anti-pattern: WaitForXxx before Expect()
+
+**Never create `WaitForXxx` methods whose purpose is to pre-wait before an `Expect()` assertion.** `Expect()` already auto-retries until the condition is met — adding a wait before it is redundant.
+
+```csharp
+// WRONG — redundant wait before assertion
+await dialog.WaitForIsatCodePopulatedAsync();
+await Expect(dialog.IsatCodeMask).Not.ToBeEmptyAsync();
+
+// CORRECT — Expect() auto-retries, no pre-wait needed
+await Expect(dialog.IsatCodeMask).Not.ToBeEmptyAsync();
+```
+
+Waits inside **action methods** are fine — e.g., `EnterSsnAndSearchAsync()` waiting for a spinner to disappear before returning. The anti-pattern applies only to waits that exist solely to pre-wait before an assertion.
 
 ## Test Infrastructure
 

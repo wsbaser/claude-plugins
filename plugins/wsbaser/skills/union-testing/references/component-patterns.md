@@ -40,12 +40,13 @@ public sealed class CompanyListDialog : ComponentBase, IUnionModal
 
 ### ContainerBase — Reusable Element Groups
 
-Use when a group of elements appears on **multiple pages**. The `root:` prefix scopes child selectors relative to the container's root.
+Use when a group of elements appears on **multiple pages**. The constructor receives `(IUnionPage parentPage, string rootScss)` — the framework calls this automatically via `[UnionInit]`. The `root:` prefix scopes child selectors relative to the container's root.
 
 ```csharp
 public sealed class CompanySelectionComponent : ContainerBase
 {
-    public override string RootScss => ".select-company-wrapper";
+    public CompanySelectionComponent(IUnionPage parentPage)
+        : base(parentPage, ".select-company-wrapper") { }
 
     [UnionInit("root:input[type='search']")]
     public UnionElement SearchInput { get; set; }
@@ -70,6 +71,95 @@ public sealed class CompanySelectionComponent : ContainerBase
 ```
 
 The `root:` prefix **only works inside `ContainerBase` and `ListBase` subclasses**. On regular `ComponentBase` or pages, `root:` passes through as a literal string.
+
+#### Common Pitfalls
+
+**Constructor signature** — `ContainerBase` takes `(IUnionPage parentPage, string rootScss)`, not `(IContainer, string)`. Always pass `IUnionPage` as the first argument:
+
+```csharp
+// WRONG: IContainer is not the correct parameter type
+public CompanySelectionComponent(IContainer parent)
+    : base(parent, ".select-company-wrapper") { }  // does not compile
+
+// CORRECT: Use IUnionPage
+public CompanySelectionComponent(IUnionPage parentPage)
+    : base(parentPage, ".select-company-wrapper") { }
+```
+
+**IContainer limitation** — `ComponentBase` does **not** implement `IContainer`. You cannot pass `this` from a parent `ComponentBase` to a child that expects `IContainer`:
+
+```csharp
+// WRONG: ComponentBase does not implement IContainer
+public sealed class MyDialog : ComponentBase
+{
+    public MyDialog(IUnionPage page) : base(page, ".dialog") { }
+
+    // Cannot pass 'this' — ComponentBase is not IContainer
+    public MyPanel Panel => new MyPanel(this, ".panel");  // compile error
+}
+```
+
+**Pass-through pattern** — When a `ContainerBase` child needs the same scope as its parent, use `[UnionInit(".same-root-selector")]` on the parent. The framework passes the page and selector to the child's constructor automatically:
+
+```csharp
+public sealed class ParentDialog : ComponentBase, IUnionModal
+{
+    // Framework calls constructor with (page); child scopes itself via base(parentPage, ".select-company-wrapper")
+    [UnionInit(".select-company-wrapper")]
+    public CompanySelectionComponent Selection { get; set; }
+}
+```
+
+### Anti-pattern: Plain class used as a [UnionInit] property
+
+A common mistake is creating a shared component as a plain C# class with an `ILocator` constructor. This breaks the Union initialization chain — `[UnionInit]` on a parent cannot instantiate a plain class, so the property stays `null` at runtime.
+
+```csharp
+// WRONG: Plain class — cannot be a [UnionInit] property
+public sealed class RegistrySearchComponent
+{
+    private readonly ILocator _root;
+
+    public RegistrySearchComponent(ILocator root) { _root = root; }
+
+    public async Task SearchAsync(string ssn) { ... }
+}
+
+// WRONG: Manual construction in parent constructor bypasses [UnionInit]
+public sealed class CustomerSliderDialog : ComponentBase
+{
+    public RegistrySearchComponent RegistrySearch { get; }  // no [UnionInit]
+
+    public CustomerSliderDialog(IUnionPage page)
+        : base(page, ".base-slider")
+    {
+        RegistrySearch = new RegistrySearchComponent(RootLocator);  // manual — fragile
+    }
+}
+```
+
+The fix is to inherit from `ContainerBase` so the framework can construct it via `[UnionInit]`:
+
+```csharp
+// CORRECT: ContainerBase — fully participates in Union lifecycle
+public sealed class RegistrySearchComponent : ContainerBase
+{
+    public RegistrySearchComponent(IUnionPage parentPage)
+        : base(parentPage, ".registry-search") { }
+
+    [UnionInit("root:input[type='search']")]
+    public UnionElement SearchInput { get; set; }
+
+    public async Task SearchAsync(string ssn) { ... }
+}
+
+// CORRECT: Parent uses [UnionInit] — framework handles construction
+public sealed class CustomerSliderDialog : ComponentBase
+{
+    [UnionInit(".base-slider")]
+    public RegistrySearchComponent RegistrySearch { get; set; }
+}
+```
 
 For single-page element groups, don't create a container — use flat `[UnionInit]` fields on the page:
 
