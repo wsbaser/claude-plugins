@@ -156,6 +156,7 @@ Analyze the Gherkin scenarios and group them into parallel implementation tracks
 - Group by **shared page objects and infrastructure dependencies** to avoid file conflicts between agents
 - Scenarios sharing the same page objects should be in the same track
 - Independent feature areas can run in separate tracks
+- **Maximize parallelism** — split scenarios into as many independent tracks as possible (up to 7 agents) to parallelize implementation; prefer more smaller tracks over fewer large ones
 
 ### Step 3 — User Confirmation
 
