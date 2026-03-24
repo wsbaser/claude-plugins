@@ -156,7 +156,18 @@ Locate and read the HTML template:
 1. Use Glob to find it: `~/.claude/plugins/cache/wsbaser-plugins/wsbaser/*/skills/generate-test-report/assets/report-template.html`
 2. Read the first result with the Read tool (use the most recently modified file if multiple versions exist)
 
-Write `.reports/{slug}.html`. Create `.reports/` if it does not exist.
+Create `.reports/` if it does not exist.
+
+### Overwrite protection
+
+Before writing the file, check whether `.reports/{slug}.html` already exists:
+
+1. Run `test -f .reports/{slug}.html` to check.
+2. If the file **already exists**, find a unique name by appending an incrementing numeric suffix: try `.reports/{slug}-2.html`, then `.reports/{slug}-3.html`, and so on until the filename is available.
+3. When a rename occurs, log a message: `Report file .reports/{slug}.html already exists, saving as .reports/{slug}-N.html` (where N is the suffix chosen).
+4. Use the resolved filename (original or suffixed) for **both** the file write in this phase **and** the browser open command in Phase 4.
+
+Write the resolved output file.
 
 Embed `REPORT_DATA` at the `{{REPORT_DATA_JSON}}` placeholder. Replace `{{TITLE}}` in `<title>` with the report title (fall back to `slug` if `title` is empty).
 
@@ -182,7 +193,7 @@ Embed `REPORT_DATA` at the `{{REPORT_DATA_JSON}}` placeholder. Replace `{{TITLE}
 
 1. **Single self-contained file** — no external resources, no CDN imports.
 2. **Screenshots as `data:` URIs only** — never file paths.
-3. **Save to `.reports/{slug}.html`** — create `.reports/` if it does not exist.
+3. **Save to the resolved output filename** (see Overwrite protection in Phase 3) — create `.reports/` if it does not exist.
 4. **`REPORT_DATA_JSON` must be valid JSON** — escape any special characters in strings. The entire report renders from this inline JS object; malformed JSON causes a blank page.
 5. **`screenshots[]` must include `data_uri` for every screenshot that exists on disk** — set `data_uri: null` for any file not found (silently skipped in rendering).
 6. If no scenarios could be extracted from context, write a minimal report with a single scenario named "No test data found" with `status: "issue"` and one step explaining that no test results were detected in the conversation.
@@ -192,4 +203,4 @@ Embed `REPORT_DATA` at the `{{REPORT_DATA_JSON}}` placeholder. Replace `{{TITLE}
 
 ## Phase 4 — Open in Browser
 
-After writing the report file, run `open .reports/{slug}.html` to launch it in the user's default browser.
+After writing the report file, run `open <output-filename>` to launch it in the user's default browser (use the resolved filename from Phase 3, which may include a numeric suffix if overwrite protection renamed the file).
