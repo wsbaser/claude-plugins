@@ -1,5 +1,5 @@
 ---
-name: verify-union
+name: wsbaser:verify-union
 description: Automates E2E feature verification by generating and executing Union.Playwright.NUnit tests. Use when you want automated test code written and run. Use verify-feature when you want live browser verification without test code.
 disable-model-invocation: true
 ---

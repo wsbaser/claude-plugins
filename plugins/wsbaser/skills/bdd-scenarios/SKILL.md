@@ -1,5 +1,5 @@
 ---
-name: bdd-scenarios
+name: wsbaser:bdd-scenarios
 description: Decides what to test and produces an optimized set of Gherkin scenarios for automation — covering critical paths, alternative flows, edge cases, and error handling, with related validations combined to minimize run time. Use this skill in the planning phase: before any test code is written, when the user wants to figure out what scenarios to automate. Trigger on: "write test scenarios", "plan tests", "what should we test", "generate test cases", "give me gherkin", "test coverage for X", "what scenarios should we automate", "need scenarios before I start", or when asked to analyze a git branch or worktree to determine what needs testing. Do NOT trigger when the user wants to implement test code ("write the NUnit test", "implement the e2e test using Union framework"), fix a broken test or selector, review an existing test plan document, or ask a conceptual question about Gherkin syntax.
 ---
 

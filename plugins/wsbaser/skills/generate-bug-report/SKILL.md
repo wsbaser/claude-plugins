@@ -1,5 +1,5 @@
 ---
-name: generate-bug-report
+name: wsbaser:generate-bug-report
 description: "Produces a verdict-focused HTML bug report (MITIGATED / CONFIRMED / INCONCLUSIVE) with call chain visualization, network capture summary, and code snippet. Writes a self-contained file to .reports/{slug}.html. Invoke after a single bug is verified — manually or via verify-bug. Use generate-test-report instead for multi-scenario test suites."
 ---
 

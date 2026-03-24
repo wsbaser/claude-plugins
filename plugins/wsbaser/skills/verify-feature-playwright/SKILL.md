@@ -1,4 +1,5 @@
 ---
+name: wsbaser:verify-feature-playwright
 description: Comprehensive E2E browser testing — parallel codebase research, 5 isolated Playwright CLI sessions, screenshots, DB validation, and HTML report
 disable-model-invocation: true
 allowed-tools: Agent,

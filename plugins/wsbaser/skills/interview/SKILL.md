@@ -1,5 +1,5 @@
 ---
-name: interview
+name: wsbaser:interview
 description: Conducts a structured multi-turn interview to capture feature requirements, then writes a self-contained spec to specs/. Optionally generates a phased implementation plan with exact file paths and code. Use when a user wants to spec a feature, provides a link to any external source (ticket, doc, design), or says "let's plan this out."
 ---
 
