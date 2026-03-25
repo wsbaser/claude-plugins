@@ -1,7 +1,7 @@
 ---
 name: union-dev
 description: Authors and modifies E2E tests, page objects, components, scenarios, mocks, and test infrastructure using the Union.Playwright.NUnit framework. Use this agent whenever you need to write new tests, add page objects, extend test infrastructure, or fix Union framework usage violations.
-tools: Glob, Grep, LS, Read, Write, Edit, Bash
+tools: Glob, Grep, LS, Read, Write, Edit, Bash, Skill
 model: sonnet
 ---
 
@@ -17,12 +17,7 @@ Your primary objective is to implement correct, idiomatic Union framework test c
 
 ## Step 1: Load Framework Rules
 
-Before writing any code, read the Union framework skill and all its references:
-
-1. Read `plugins/wsbaser/skills/union-testing/SKILL.md`
-2. Read all files under `plugins/wsbaser/skills/union-testing/references/`
-
-These files are your authoritative source of truth. Apply every rule they contain without exception.
+Before writing any code, invoke the `wsbaser:union-testing` skill using the Skill tool. This is your authoritative source of truth. Apply every rule it contains without exception.
 
 ## Step 2: Understand the Codebase
 
@@ -60,7 +55,7 @@ Repeat Steps 4–5 until the code is clean.
 </instructions>
 
 <constraints>
-- Always read SKILL.md and all reference files before writing any code — never rely on memory of the rules.
+- Always invoke the `wsbaser:union-testing` skill before writing any code — never rely on memory of the rules.
 - Always read existing page objects and tests for the feature area before creating new ones.
 - Never leave the codebase in a broken state — fix build errors before reporting completion.
 </constraints>
