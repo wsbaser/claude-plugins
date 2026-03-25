@@ -121,6 +121,52 @@ await Expect(dialog.IsatCodeMask).Not.ToBeEmptyAsync();
 
 Waits inside **action methods** are fine — e.g., `EnterSsnAndSearchAsync()` waiting for a spinner to disappear before returning. The anti-pattern applies only to waits that exist solely to pre-wait before an assertion.
 
+## Test Naming
+
+Test names follow the pattern `{Subject}_{WhenCondition}_{ExpectedOutcome}`. The **subject is always first** — it determines alphabetical grouping, so tests about the same subject must share the same prefix. A fourth segment is allowed when two independent conditions both need to be named; prefer three segments when one condition can be expressed as a qualifier on the subject or outcome.
+
+**Rule: start with the entity under test, not with qualifiers or context.**
+
+Qualifiers (delisted, invalid, missing) and context (edit mode, create mode) belong in the middle segment, never at the start.
+
+```csharp
+// CORRECT — subject first, qualifier in the middle
+public async Task CompanySsn_WhenFoundDelisted_SetsActiveToggleOff() { }
+public async Task CompanySsn_InEditMode_WhenFoundDelisted_DoesNotChangeIsActiveStatus() { }
+public async Task CompanySsn_WhenIsatCodeUnresolvable_LeavesIsatCodeEmpty() { }
+public async Task IndividualSsn_WhenFound_FillsNameAndAddressOnly() { }
+public async Task SsnNotFound_ShowsWarningTooltipAndLeavesNameEmpty() { }
+
+// WRONG — qualifier before subject; breaks grouping
+public async Task DelistedCompanySsn_WhenFound_SetsActiveToggleOff() { }
+public async Task EditMode_RegistrySearchWithDelistedCompany_DoesNotChangeIsActiveStatus() { }
+```
+
+Sorted alphabetically, the correct names cluster naturally:
+1. `CompanySsn_InEditMode_...`
+2. `CompanySsn_WhenFound_...`
+3. `CompanySsn_WhenFoundDelisted_...`
+4. `CompanySsn_WhenIsatCodeUnresolvable_...`
+5. `IndividualSsn_WhenFound_...`
+6. `SsnNotFound_...`
+
+For the registry/SSN domain in this project, the agreed subject prefixes are:
+- `CompanySsn_` — any test driven by a company SSN (including delisted, unresolvable, edit mode)
+- `IndividualSsn_` — tests driven by an individual/person SSN
+- `SsnNotFound_` — tests for a not-found registry response (applies to any SSN type)
+
+**Applying this to other domains:** the same rule holds everywhere. If tests cover "expired token" and "valid token" scenarios, both should start with `Token_` — not `ExpiredToken_` vs `Token_`. Put the distinguishing condition in the middle segment.
+
+## Test Authoring Checklist
+
+Before committing a new test, verify:
+
+- **No manual instantiation** — page objects and components are obtained only via `Go.ToPage<T>()`, `ClickAndWaitForRedirectAsync<T>()`, or `[UnionInit]`; never `new`
+- **Elements declared with `[UnionInit]`** — no raw `ILocator` properties exposed from page objects or components
+- **Navigation via Union methods** — `Go.ToPage<T>()` or `ClickAndWaitForAsync<T>()`; no `page.GotoAsync()`
+- **Assertions use `Expect()`** — no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
+- **Test name is subject-first** — follows `{Subject}_{WhenCondition}_{ExpectedOutcome}`; qualifiers never lead
+
 ## Test Infrastructure
 
 Read `references/infrastructure.md` for:

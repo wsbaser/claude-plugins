@@ -1,5 +1,12 @@
 # Component Patterns
 
+## Contents
+
+- [Choosing the Right Base Class](#choosing-the-right-base-class)
+- [Creating New Component Types](#creating-new-component-types)
+- [Component Nesting](#component-nesting)
+- [MatchablePage](#matchablepage)
+
 ## Choosing the Right Base Class
 
 ### ComponentBase — Simple Wrappers
