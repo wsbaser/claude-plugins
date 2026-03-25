@@ -1,5 +1,13 @@
 # Navigation & State Management
 
+## Contents
+
+- [Navigation Methods](#navigation-methods)
+- [Click-and-Wait Methods](#click-and-wait-methods)
+- [State Inspection](#state-inspection)
+- [Page Object Action Methods](#page-object-action-methods)
+- [WaitLoadedAsync Override](#waitloadedasync-override)
+
 ## Navigation Methods
 
 ### Go.ToPage<T>() — Intentional Navigation
