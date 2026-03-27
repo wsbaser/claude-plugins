@@ -10,7 +10,7 @@ Configure a micro-learning system that appends a short, contextual lesson at the
 
 ## Step 0: Check for Existing Configuration
 
-If `CLAUDE.local.md` contains a `## Tagalog Lesson` or `## Micro Lessons:` section, ask the user: **Replace** (new topic/settings, continue from Step 1) or **Update** (tweak current setup, skip to Step 8).
+If `CLAUDE.local.md` contains any existing lesson section — a `## {Language} Lesson` heading (e.g. `## Dutch Lesson`, `## Tagalog Lesson`) or a `## Micro Lessons:` section — ask the user: **Replace** (remove existing lesson, continue from Step 1) or **Update** (tweak current setup, skip to Step 8).
 
 ## Step 1: Parse Arguments
 
@@ -160,7 +160,7 @@ Store the memory file path as `CURRICULUM_PATH` for use in the template.
 
 ## Step 8: Write to CLAUDE.local.md
 
-Read `$ROOT_DIR/CLAUDE.local.md` if it exists. If a `## Micro` lessons section already exists, replace it; otherwise append.
+Read `$ROOT_DIR/CLAUDE.local.md` if it exists. If any existing lesson section is found — a `## {Language} Lesson` heading or a `## Micro Lessons:` section — replace it; otherwise append.
 
 ### Template for LANGUAGE
 
