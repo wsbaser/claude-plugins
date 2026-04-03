@@ -116,7 +116,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
    - One task per implementation track (with descriptions including file ownership lists)
    - Review cycle placeholder tasks (mark as blocked by implementation tasks using `addBlockedBy`)
 
-3. **Spawn ALL teammates in parallel** — use a SINGLE message with MULTIPLE `Task` tool calls, all with `team_name` parameter:
+3. **Spawn ALL teammates in parallel** — use a SINGLE message with MULTIPLE `Task` tool calls, all with `team_name` parameter and `mode: "bypassPermissions"`. This applies to ALL agents — impl-track, reviewer, DA, and code-simplifier.
 
 #### Always Mandatory (Spawned in Phase 2 regardless of review mode)
 
@@ -125,6 +125,8 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 | `impl-track-1` ... `impl-track-N` | `general-purpose` | Code implementation (1 per parallel track) |
 | `code-simplifier` | `7c:code-simplifier` | Code complexity, simplification |
 | `devils-advocate` | `7c:devils-advocate` | Challenge decisions + recommend reviewers (adaptive mode) |
+
+> **Note**: All agents (`impl-track-N`, `code-simplifier`, `devils-advocate`, and all agents in the tables below) are spawned with `mode: "bypassPermissions"`.
 
 #### Full Mode Only (Spawned in Phase 2 when `--full`)
 
@@ -172,7 +174,7 @@ All agents are instructed on these protocols in their spawn prompts. Team lead s
 ### Protocol 1 — File-Based Reviewer Reporting
 
 After completing their review, each reviewer:
-1. Writes their FULL findings to `~/.claude/teams/{team_name}/findings-{their-name}.md`
+1. Writes their FULL findings to `./.claude-teams/{team_name}/findings-{their-name}.md`
 2. Sends a BRIEF summary message to the team lead (≤200 words): list Critical/High issues only, include the file path for their full report.
 
 The team lead consolidates all findings:
@@ -295,7 +297,7 @@ After parallel tracks complete, assign the next wave (tracks that depended on co
 ==============================================================
 ```
 
-5. **Spawn selected optional reviewers on-demand** — use parallel `Task` tool calls with `team_name` parameter. Each reviewer receives the standard **Reviewer Spawn Prompt** (Template 2). Zero optional reviewers is a valid outcome — only DA + code-simplifier will run in Phase 4.
+5. **Spawn selected optional reviewers on-demand** — use parallel `Task` tool calls with `team_name` parameter and `mode: "bypassPermissions"`. Each reviewer receives the standard **Reviewer Spawn Prompt** (Template 2). Zero optional reviewers is a valid outcome — only DA + code-simplifier will run in Phase 4.
 
 ---
 
@@ -319,7 +321,7 @@ After parallel tracks complete, assign the next wave (tracks that depended on co
 - **Cycle 2+**: Before starting the cycle, team lead asks DA to **re-evaluate** reviewer selection:
   1. Send DA a message with: what was fixed, what changed, current risk assessment
   2. DA responds with updated reviewer list (may add new reviewers or drop ones no longer needed)
-  3. Spawn any newly recommended reviewers on-demand (parallel `Task` calls with `team_name`)
+  3. Spawn any newly recommended reviewers on-demand (parallel `Task` calls with `team_name` parameter and `mode: "bypassPermissions"`)
   4. Message already-spawned reviewers that are still selected
   5. Display updated selection to user (same format as Phase 3.5 step 4)
 
@@ -341,7 +343,7 @@ Reviewers may DM impl agents to ask "why did you implement X this way?" before f
 #### Step 4 — Team Lead Consolidation (Protocol 1)
 
 When reviewers send their brief summary messages, read their findings files for complete details:
-1. Read each reviewer's `~/.claude/teams/{team_name}/findings-{reviewer-name}.md` file
+1. Read each reviewer's `./.claude-teams/{team_name}/findings-{reviewer-name}.md` file
 2. Deduplicate overlapping issues (same file/lines flagged by multiple reviewers)
 3. Resolve conflicts between reviewers (with reasoning)
 4. Produce a consolidated list with attribution per issue
@@ -504,12 +506,12 @@ You are a REVIEW AGENT on a team. Your expertise: {expertise description}.
 ## Reporting Your Findings
 
 After completing your review:
-1. Write your FULL findings to `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
-   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and YOUR_NAME)
+1. Write your FULL findings to `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
+   (Read your team config at `./.claude-teams/{TEAM_NAME}/config.json` to get TEAM_NAME and YOUR_NAME)
 2. Send a BRIEF summary message to the team lead via `SendMessage`:
    - List only Critical and High severity issues (one line each)
    - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
-   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Include: "Full report: `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
    - Keep the message ≤200 words
 
 ## Output Format
@@ -551,7 +553,7 @@ For each issue found:
 ### Instructions
 1. Review the listed files against the spec and your expertise
 2. Before flagging uncertain issues, consider DMing the impl agent for context (Protocol 2)
-3. Write your complete findings to `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
+3. Write your complete findings to `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
 4. Send team lead a brief summary: critical/high issues only + path to your findings file (≤200 words)
 ```
 
@@ -650,7 +652,7 @@ Respond with:
 
 ### Parallelization
 - Spawn ALL teammates in a SINGLE message with MULTIPLE Task tool calls
-- Use team_name parameter on all Task calls to register them as teammates
+- Use team_name parameter and `mode: "bypassPermissions"` on ALL Task calls — impl-track, reviewer, DA, and code-simplifier alike.
 - Implementation agents work in parallel on disjoint file sets
 - Review agents run in parallel during review cycles
 

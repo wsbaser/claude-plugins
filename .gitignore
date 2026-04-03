@@ -1,3 +1,4 @@
 *.local.*
 *.local
 specs/
+.claude-teams/
