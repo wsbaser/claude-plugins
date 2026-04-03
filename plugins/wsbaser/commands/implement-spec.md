@@ -174,7 +174,7 @@ All agents are instructed on these protocols in their spawn prompts. Team lead s
 ### Protocol 1 — File-Based Reviewer Reporting
 
 After completing their review, each reviewer:
-1. Writes their FULL findings to `~/.claude/teams/{team_name}/findings-{their-name}.md`
+1. Writes their FULL findings to `./.claude-teams/{team_name}/findings-{their-name}.md`
 2. Sends a BRIEF summary message to the team lead (≤200 words): list Critical/High issues only, include the file path for their full report.
 
 The team lead consolidates all findings:
@@ -343,7 +343,7 @@ Reviewers may DM impl agents to ask "why did you implement X this way?" before f
 #### Step 4 — Team Lead Consolidation (Protocol 1)
 
 When reviewers send their brief summary messages, read their findings files for complete details:
-1. Read each reviewer's `~/.claude/teams/{team_name}/findings-{reviewer-name}.md` file
+1. Read each reviewer's `./.claude-teams/{team_name}/findings-{reviewer-name}.md` file
 2. Deduplicate overlapping issues (same file/lines flagged by multiple reviewers)
 3. Resolve conflicts between reviewers (with reasoning)
 4. Produce a consolidated list with attribution per issue
@@ -506,12 +506,12 @@ You are a REVIEW AGENT on a team. Your expertise: {expertise description}.
 ## Reporting Your Findings
 
 After completing your review:
-1. Write your FULL findings to `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
-   (Read your team config at `~/.claude/teams/{TEAM_NAME}/config.json` to get TEAM_NAME and YOUR_NAME)
+1. Write your FULL findings to `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
+   (Read your team config at `./.claude-teams/{TEAM_NAME}/config.json` to get TEAM_NAME and YOUR_NAME)
 2. Send a BRIEF summary message to the team lead via `SendMessage`:
    - List only Critical and High severity issues (one line each)
    - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
-   - Include: "Full report: `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
+   - Include: "Full report: `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`"
    - Keep the message ≤200 words
 
 ## Output Format
@@ -553,7 +553,7 @@ For each issue found:
 ### Instructions
 1. Review the listed files against the spec and your expertise
 2. Before flagging uncertain issues, consider DMing the impl agent for context (Protocol 2)
-3. Write your complete findings to `~/.claude/teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
+3. Write your complete findings to `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
 4. Send team lead a brief summary: critical/high issues only + path to your findings file (≤200 words)
 ```
 
