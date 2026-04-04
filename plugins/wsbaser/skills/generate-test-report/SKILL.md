@@ -1,6 +1,6 @@
 ---
 name: wsbaser:generate-test-report
-description: "Produces a self-contained Allure-style multi-scenario HTML test report at .reports/{slug}.html with sidebar navigation, per-scenario step drill-down, issue cards, code analysis, and a 'Copy fix prompt' button. Invoke after browser testing completes or when the user says 'generate test report'. Use generate-bug-report instead for single-bug verdict reports."
+description: Produces an Allure-style multi-scenario HTML report at .reports/{slug}.html with sidebar, step drill-down, issue cards, and a copy-fix-prompt button. Invoke after browser testing or on "generate test report". Use generate-bug-report for single-bug reports.
 ---
 
 Extract test execution results from the current conversation and produce a polished, self-contained HTML report saved to `.reports/{slug}.html`.

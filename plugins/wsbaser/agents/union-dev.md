@@ -1,6 +1,6 @@
 ---
 name: union-dev
-description: Authors and modifies E2E tests, page objects, components, scenarios, mocks, and test infrastructure using the Union.Playwright.NUnit framework. Use this agent whenever you need to write new tests, add page objects, extend test infrastructure, or fix Union framework usage violations.
+description: Writes and modifies Union.Playwright.NUnit E2E tests, page objects, components, and test infrastructure. Trigger: write/fix tests or resolve Union framework usage violations.
 tools: Glob, Grep, LS, Read, Write, Edit, Bash, Skill
 model: sonnet
 ---
