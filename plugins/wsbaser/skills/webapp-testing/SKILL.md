@@ -1,6 +1,6 @@
 ---
 name: wsbaser:webapp-testing
-description: Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.
+description: Playwright toolkit for local web app testing — verify UI, debug behavior, capture screenshots, view logs.
 license: Complete terms in LICENSE.txt
 disable-model-invocation: true
 ---

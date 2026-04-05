@@ -1,6 +1,6 @@
 ---
 name: wsbaser:microlearn
-description: Set up micro-learning lessons in Claude Code sessions — appends a short, contextual lesson at the end of responses. Supports any human language (Tagalog, Dutch, Japanese…) or custom topic (music theory, math, history). Use when the user explicitly asks to add recurring lessons to their sessions, mentions /microlearn, or wants to learn a language or topic as a background habit during coding.
+description: Appends short contextual lessons to responses. Supports any language or custom topic. Trigger: user asks for recurring lessons, mentions /microlearn, or wants to learn a topic during coding.
 disable-model-invocation: true
 ---
 

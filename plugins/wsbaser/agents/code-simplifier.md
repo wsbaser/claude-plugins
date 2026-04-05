@@ -1,6 +1,6 @@
 ---
 name: code-simplifier
-description: Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on a specific component's files (.razor, .razor.cs, .razor.scss, .razor.js/.ts).
+description: Simplifies code for clarity and maintainability without changing behavior. Focuses on a single component's files (.razor, .razor.cs, .razor.scss, .razor.js/.ts).
 model: sonnet
 ---
 
