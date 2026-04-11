@@ -14,36 +14,38 @@
 
 ## Test Class Structure
 
-Every test class inherits from `UnionTest<TSession>`:
+**Rule: test classes must never inherit directly from `UnionTest<TSession>`.** Each service has a dedicated abstract base class that test classes inherit from. This is mandatory — not optional — for three reasons:
 
-```csharp
-[TestFixture]
-public class CompanySelectionTests : AppTest  // AppTest extends UnionTest<AppTestSession>
-{
-    [Test]
-    public async Task CompanySelection_SelectCompany_NavigatesToDashboard()
-    {
-        await Session.Scenarios.Login.LoginAsync(TestUsers.MultiCompany);
-        var dialog = Session.App.State.PageAs<CompanySelectionPage>();
-        await dialog.Selection.SelectCompanyByNameAsync("Acme Corp");
-        var dashboard = await dialog.Selection.ContinueButton
-            .ClickAndWaitForRedirectAsync<DashboardPage>();
-        await Expect(dashboard.WelcomeMessage).ToBeVisibleAsync();
-    }
-}
+1. `GetSessionProvider()` is defined once in the base class instead of repeated in every test class
+2. Services are exposed as shorthand `protected` properties — tests write `App.Go` instead of `Session.App.Go`
+3. Shared `[SetUp]`/`[TearDown]` hooks (diagnostics, timeouts, mock wiring) live in one place
+
+### The Two-Level Hierarchy
+
+```
+UnionTest<TSession>           ← framework base, never inherit directly
+    └── AppTest               ← service base: provider, properties, shared hooks
+            └── LoginTests    ← test class: only [Test] methods
+            └── DashboardTests
 ```
 
-### Base Test Class Pattern
+### Base Test Class
+
+Name it after the service: `AppTest`, `SearchTest`, `StackOverflowTest`, etc. It is `abstract` so NUnit doesn't try to run it as a fixture.
 
 ```csharp
-public class AppTest : UnionTest<AppTestSession>
+// CORRECT
+public abstract class AppTest : UnionTest<AppTestSession>
 {
-    protected AppTestSession Session => base.Session;
-    protected IBrowserContext Context => base.Context;
-    protected CompanyApiMocks ApiMocks { get; private set; }
-
+    // GetSessionProvider() defined once here — never repeat in each test class
     protected override TestSessionProvider<AppTestSession> GetSessionProvider()
-        => AppSessionProvider.Instance;  // Singleton
+        => AppSessionProvider.Instance;
+
+    // Shorthand properties — test code writes App.Go, App.State, etc.
+    protected AppService App => Session.App;
+
+    // If the session exposes scenarios or other collaborators, expose them too
+    protected AppScenarios Scenarios => Session.Scenarios;
 
     [SetUp]
     public async Task AppSetUp()
@@ -59,20 +61,11 @@ public class AppTest : UnionTest<AppTestSession>
 
         // Optional: setup API mocks
         ApiMocks = new CompanyApiMocks(Context);
-
-        // Optional: initialize DI bridge for per-test state
-        var accessor = Session.Services.GetRequiredService<ITestContextAccessor>();
-        accessor.Initialize(ApiMocks);
     }
 
     [TearDown]
     public async Task AppTearDown()
     {
-        // Clear DI bridge
-        var accessor = Session.Services.GetRequiredService<ITestContextAccessor>();
-        accessor.Clear();
-
-        // Capture diagnostics on failure
         var outcome = TestContext.CurrentContext.Result.Outcome;
         if (outcome.Status == TestStatus.Failed)
         {
@@ -81,6 +74,73 @@ public class AppTest : UnionTest<AppTestSession>
         }
     }
 }
+```
+
+### Test Class (lean — only tests)
+
+```csharp
+// CORRECT — inherits from the service base
+[TestFixture]
+public class CompanySelectionTests : AppTest
+{
+    [Test]
+    public async Task CompanySelection_SelectCompany_NavigatesToDashboard()
+    {
+        await Scenarios.Login.LoginAsync(TestUsers.MultiCompany);
+        var dialog = App.State.PageAs<CompanySelectionPage>();
+        await dialog.Selection.SelectCompanyByNameAsync("Acme Corp");
+        var dashboard = await dialog.Selection.ContinueButton
+            .ClickAndWaitForRedirectAsync<DashboardPage>();
+        await Expect(dashboard.WelcomeMessage).ToBeVisibleAsync();
+    }
+}
+
+// WRONG — inherits directly from UnionTest<TSession>
+[TestFixture]
+public class CompanySelectionTests : UnionTest<AppTestSession>
+{
+    protected override TestSessionProvider<AppTestSession> GetSessionProvider()
+        => AppSessionProvider.Instance;  // repeated — belongs in the base
+    // ...
+}
+```
+
+### Shorthand Properties — What to Expose
+
+Expose everything a test might need to access without qualifying through `Session.`:
+
+```csharp
+public abstract class StackOverflowTest : UnionTest<StackOverflowTestSession>
+{
+    protected override TestSessionProvider<StackOverflowTestSession> GetSessionProvider()
+        => StackOverflowTestSessionProvider.Instance;
+
+    // One property per service in the session
+    protected StackOverflowService SO => Session.SO;
+}
+```
+
+When the session has multiple services, expose each one:
+
+```csharp
+public abstract class AppTest : UnionTest<AppTestSession>
+{
+    protected AppService App => Session.App;
+    protected AdminService Admin => Session.Admin;
+    protected AppScenarios Scenarios => Session.Scenarios;
+}
+```
+
+With these properties, test methods become cleaner and the service being exercised is immediately obvious:
+
+```csharp
+// Before
+await Session.SO.Go.ToPage<QuestionsPage>();
+Session.SO.State.PageIs<QuestionsPage>().Should().BeTrue();
+
+// After
+await SO.Go.ToPage<QuestionsPage>();
+SO.State.PageIs<QuestionsPage>().Should().BeTrue();
 ```
 
 ## Test Session
