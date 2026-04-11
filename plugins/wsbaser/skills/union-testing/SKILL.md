@@ -166,11 +166,24 @@ Before committing a new test, verify:
 - **Navigation via Union methods** — `Go.ToPage<T>()` or `ClickAndWaitForAsync<T>()`; no `page.GotoAsync()`
 - **Assertions use `Expect()`** — no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
 - **Test name is subject-first** — follows `{Subject}_{WhenCondition}_{ExpectedOutcome}`; qualifiers never lead
+- **Test class inherits from service base** — never directly from `UnionTest<TSession>`; a service-specific base class (e.g., `StackOverflowTestBase`) owns `GetSessionProvider()` and exposes service shorthand properties
 
 ## Test Infrastructure
 
+Every service needs a **service-specific base test class**. Test classes must never inherit directly from `UnionTest<TSession>` — the base class is mandatory because it:
+- Implements `GetSessionProvider()` once, preventing repetition across every test class
+- Exposes each service as a `protected` shorthand property so tests write `SO.Go` instead of `Session.SO.Go`
+
+```csharp
+// CORRECT — test class inherits from service base
+public class StackOverflowTests : StackOverflowTestBase { }
+
+// WRONG — direct inheritance from UnionTest<TSession>
+public class StackOverflowTests : UnionTest<StackOverflowTestSession> { }
+```
+
 Read `references/infrastructure.md` for:
-- Test class structure (`UnionTest<TSession>`, `GetSessionProvider()`)
+- Base test class pattern (mandatory, with shorthand properties)
 - Session and service registration (`ITestSession`, `AddScoped<>`)
 - Mandatory SetUp steps (page capture, diagnostics, context timeout)
 - API mock organization (one mock class per API domain)
