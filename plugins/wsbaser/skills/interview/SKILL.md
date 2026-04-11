@@ -7,9 +7,9 @@ Interview the user in depth about a feature or requirement from the current conv
 
 ## Arguments
 
-- `--plan` (optional): After generating the spec, perform deep codebase exploration and generate a comprehensive implementation plan. When `--plan` is present, output goes to a subfolder: `specs/{slug}/spec.md` and `specs/{slug}/implementation-plan.md`. Without `--plan`, output is the flat file `specs/{slug}.md` as before.
+- `--plan` (optional): After generating the spec, perform deep codebase exploration and generate a phased implementation plan. Output goes to `specs/{slug}/`: `spec.md` + per-phase files (`phase-1-{name}.md`, `phase-2-{name}.md`, …). Without `--plan`, output is `specs/{slug}.md`.
 
-Check if the arguments passed to this skill contain `--plan`. If present, set `GENERATE_PLAN=true` and strip `--plan` from the arguments before processing.
+Strip `--plan` from arguments before processing. Set `GENERATE_PLAN=true` if present.
 
 ## Step 1: Context Gathering
 
@@ -93,9 +93,11 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
   - "Can you be more specific about [aspect]?"
   - "Give me a concrete example of that scenario."
   - "What exactly do you mean by [term]?"
-- **Use codebase context.** Reference actual code you found during exploration:
-  - "I see `{ClassName}` uses pattern X — should we follow the same approach here?"
-  - "The existing `{method}` handles this by doing Y — does that apply here too?"
+- **Embed codebase context in questions.** For any question referencing an internal mechanism, explore it first if needed, then explain what it is and why it exists in the question text. Do not assume the user knows the internals.
+
+  Bad: "Should the unified dialog always run `migrateModelId()` on the initial model?"
+  Good: "The codebase has a `migrateModelId()` function that converts old short model names
+  ('opus') to canonical prefixed names ('claude-opus') — this exists because older feature.json files may still contain the short format. In create mode the store default is already migrated, but in edit mode the value comes from disk. Should the dialog always run migration defensively, or only in edit mode?"
 - **Mid-interview exploration.** If an answer reveals a gap in your codebase understanding, pause to explore:
   - "Let me check how [related feature] is implemented..."
   - Then return with an informed follow-up question.
@@ -162,8 +164,8 @@ Example: "User notification preferences panel" -> `user-notification-preferences
 
 ### 2. Create the output directory
 
-- If `GENERATE_PLAN=true`: Create `specs/{slug}/` directory and write the spec to `specs/{slug}/spec.md`
-- Otherwise: Check if `specs/` exists (create if needed) and write to `specs/{slug}.md`
+- If `GENERATE_PLAN=true`: Create `specs/{slug}/` and write to `specs/{slug}/spec.md`
+- Otherwise: Write to `specs/{slug}.md` (create `specs/` if needed)
 
 ### 3. Write the spec file
 
@@ -258,33 +260,9 @@ Write the spec with the following structure:
 
 ### 4. Confirm completion or proceed to plan
 
-**If `GENERATE_PLAN=false`** — display completion and stop:
+**If `GENERATE_PLAN=false`:** Spec complete: `specs/{slug}.md` ({count} requirements, {count} decisions, {count or "None"} open questions). **Next:** `/wsbaser:implement-spec specs/{slug}.md`
 
-```
-==============================================================
- SPEC COMPLETE
-==============================================================
- File: specs/{slug}.md
- Requirements: {count}
- Decisions: {count}
- Open questions: {count or "None"}
-==============================================================
-```
-
-**Next step:** Run `/wsbaser:implement-spec specs/{slug}.md` to implement this feature.
-
-**If `GENERATE_PLAN=true`** — display transition message and continue to Step 5:
-
-```
-==============================================================
- SPEC COMPLETE — Proceeding to implementation plan...
-==============================================================
- File: specs/{slug}/spec.md
- Requirements: {count}
- Decisions: {count}
- Open questions: {count or "None"}
-==============================================================
-```
+**If `GENERATE_PLAN=true`:** Spec complete: `specs/{slug}/spec.md` ({count} requirements, {count} decisions). Proceeding to implementation plan…
 
 ## Step 5: Generate Implementation Plan (only when `GENERATE_PLAN=true`)
 
@@ -292,152 +270,29 @@ This step runs only when the `--plan` flag was provided. The goal is to produce 
 
 ### 5a. Deep codebase exploration
 
-Launch **up to 3 background agents** (Explore or general-purpose subagent_type) in parallel to gather all context needed for the plan. Tailor the exploration topics to the feature — common areas include:
-
-- **Design system**: color enums, theme maps, Themeify usage, SCSS variables and mixins
-- **Component patterns**: file structure conventions, base classes, code-behind patterns, namespace conventions
-- **Icon system**: how Font Awesome icons are referenced, IconComponent API
-- **Related components**: existing features similar to what's being built — find them and read their code as reference examples
-- **Story/test patterns**: BlazingStory story format, existing story examples for similar components
-- **Build & verification**: build commands, SCSS compilation, story compilation steps
-- **API integration**: service patterns, HTTP client usage, endpoint conventions (if the feature involves API calls)
-- **Routing & navigation**: page structure, route conventions (if the feature involves new pages)
+Launch **up to 3 Task-tool subagents** in parallel to gather codebase context for the plan. Tailor exploration to the feature — common topics: design system (colors, theme maps, SCSS), component patterns (file conventions, base classes, namespaces), icon system, similar existing components, story/test patterns, build commands, API/service patterns, and routing conventions.
 
 Each agent should return **actual code snippets** from the codebase, not just descriptions. The plan must contain enough real code context that a developer with zero prior knowledge of this codebase can implement correctly.
 
-### 5b. Write `specs/{slug}/implementation-plan.md`
+### 5b. Write phase files
 
-Using the spec from Step 4 and the codebase context from Step 5a, write a comprehensive implementation plan.
+For each logical phase, generate a slug (lowercase, hyphens, 2-4 words) and write `specs/{slug}/phase-N-{phase-slug}.md`. Each file must include:
+- **Goal** — 1-2 sentences on what this phase accomplishes
+- **Files** — list of paths to create/modify (annotated Create/Modify)
+- **Codebase Context** *(optional)* — include only when non-obvious patterns, conventions, or code snippets are needed; omit when steps are self-evident
+- **Steps** — numbered steps with exact code changes (before/after or full content)
+- **Verify** — commands and expected output
+- **Design Reference** *(optional, UI phases only)* — Figma measurements mapped to theme keys, color values, icon names
 
-**Required structure:**
+**Rules:** Each phase must be self-contained (a fresh `/wsbaser:implement-spec` session must implement it without reading other phases). Include enough prior-phase context for the implementor to proceed confidently. Order phases by dependency; aim for 2-6 phases.
 
-```markdown
-# {Feature Name} Implementation Plan
+### 5c. Display completion summary
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+Spec + phased plan complete. Spec: `specs/{slug}/spec.md` ({count} phases, {count} requirements, {count or "None"} open questions).
 
-**Goal:** {1 sentence — what this plan delivers}
-
-**Architecture:** {2-3 sentences — key architectural decisions and component relationships}
-
-**Tech Stack:** {Frameworks, libraries, and tools used}
-
----
-
-## Codebase Context (READ THIS FIRST)
-
-{This section gives a developer with ZERO context everything they need to know. Include:}
-
-### Project Paths
-
-| Purpose | Path |
-|---------|------|
-| {key location} | `{actual path}` |
+Run phases sequentially:
+```
+/wsbaser:implement-spec specs/{slug}/phase-1-{name}.md
+/wsbaser:implement-spec specs/{slug}/phase-2-{name}.md
 ...
-
-### Build Commands
-
-{Actual build/verify commands from the project}
-
-### Component File Convention
-
-{The exact file structure pattern used in this codebase, with critical rules}
-
-### {Domain-Specific Context Sections}
-
-{Include actual code snippets from the codebase exploration — theme maps, base classes, existing patterns, API conventions, etc. Whatever a developer needs to see to implement correctly.}
-
----
-
-## Files To Create / Modify
-
 ```
-{path/to/dir}/
-├── FileToCreate.razor          (Create)
-├── FileToCreate.razor.cs       (Create)
-├── FileToCreate.razor.scss     (Create)
-└── ExistingFile.razor.cs       (Modify)
-```
-
----
-
-## Phase 1: {Phase Name}
-
-**Goal:** {What this phase accomplishes}
-
-- [ ] **Task 1.1: {Task Name}** — `{path}` (Create/Modify)
-
-  {Complete implementation code for the file — NOT placeholders, but the actual code to write}
-
-  ```{language}
-  {full file content}
-  ```
-
-  Verify: `{build/test command}` → {expected output}
-  Commit: `git commit -m "{conventional commit message}"`
-
-- [ ] **Task 1.2: {Task Name}** — `{path}` (Create/Modify)
-  ...
-
----
-
-## Phase 2: {Phase Name}
-...
-
----
-
-## Decision Reference
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| {from spec} | {what was decided} | {why} |
-...
-
----
-
-## Design Reference
-
-{Only if the feature involves UI work — include Figma measurements, colors mapped to theme keys, typography, spacing, etc.}
-```
-
-**Plan quality requirements:**
-- Every task must use **`- [ ]` checkbox format** for progress tracking across sessions
-- Every task must have **exact file paths** inline with Create/Modify annotation
-- Every task must include **complete code** (the actual content to write, not pseudocode or "implement X here")
-- Every task must have an inline **verify step** (`Verify: \`command\` → expected`) and **commit step** (`Commit: \`git commit -m "..."\``)
-- The Codebase Context section must contain **real code snippets** from exploration, not generic descriptions
-- Phases should be ordered so each phase builds on the previous one
-- Tasks within a phase should be ordered by dependency (independent tasks can be noted as parallelizable)
-
-### 5c. Offer execution handoff
-
-After writing the plan, present the user with execution options:
-
-```
-Plan complete and saved to `specs/{slug}/implementation-plan.md`. Two execution options:
-
-1. Subagent-Driven (this session) — dispatch fresh subagent per task, review between tasks
-2. Parallel Session (separate) — open new session with executing-plans skill
-
-Which approach?
-```
-
-Use `AskUserQuestion` to let the user choose.
-
-### 5d. Display completion summary
-
-```
-==============================================================
- SPEC + PLAN COMPLETE
-==============================================================
- Spec: specs/{slug}/spec.md
- Plan: specs/{slug}/implementation-plan.md
- Requirements: {count}
- Decisions: {count}
- Plan phases: {count}
- Plan tasks: {count}
- Open questions: {count or "None"}
-==============================================================
-```
-
-**Next step:** Run `/wsbaser:implement-spec specs/{slug}/` to implement this feature.
