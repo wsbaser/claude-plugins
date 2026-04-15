@@ -25,6 +25,13 @@ Then explore the codebase to understand existing patterns relevant to the featur
 - Find similar implementations that could inform design decisions
 - Note any infrastructure that can be reused
 
+Spawn `wsbaser:pattern-scout` as an Explore subagent, passing:
+- The feature name and description
+- Any files or areas identified so far
+- The operations the feature needs to perform
+
+Wait for the reuse map before continuing. The scout's verdict informs the entire interview — prefer solutions that reuse existing primitives. If a new abstraction is proposed during the interview or spec writing, explain why the scout's findings don't cover it.
+
 Summarize what you found before starting the interview:
 
 ```
@@ -35,6 +42,7 @@ Summarize what you found before starting the interview:
  External specs found: {URLs read, or "None"}
  Technical data extracted: {e.g., "30-value enum with integer assignments" or "None"}
  Codebase exploration: {key findings}
+ Reuse map: {pattern-scout verdict — what exists and can be reused; or "nothing found, new primitive justified"}
  Topics to explore: {list of identified ambiguities}
  Mode: {Spec only | Spec + Implementation Plan}
 ==============================================================
