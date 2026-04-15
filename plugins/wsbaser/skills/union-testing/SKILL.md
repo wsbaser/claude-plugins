@@ -34,23 +34,14 @@ Every interactive/assertable element must be a `[UnionInit]`-annotated `UnionEle
 [UnionInit("#username")]
 public UnionElement EmailInput { get; set; }
 
-[UnionInit(".theme-btn:has-text('Continue')")]
+[UnionInit(".theme-btn['Continue']")]
 public UnionElement ContinueButton { get; set; }
 
 // WRONG: Raw ILocator exposed from page object
 public ILocator EmailInput => Page.Locator("#username");
 ```
 
-**Selector priority** (use the highest-priority selector available in the markup):
-1. aria attributes (`[aria-label='...']`, `[role='...']`)
-2. data-testid (`[data-testid='...']`)
-3. ID (`#myId`)
-4. CSS class (`.my-class`)
-5. Text-based (`text=...`, `:has-text('...')`)
-6. `:has()` pseudo-selectors
-7. Attribute selectors (`[attr='value']`)
-
-When higher-priority selectors become available in the app markup (especially aria attributes), update existing selectors. Read `references/selector-strategy.md` for migration guidance.
+Selectors use XCSS syntax — not CSS pseudo-classes or Playwright selector strings. Invoke `wsbaser:selector-generation` to generate new selectors or validate and fix existing ones — it reads the markup and returns a named list of XCSS selectors for use in `[UnionInit]` attributes.
 
 ## Navigation
 

@@ -36,7 +36,7 @@ Before touching any file:
 - List which files you will create or modify.
 - Confirm no page object or component for the target already exists.
 - Plan a Scenario class for any workflow shared across multiple test classes.
-- If the task is ambiguous (selector not found, page structure unknown), read the relevant `.razor` or `.html` source files to discover the DOM.
+- Invoke `wsbaser:selector-generation` to generate all `[UnionInit]` selectors — provide the markup source file path and a description of the elements needed.
 
 ## Step 4: Implement
 
@@ -48,7 +48,8 @@ After writing code:
 
 1. Re-read every file you created or modified.
 2. Verify each decision against the rules loaded in Step 1.
-3. If the project builds via CLI, run the build and fix any compilation errors.
+3. Invoke `wsbaser:selector-generation` in validate mode on any page object or component file you created or modified — pass the file and its markup source. Fix any selectors reported as invalid, non-unique, or suboptimal.
+4. If the project builds via CLI, run the build and fix any compilation errors.
 
 Repeat Steps 4–5 until the code is clean.
 
@@ -61,7 +62,6 @@ Repeat Steps 4–5 until the code is clean.
 </constraints>
 
 <edge_cases>
-- **DOM structure unknown**: Read the `.razor` or `.html` source files to discover selectors. Never guess.
 - **Page object already exists**: Extend it rather than creating a duplicate.
 - **Selector not available at desired priority**: Use the next available priority and add a comment noting a higher-priority selector should be added when the markup supports it.
 - **Workflow exists in a Scenario class**: Reuse it — do not duplicate the steps in a new test.
@@ -86,8 +86,8 @@ _Input_: "Add the 'Forgot Password' link to the LoginPage."
 
 _Output_:
 - Reads `Pages/Auth/LoginPage.cs`.
-- Reads the `.razor` source to find the best selector.
-- Adds `[UnionInit("[data-testid='forgot-password']")] public UnionElement ForgotPasswordLink { get; set; }`.
+- Invokes `wsbaser:selector-generation` with `Pages/Auth/LoginPage.razor` to get the selector for the link.
+- Adds the returned selector as a `[UnionInit]` property (e.g., `[UnionInit("[data-testid='forgot-password']")] public UnionElement ForgotPasswordLink { get; set; }`).
 - Does not touch any test files unless asked.
 
 **Example 3: Extracting a reusable scenario**

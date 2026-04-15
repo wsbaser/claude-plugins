@@ -1,8 +1,10 @@
 # Selector Strategy
 
+> **All selectors in `[UnionInit]` use XCSS syntax** — not CSS pseudo-classes or Playwright selectors. XCSS compiles to XPath and is the native selector language of the Union framework.
+
 ## Priority Order
 
-When choosing a CSS selector for `[UnionInit]`, use the **highest-priority selector available** in the current markup:
+When choosing an XCSS selector for `[UnionInit]`, use the **highest-priority selector available** in the current markup:
 
 | Priority | Selector Type | Example | Stability |
 |----------|--------------|---------|-----------|
@@ -10,8 +12,8 @@ When choosing a CSS selector for `[UnionInit]`, use the **highest-priority selec
 | 2 | data-testid | `[data-testid='submit-btn']` | High — dedicated testing attribute |
 | 3 | ID | `#submit-button` | High — but may conflict with JS/CSS coupling |
 | 4 | CSS class | `.submit-btn`, `.theme-btn.primary` | Medium — may change with styling |
-| 5 | Text-based | `text=Submit`, `:has-text('Submit')` | Medium — changes with i18n/copy |
-| 6 | :has() pseudo | `.form:has(.error)` | Lower — depends on DOM structure |
+| 5 | Text content | `['Submit']`, `[~'Submit']` | Medium — changes with i18n/copy |
+| 6 | Sub-element predicate | `.form[>.error]` | Lower — depends on DOM structure |
 | 7 | Attribute | `[type='submit']`, `[data-id]` | Varies — depends on attribute purpose |
 
 ## When to Use Each
@@ -54,22 +56,22 @@ public UnionElement CompanySelection { get; set; }
 ```
 Prefer BEM-style classes (`.block__element--modifier`) over utility classes (`.mt-4`, `.flex`). Utility classes change frequently.
 
-**Text-based** (priority 5):
+**Text content** (priority 5):
 ```csharp
-[UnionInit(".theme-btn:has-text('Continue')")]
+[UnionInit(".theme-btn['Continue']")]
 public UnionElement ContinueButton { get; set; }
 
-[UnionInit("text=No companies")]
+[UnionInit("['No companies']")]
 public UnionElement NoCompaniesMessage { get; set; }
 ```
-Use when no structural selector is available. Fragile with i18n — text changes break these.
+Use `['exact text']` for direct text nodes, `[~'partial']` for contains. Fragile with i18n — text changes break these. Note: `['text']` matches direct text nodes only; for full descendant text use raw XPath `[normalize-space(.)='text']`.
 
-**:has() and complex selectors** (priority 6):
+**Sub-element predicates** (priority 6):
 ```csharp
-[UnionInit(".select-company-option-wrap:has(p:text-is(\"Acme Corp\"))")]
+[UnionInit(".select-company-option-wrap[>p['Acme Corp']]")]
 public UnionElement AcmeCompanyRow { get; set; }
 ```
-Use for ItemBase patterns where identifying items by content is necessary. Avoid for static elements.
+Use `[>child]` for direct-child existence, `[child]` for any descendant. Replaces `:has()` — XCSS does not support the `:has()` CSS pseudo-class. Use for ItemBase patterns where identifying items by content is necessary; avoid for static elements.
 
 ## Selector Anti-Patterns
 
@@ -116,7 +118,7 @@ When a single selector isn't specific enough, combine them:
 
 ```csharp
 // Combine class + text for specificity
-[UnionInit(".theme-btn:has-text('Continue')")]
+[UnionInit(".theme-btn['Continue']")]
 public UnionElement ContinueButton { get; set; }
 
 // Combine class + attribute
@@ -124,6 +126,6 @@ public UnionElement ContinueButton { get; set; }
 public UnionElement ActiveCompanies { get; set; }
 
 // OR logic for elements that may render differently
-[UnionInit(".link_here, a:has-text('Create company here')")]
+[UnionInit(".link_here, a['Create company here']")]
 public UnionElement CreateCompanyLink { get; set; }
 ```
