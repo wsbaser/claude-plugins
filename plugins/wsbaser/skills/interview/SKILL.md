@@ -25,7 +25,7 @@ Then explore the codebase to understand existing patterns relevant to the featur
 - Find similar implementations that could inform design decisions
 - Note any infrastructure that can be reused
 
-Spawn `wsbaser:pattern-scout` as an Explore subagent, passing:
+Invoke the `wsbaser:pattern-scout` skill, passing:
 - The feature name and description
 - Any files or areas identified so far
 - The operations the feature needs to perform

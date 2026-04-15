@@ -43,7 +43,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 > existing patterns, API interfaces, base classes), spawn Explore subagents that
 > return summaries. Raw file contents must never enter your context window.
 
-1a. **Spawn pattern-scout** — for each implementation track identified in the spec, spawn `wsbaser:pattern-scout` as an Explore subagent, passing:
+1a. **Invoke pattern-scout** — for each implementation track identified in the spec, invoke the `wsbaser:pattern-scout` skill, passing:
    - The track's task description
    - The files the track will touch
    - The operations the track needs to perform
