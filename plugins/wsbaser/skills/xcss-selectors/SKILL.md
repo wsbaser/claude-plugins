@@ -1,6 +1,8 @@
 ---
 name: wsbaser:xcss-selectors
 description: Generate XCSS selectors for web page elements. Use this skill whenever you need to write element selectors for the Union.Playwright.NUnit framework, convert XPath or CSS selectors to XCSS syntax, create [UnionInit] attribute values, or identify UI elements optimally using XCSS. XCSS is the native selector language used by [UnionInit] in this project — always prefer it over raw CSS or XPath strings. Trigger even for simple tasks like "give me a selector for this button" or "how do I select this element".
+context: fork
+argument-hint: "[HTML/DOM source and elements to select]"
 ---
 
 # XCSS Selector Generator
@@ -11,6 +13,23 @@ XCSS is a CSS-like selector syntax that compiles to XPath. It is the selector fo
 XCSS.Parse("div.classname['text']")
 → //div[contains(@class,'classname')][text()[normalize-space(.)='text']]
 ```
+
+## Your Task
+
+You have been given HTML/DOM source and a list of elements to select:
+
+$ARGUMENTS
+
+Analyze the provided markup and return an XCSS selector for each requested element. Follow the Selector Generation Checklist and apply the syntax reference below.
+
+**Output format** — one line per element:
+```
+ElementName: xcss-selector
+```
+
+Use PascalCase names that reflect each element's role. After the list:
+- Note any elements where a higher-priority selector would be available if the app added aria attributes
+- Report any requested elements that are absent from the provided markup
 
 ---
 
@@ -204,58 +223,6 @@ When writing XCSS selectors, apply these in priority order:
 | `\|=` DashMatch | Not handled — throws | `[attr='val']` or `[attr*='val']` |
 | `:first-child`, `:nth-child` | Parsed but silently ignored | `[1]`, `[position()=N]` raw XPath |
 | CSS output | Not implemented | XPath output only |
-
----
-
-## Pattern Cookbook
-
-```
-// ID selectors
-#mainbar                                         → //*[@id='mainbar']
-div#mainbar                                      → //div[@id='mainbar']
-
-// Classes
-header.s-topbar                                  → //header[contains(@class,'s-topbar')]
-.c1.c2.c3                                        → all three classes required
-
-// Attribute — presence, exact, contains
-nav[aria-label='Primary']                        → exact aria-label
-a[data-nav-value='Newest']                       → data attribute
-a[href*='stackoverflow.blog']                    → href contains
-[itemprop='upvoteCount']                         → itemprop selector
-
-// Text — direct nodes
-li['Home']                                       → exact direct text
-li[~'New']                                       → text contains
-
-// Text — full element (raw XPath)
-button.nav-item[normalize-space(.)='Products']
-
-// NOT condition (raw XPath)
-.s-pagination[not(contains(@class,'page-sizer'))]
-
-// OR condition via union
-.badge.badge__advice, .badge.badge__tooling
-
-// Sub-element predicate (not navigation)
-.widget[>.widget-header[href*='tab=hot']]
-li[>a[@disabled]]
-
-// Descendant path
-#sidebar .s-sidebarwidget__yellow li.s-sidebarwidget--item a[href*='stackoverflow.blog']
-
-// Child path
-nav[aria-label='Primary']>ol.nav-links
-
-// Following sibling
-input~.text-danger
-
-// Index
-tr[1]>td[last()]
-
-// Complex: tag + id + class + text + children
-div#main-basket-info-div>ul>li['Тариф']>a
-```
 
 ---
 
