@@ -45,9 +45,9 @@ public sealed class CompanyListDialog : ComponentBase, IUnionModal
 }
 ```
 
-### ContainerBase — Reusable Element Groups
+### ContainerBase — Semantically Distinct Sub-components
 
-Use when a group of elements appears on **multiple pages**. The constructor receives `(IUnionPage parentPage, string rootScss)` — the framework calls this automatically via `[UnionInit]`. The `root:` prefix scopes child selectors relative to the container's root.
+Use for any semantically distinct sub-component composed into a page or dialog — a `ListBase<T>` on a single page is still the right choice if the DOM represents a list/table, and a `ContainerBase` is the right choice any time a chunk of the page forms a cohesive unit with its own elements and behavior. Reuse across pages is one reason to reach for `ContainerBase`, not the only one. The constructor receives `(IUnionPage parentPage, string rootScss)` — the framework calls this automatically via `[UnionInit]`. The `root:` prefix scopes child selectors relative to the container's root.
 
 ```csharp
 public sealed class CompanySelectionComponent : ContainerBase
@@ -168,10 +168,10 @@ public sealed class CustomerSliderDialog : ComponentBase
 }
 ```
 
-For single-page element groups, don't create a container — use flat `[UnionInit]` fields on the page:
+For a handful of unrelated elements that don't form a cohesive sub-component, don't create a container — use flat `[UnionInit]` fields on the page. Use this only when the elements are semantically unrelated, not as a shortcut to avoid a `ContainerBase` for a single-page sub-component:
 
 ```csharp
-// CORRECT: Single-page form — flat elements on page
+// CORRECT: Single-page form with unrelated top-level inputs — flat on page
 public class CheckoutPage : AppPage
 {
     public override string AbsolutePath => "/checkout";
@@ -185,10 +185,9 @@ public class CheckoutPage : AppPage
     [UnionInit("#cvv")]
     public UnionElement Cvv { get; set; }
 }
-
-// WRONG: Creating a ContainerBase for elements used on only one page
-public class PaymentForm : ContainerBase { ... }  // Unnecessary abstraction
 ```
+
+If those fields formed a cohesive unit (e.g. a `PaymentDetailsForm` with its own heading, validation, and submit button), `ContainerBase` would be correct even though it lives on a single page.
 
 ### ListBase<T> — Repeating Items
 
@@ -228,6 +227,8 @@ Key methods:
 
 ### ItemBase — Individual List Items
 
+`ItemBase` is reserved for items inside a `ListBase<T>`. Do not use it as a standalone parameterized component: it carries the semantic contract "an individual inside a list," and using it outside that context confuses readers and breaks conventions that tooling and future refactors rely on (e.g. searching for `ItemBase` subclasses to find list items). For repeating parameterized elements that aren't produced by a list, use `ContainerBase` — see "Reusable Parameterized Components" in `SKILL.md`.
+
 Every interactive element inside an ItemBase must be an `[UnionInit]` field. No inline locator chaining.
 
 ```csharp
@@ -255,6 +256,10 @@ public class CompanyItem : ItemBase
     }
 }
 ```
+
+### File Organization — One Class Per File
+
+Each `ListBase<T>`, `ItemBase`, `ContainerBase`, and `ComponentBase` subclass lives in its own `.cs` file. The codebase convention (e.g. `CompanyList.cs` + `CompanyItem.cs` side by side) makes every item class discoverable as a first-class type when navigating code, and prevents the "lost inside the parent" feel that hurts reuse. This applies even when the item is only used by one list — keep it separate.
 
 ## Creating New Component Types
 

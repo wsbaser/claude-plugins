@@ -74,13 +74,53 @@ What are you modeling?
   └─ Single-page elements ────────→ Flat [UnionInit] on parent (no new class)
 ```
 
-**ContainerBase vs ComponentBase**: `ContainerBase` is for reusable sub-components that are composed into multiple pages or dialogs — it scopes child selectors via `root:` prefix. `ComponentBase` is for top-level wrappers (modals, loaders, overlays) that don't scope child selectors. **Do not use `ComponentBase` for reusable element groups** — use `ContainerBase`.
+**`ItemBase` is strictly a `ListBase<T>` item.** Never use `ItemBase` as a standalone parameterized component, even though the framework's `IContainer` injection technically allows it. `ItemBase` carries the semantic contract "an individual inside a list"; repurposing it elsewhere confuses readers, breaks conventions that tooling and refactors rely on (e.g. finding list items by searching for `ItemBase` subclasses), and offers no real gain over the `ContainerBase` pattern below. For repeating parameterized elements, see "Reusable Parameterized Components".
 
-Only create `ContainerBase` when the component is reused across pages. Nest as deep as the DOM requires — no artificial depth limit. All `ItemBase` fields must use `[UnionInit]`.
+**Choose the base class by what the component represents**, not by how many places it's used. Lists → `ListBase<T>` even if the list appears on only one page. Modals → `ComponentBase + IUnionModal`. Semantically distinct sub-components → `ContainerBase`. The decision tree above is the primary guide; reuse is one consideration among several, not the gating rule.
+
+**ContainerBase vs ComponentBase**: `ContainerBase` scopes child selectors via the `root:` prefix and is the right choice for any semantically distinct sub-component composed into a page or dialog. `ComponentBase` is for top-level wrappers (modals, loaders, overlays) that don't scope child selectors. **Do not use `ComponentBase` for reusable element groups** — use `ContainerBase`. Nest as deep as the DOM requires — no artificial depth limit. All `ItemBase` fields must use `[UnionInit]`.
 
 **[UnionInit] compatibility rule**: `[UnionInit]` properties must inherit from a Union base class (`ContainerBase`, `ComponentBase`, `ListBase<T>`, or `ItemBase`). Plain classes are invisible to the initialization chain — `[UnionInit]` will silently leave them `null`.
 
+**`root:` + union selectors don't mix**: an `[UnionInit]` selector that uses the `root:` prefix must be a **single selector** — never a comma-separated union like `[UnionInit("root:a, root:b")]`. The framework's `XPathBuilder.Concat` scopes only the first alternative to the container's root; every subsequent alternative escapes to a page-global match, silently picking up elements from other items at runtime. If you need multiple alternatives, split into separate `[UnionInit]` fields, or fall back to `RootLocator.Locator("a, b")` inside an action method (Playwright's native `ILocator.Locator` scopes each alternative correctly).
+
 Read `references/component-patterns.md` for extending the framework with new types and a plain-class anti-pattern example.
+
+## Reusable Parameterized Components
+
+When the same selector shape plus behavior recurs — every cell in a spreadsheet row, every row in a data grid, every field in a repeated form section — extract it into a reusable `ContainerBase`. The component declares the inner elements and the interaction methods once; each caller supplies its own scoped root selector through the `[UnionInit]` attribute. The naïve alternative is a separate `[UnionInit] UnionElement` plus a private helper per instance, which duplicates both the inner element selectors and the interaction logic.
+
+```csharp
+// Component: inner elements + behavior, declared once
+public sealed class CellInputComponent : ContainerBase
+{
+    public CellInputComponent(IUnionPage parentPage, string rootScss)
+        : base(parentPage, rootScss) { }
+
+    [UnionInit("root:input")]
+    public UnionElement Input { get; set; }
+
+    public async Task EnterTextAsync(string value)
+    {
+        await RootLocator.ClickAsync();
+        await Input.FillAsync(value);
+        await Input.PressAsync("Tab");
+    }
+}
+
+// Parent: each instance supplies its own scoped selector
+[UnionInit(".spreadsheet-cell[spreadsheet-field='Description']")]
+public CellInputComponent DescriptionCell { get; set; }
+
+[UnionInit(".spreadsheet-cell[spreadsheet-field='Quantity']")]
+public CellInputComponent QuantityCell { get; set; }
+```
+
+The root-selector shape repeats in each parent declaration — that is the accepted trade-off. What the pattern eliminates is duplication of the **inner element selectors** (`root:input`) and the **behavior** (`EnterTextAsync`), declared once on the component and reused for every instance. Do not try to collapse the remaining attribute duplication by routing through `ItemBase`: that reopens the anti-pattern described above and is explicitly out of bounds.
+
+### `[UnionInit]` is recursive
+
+When a component is created via `[UnionInit]` on a parent, the framework automatically initializes that new component's own `[UnionInit]` fields — and their nested `[UnionInit]` fields, all the way down. In the example above, `CellInputComponent.Input` is populated without any manual call. If you find yourself reaching for `WebPageBuilder` anywhere outside the framework itself, re-examine whether `[UnionInit]` could express the same relationship — that's almost always the cleaner shape.
 
 ## Page Object Methods
 
