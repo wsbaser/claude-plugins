@@ -117,6 +117,57 @@ public sealed class ParentDialog : ComponentBase, IUnionModal
 }
 ```
 
+#### Parameterized `ContainerBase` — one component, many instances
+
+When the same inner-element shape and behavior recur across many parent declarations (cells in a row, tiles on a dashboard, sections in a form), let each parent declaration supply just the varying values. The constructor takes `(IUnionPage parentPage, …)` plus any number of additional parameters; `[UnionInit(...)]` arguments map 1:1 to those parameters after `parentPage`. The component uses them however it needs — most commonly to build the root selector passed to `base(...)`, but equally to shape inner selectors, behavior methods, assertions, or per-instance state.
+
+```csharp
+// ToggleCardComponent.cs — one file per class
+public sealed class ToggleCardComponent : ContainerBase
+{
+    public ToggleCardComponent(IUnionPage parentPage, string featureKey)
+        : base(parentPage, $".feature-card[data-feature='{featureKey}']") { }
+
+    [UnionInit("root:.card-title")]
+    public UnionElement Title { get; set; }
+
+    [UnionInit("root:.toggle-switch")]
+    public UnionElement Switch { get; set; }
+
+    public Task ToggleAsync() => Switch.ClickAsync();
+}
+
+// Parent: each card is one line, varying only in the [UnionInit] value
+public class SettingsDashboardPage : AppPage
+{
+    [UnionInit("notifications")]
+    public ToggleCardComponent NotificationsCard { get; set; }
+
+    [UnionInit("darkMode")]
+    public ToggleCardComponent DarkModeCard { get; set; }
+
+    [UnionInit("betaAccess")]
+    public ToggleCardComponent BetaAccessCard { get; set; }
+}
+```
+
+The parent carries only the irreducible varying value. If the constructor signature changes, the compiler forces every caller to update — a guarantee the full-selector-in-attribute style does not provide.
+
+**Parameters aren't limited to strings — prefer typed parameters whenever the value is semantically not a string.** `[UnionInit]` forwards its arguments untouched to the constructor, so any C# attribute-legal value works: primitives (`int`, `bool`, `double`, `char`), `enum` values, `typeof(T)`, 1-D arrays, and `null`. A typed parameter keeps call sites type-safe and avoids `.ToString()` / `Enum.Parse` noise inside the component. The only limit is the C# rule that attribute arguments must be compile-time constants — no `new Foo()`, method calls, or `DateTime.Now`.
+
+```csharp
+public sealed class TileComponent : ContainerBase
+{
+    public TileComponent(IUnionPage page, string key, int index, KpiKind kind)
+        : base(page, $"[data-kpi='{key}'][data-index='{index}']") { }
+
+    // ... inner elements + behavior ...
+}
+
+[UnionInit("orders", 0, KpiKind.Currency)]
+public TileComponent OrdersTile { get; set; }
+```
+
 ### Anti-pattern: Plain class used as a [UnionInit] property
 
 A common mistake is creating a shared component as a plain C# class with an `ILocator` constructor. This breaks the Union initialization chain — `[UnionInit]` on a parent cannot instantiate a plain class, so the property stays `null` at runtime.
@@ -185,6 +236,9 @@ public class CheckoutPage : AppPage
     [UnionInit("#cvv")]
     public UnionElement Cvv { get; set; }
 }
+
+// WRONG: wrapping unrelated inputs in a ContainerBase with no cohesion of its own
+public sealed class PaymentForm : ContainerBase { ... }  // unnecessary abstraction
 ```
 
 If those fields formed a cohesive unit (e.g. a `PaymentDetailsForm` with its own heading, validation, and submit button), `ContainerBase` would be correct even though it lives on a single page.
@@ -256,10 +310,6 @@ public class CompanyItem : ItemBase
     }
 }
 ```
-
-### File Organization — One Class Per File
-
-Each `ListBase<T>`, `ItemBase`, `ContainerBase`, and `ComponentBase` subclass lives in its own `.cs` file. The codebase convention (e.g. `CompanyList.cs` + `CompanyItem.cs` side by side) makes every item class discoverable as a first-class type when navigating code, and prevents the "lost inside the parent" feel that hurts reuse. This applies even when the item is only used by one list — keep it separate.
 
 ## Creating New Component Types
 
