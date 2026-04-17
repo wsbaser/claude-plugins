@@ -68,19 +68,28 @@ What are you modeling?
   ├─ Repeating list of items ──────→ ListBase<TItem>
   │    └─ Individual item ─────────→ ItemBase
   ├─ Reusable sub-component ───────→ ContainerBase (composed into pages/dialogs)
+  ├─ Repeating elements, not a list → ContainerBase (parameterized, see component-patterns.md)
   ├─ Modal/dialog ─────────────────→ ComponentBase + IUnionModal
   ├─ Loading indicator ────────────→ ComponentBase + ILoader
   ├─ Overlay/popover ──────────────→ ComponentBase + IOverlay
   └─ Single-page elements ────────→ Flat [UnionInit] on parent (no new class)
 ```
 
-**ContainerBase vs ComponentBase**: `ContainerBase` is for reusable sub-components that are composed into multiple pages or dialogs — it scopes child selectors via `root:` prefix. `ComponentBase` is for top-level wrappers (modals, loaders, overlays) that don't scope child selectors. **Do not use `ComponentBase` for reusable element groups** — use `ContainerBase`.
+The decision tree is the primary guide. Reuse count is one signal, not the gating rule — a list used on one page is still `ListBase<T>`; a cohesive sub-component on one page is still `ContainerBase`.
 
-Only create `ContainerBase` when the component is reused across pages. Nest as deep as the DOM requires — no artificial depth limit. All `ItemBase` fields must use `[UnionInit]`.
+**ContainerBase vs ComponentBase**: `ContainerBase` scopes child selectors via the `root:` prefix and is the right choice for any semantically distinct sub-component composed into a page or dialog. `ComponentBase` is for top-level wrappers (modals, loaders, overlays) that don't scope child selectors. **Do not use `ComponentBase` for reusable element groups** — use `ContainerBase`. Nest as deep as the DOM requires — no artificial depth limit. All `ItemBase` fields must use `[UnionInit]`.
 
 **[UnionInit] compatibility rule**: `[UnionInit]` properties must inherit from a Union base class (`ContainerBase`, `ComponentBase`, `ListBase<T>`, or `ItemBase`). Plain classes are invisible to the initialization chain — `[UnionInit]` will silently leave them `null`.
 
+**`root:` + union selectors don't mix**: Never use a comma-separated union like `[UnionInit("root:a, root:b")]` — the framework scopes only the first alternative, and subsequent alternatives silently match page-globally. Split into separate `[UnionInit]` fields instead.
+
 Read `references/component-patterns.md` for extending the framework with new types and a plain-class anti-pattern example.
+
+## Reusable Parameterized Components
+
+When the same inner-element shape and behavior recur across multiple instances — cells in a row, tiles on a dashboard, repeated form sections — extract them into a parameterized `ContainerBase`. The constructor takes a value (a key, an index), builds the full scoped selector from it, and passes it to `base(...)`. Each parent declaration carries just the value in its `[UnionInit]` attribute.
+
+See "Parameterized `ContainerBase`" in `references/component-patterns.md` for the full example and rationale.
 
 ## Page Object Methods
 

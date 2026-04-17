@@ -45,9 +45,9 @@ public sealed class CompanyListDialog : ComponentBase, IUnionModal
 }
 ```
 
-### ContainerBase — Reusable Element Groups
+### ContainerBase — Semantically Distinct Sub-components
 
-Use when a group of elements appears on **multiple pages**. The constructor receives `(IUnionPage parentPage, string rootScss)` — the framework calls this automatically via `[UnionInit]`. The `root:` prefix scopes child selectors relative to the container's root.
+Use for any semantically distinct sub-component composed into a page or dialog — a `ListBase<T>` on a single page is still the right choice if the DOM represents a list/table, and a `ContainerBase` is the right choice any time a chunk of the page forms a cohesive unit with its own elements and behavior. Reuse across pages is one reason to reach for `ContainerBase`, not the only one. The constructor receives `(IUnionPage parentPage, string rootScss)` — the framework calls this automatically via `[UnionInit]`. The `root:` prefix scopes child selectors relative to the container's root.
 
 ```csharp
 public sealed class CompanySelectionComponent : ContainerBase
@@ -117,6 +117,57 @@ public sealed class ParentDialog : ComponentBase, IUnionModal
 }
 ```
 
+#### Parameterized `ContainerBase` — one component, many instances
+
+When the same inner-element shape and behavior recur across many parent declarations (cells in a row, tiles on a dashboard, sections in a form), let each parent declaration supply just the varying values. The constructor takes `(IUnionPage parentPage, …)` plus any number of additional parameters; `[UnionInit(...)]` arguments map 1:1 to those parameters after `parentPage`. The component uses them however it needs — most commonly to build the root selector passed to `base(...)`, but equally to shape inner selectors, behavior methods, assertions, or per-instance state.
+
+```csharp
+// ToggleCardComponent.cs — one file per class
+public sealed class ToggleCardComponent : ContainerBase
+{
+    public ToggleCardComponent(IUnionPage parentPage, string featureKey)
+        : base(parentPage, $".feature-card[data-feature='{featureKey}']") { }
+
+    [UnionInit("root:.card-title")]
+    public UnionElement Title { get; set; }
+
+    [UnionInit("root:.toggle-switch")]
+    public UnionElement Switch { get; set; }
+
+    public Task ToggleAsync() => Switch.ClickAsync();
+}
+
+// Parent: each card is one line, varying only in the [UnionInit] value
+public class SettingsDashboardPage : AppPage
+{
+    [UnionInit("notifications")]
+    public ToggleCardComponent NotificationsCard { get; set; }
+
+    [UnionInit("darkMode")]
+    public ToggleCardComponent DarkModeCard { get; set; }
+
+    [UnionInit("betaAccess")]
+    public ToggleCardComponent BetaAccessCard { get; set; }
+}
+```
+
+The parent carries only the irreducible varying value. If the constructor signature changes, the compiler forces every caller to update — a guarantee the full-selector-in-attribute style does not provide.
+
+**Parameters aren't limited to strings — prefer typed parameters whenever the value is semantically not a string.** `[UnionInit]` forwards its arguments untouched to the constructor, so any C# attribute-legal value works: primitives (`int`, `bool`, `double`, `char`), `enum` values, `typeof(T)`, 1-D arrays, and `null`. A typed parameter keeps call sites type-safe and avoids `.ToString()` / `Enum.Parse` noise inside the component. The only limit is the C# rule that attribute arguments must be compile-time constants — no `new Foo()`, method calls, or `DateTime.Now`.
+
+```csharp
+public sealed class TileComponent : ContainerBase
+{
+    public TileComponent(IUnionPage page, string key, int index, KpiKind kind)
+        : base(page, $"[data-kpi='{key}'][data-index='{index}']") { }
+
+    // ... inner elements + behavior ...
+}
+
+[UnionInit("orders", 0, KpiKind.Currency)]
+public TileComponent OrdersTile { get; set; }
+```
+
 ### Anti-pattern: Plain class used as a [UnionInit] property
 
 A common mistake is creating a shared component as a plain C# class with an `ILocator` constructor. This breaks the Union initialization chain — `[UnionInit]` on a parent cannot instantiate a plain class, so the property stays `null` at runtime.
@@ -168,10 +219,10 @@ public sealed class CustomerSliderDialog : ComponentBase
 }
 ```
 
-For single-page element groups, don't create a container — use flat `[UnionInit]` fields on the page:
+For a handful of unrelated elements that don't form a cohesive sub-component, don't create a container — use flat `[UnionInit]` fields on the page. Use this only when the elements are semantically unrelated, not as a shortcut to avoid a `ContainerBase` for a single-page sub-component:
 
 ```csharp
-// CORRECT: Single-page form — flat elements on page
+// CORRECT: Single-page form with unrelated top-level inputs — flat on page
 public class CheckoutPage : AppPage
 {
     public override string AbsolutePath => "/checkout";
@@ -186,9 +237,11 @@ public class CheckoutPage : AppPage
     public UnionElement Cvv { get; set; }
 }
 
-// WRONG: Creating a ContainerBase for elements used on only one page
-public class PaymentForm : ContainerBase { ... }  // Unnecessary abstraction
+// WRONG: wrapping unrelated inputs in a ContainerBase with no cohesion of its own
+public sealed class PaymentForm : ContainerBase { ... }  // unnecessary abstraction
 ```
+
+If those fields formed a cohesive unit (e.g. a `PaymentDetailsForm` with its own heading, validation, and submit button), `ContainerBase` would be correct even though it lives on a single page.
 
 ### ListBase<T> — Repeating Items
 
@@ -227,6 +280,8 @@ Key methods:
 - `FindRandomAsync()` — get random item
 
 ### ItemBase — Individual List Items
+
+`ItemBase` is reserved for items inside a `ListBase<T>`. Do not use it as a standalone parameterized component: it carries the semantic contract "an individual inside a list," and using it outside that context confuses readers and breaks conventions that tooling and future refactors rely on (e.g. searching for `ItemBase` subclasses to find list items). For repeating parameterized elements that aren't produced by a list, use `ContainerBase` — see "Reusable Parameterized Components" in `SKILL.md`.
 
 Every interactive element inside an ItemBase must be an `[UnionInit]` field. No inline locator chaining.
 
