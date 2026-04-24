@@ -1,5 +1,5 @@
 ---
-name: wsbaser:selector-generation
+name: wsbaser:generate-selectors
 description: Generates, validates, and fixes XCSS selectors for web components and pages. Reads the target markup, applies XCSS selector priority rules, and returns a named list of selectors. Use when writing new element selectors, validating that existing selectors are still correct and optimal, or migrating selectors to a higher-priority type (e.g., aria attributes were added to the markup).
 context: fork
 argument-hint: "[markup source path(s)] [elements to select OR component file to validate]"

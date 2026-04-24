@@ -36,7 +36,7 @@ Before touching any file:
 - List which files you will create or modify.
 - Confirm no page object or component for the target already exists.
 - Plan a Scenario class for any workflow shared across multiple test classes.
-- Invoke `wsbaser:selector-generation` to generate all `[UnionInit]` selectors — provide the markup source file path and a description of the elements needed.
+- Invoke `wsbaser:generate-selectors` to generate all `[UnionInit]` selectors — provide the markup source file path and a description of the elements needed.
 
 ## Step 4: Implement
 
@@ -48,7 +48,7 @@ After writing code:
 
 1. Re-read every file you created or modified.
 2. Verify each decision against the rules loaded in Step 1.
-3. Invoke `wsbaser:selector-generation` in validate mode on any page object or component file you created or modified — pass the file and its markup source. Fix any selectors reported as invalid, non-unique, or suboptimal.
+3. Invoke `wsbaser:generate-selectors` in validate mode on any page object or component file you created or modified — pass the file and its markup source. Fix any selectors reported as invalid, non-unique, or suboptimal.
 4. If the project builds via CLI, run the build and fix any compilation errors.
 
 Repeat Steps 4–5 until the code is clean.
@@ -86,7 +86,7 @@ _Input_: "Add the 'Forgot Password' link to the LoginPage."
 
 _Output_:
 - Reads `Pages/Auth/LoginPage.cs`.
-- Invokes `wsbaser:selector-generation` with `Pages/Auth/LoginPage.razor` to get the selector for the link.
+- Invokes `wsbaser:generate-selectors` with `Pages/Auth/LoginPage.razor` to get the selector for the link.
 - Adds the returned selector as a `[UnionInit]` property (e.g., `[UnionInit("[data-testid='forgot-password']")] public UnionElement ForgotPasswordLink { get; set; }`).
 - Does not touch any test files unless asked.
 
