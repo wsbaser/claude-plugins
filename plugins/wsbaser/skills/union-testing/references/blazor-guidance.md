@@ -1,5 +1,14 @@
 # Blazor-Specific Guidance
 
+## Contents
+
+- [Blazor Hydration in WaitLoadedAsync](#blazor-hydration-in-waitloadedasync)
+- [Why NetworkIdle Times Out](#why-networkindle-times-out)
+- [SignalR Considerations](#signalr-considerations)
+- [DevExpress and Third-Party Components](#devexpress-and-third-party-components)
+- [Blazor Form Interactions](#blazor-form-interactions)
+- [Resource Blocking for Performance](#resource-blocking-for-performance)
+
 ## Blazor Hydration in WaitLoadedAsync
 
 Blazor apps require special handling because the page renders server-side HTML first, then hydrates with interactive WebAssembly or Server-side Blazor. Elements exist in the DOM before they're interactive.
