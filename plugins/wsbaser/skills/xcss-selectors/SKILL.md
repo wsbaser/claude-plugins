@@ -16,11 +16,17 @@ XCSS.Parse("div.classname['text']")
 
 ## Your Task
 
-You have been given HTML/DOM source and a list of elements to select:
+You have been given input to work with:
 
 $ARGUMENTS
 
-Analyze the provided markup and return an XCSS selector for each requested element. Follow the Selector Generation Checklist and apply the syntax reference below.
+**Detect the mode from the input:**
+
+- **HTML mode** — input contains `<` tags (HTML/DOM markup): analyze the markup and generate XCSS selectors for the requested elements.
+- **XPath conversion mode** — input contains XPath patterns (`//`, `[@`, `descendant::`, `contains(@`, `following-sibling::`, etc.): convert each XPath expression to XCSS.
+- **CSS conversion mode** — input contains CSS selectors (no `<` tags, no XPath axes): convert each CSS selector to XCSS.
+
+If the input is a mix (e.g. some CSS and some XPath), handle each one under its own mode.
 
 **Output format** — one line per element:
 ```
@@ -28,8 +34,71 @@ ElementName: xcss-selector
 ```
 
 Use PascalCase names that reflect each element's role. After the list:
-- Note any elements where a higher-priority selector would be available if the app added aria attributes
-- Report any requested elements that are absent from the provided markup
+- For HTML mode: note elements where aria attributes would enable stronger selectors; report elements absent from the markup.
+- For conversion modes: note any parts that had no direct XCSS equivalent and required a raw XPath passthrough.
+
+---
+
+## CSS → XCSS Conversion
+
+Most valid CSS is also valid XCSS — the conversion is usually minimal. Focus on:
+
+| CSS | XCSS | Reason |
+|---|---|---|
+| `*.cls` or `*[attr]` | `.cls` / `[attr]` | Strip the `*` prefix — it is always redundant |
+| `[attr^='prefix']` | `[starts-with(@attr,'prefix')]` | `^=` not implemented; use raw XPath |
+| `[attr$='suffix']` | `[substring(@attr,string-length(@attr)-N+1)='suffix']` | `$=` not implemented; use raw XPath |
+| `:not(.cls)` | `[not(contains(@class,'cls'))]` | `:not()` not implemented; use raw XPath |
+| `:nth-child(n)` | `[position()=n]` | pseudo-class not implemented; use raw XPath index |
+| `:first-child` | `[1]` | use numeric index |
+| `:last-child` | `[last()]` | use raw XPath `last()` |
+| Pseudo-states `:hover`, `:focus`, etc. | *(remove)* | Playwright uses `locator.hover()` — not a selector concern |
+
+Everything else (tag, `.class`, `#id`, `[attr='val']`, `[attr*='val']`, `>`, space, `+`, `~`, `,`) maps 1:1 to XCSS.
+
+---
+
+## XPath → XCSS Conversion
+
+Work through the XPath left-to-right, replacing each pattern. Compound selectors (multiple predicates, axes) convert piece by piece.
+
+### Step-by-step algorithm
+1. Replace the leading `//` or `//*` with the appropriate tag or omit (defaults to `*`)
+2. Convert attribute predicates → XCSS attribute syntax
+3. Convert axes → XCSS combinators
+4. Convert text predicates → XCSS text match syntax
+5. Leave complex XPath functions as raw XPath passthrough `[...]`
+
+### Conversion table
+
+| XPath | XCSS | Notes |
+|---|---|---|
+| `//tag` | `tag` | Drop `//` prefix |
+| `//*` | *(start of chain, no tag)* | Drop — omitting tag defaults to `*` |
+| `//tag[@id='val']` | `tag#val` | ID shorthand |
+| `//*[contains(@class,'cls')]` | `.cls` | Class shorthand |
+| `//tag[contains(@class,'cls')]` | `tag.cls` | Tag + class |
+| `[contains(@class,'c1')][contains(@class,'c2')]` | `.c1.c2` | Multiple classes |
+| `[@attr='val']` | `[attr='val']` | Drop `@` |
+| `[@data-x='val']` | `[data-x='val']` | Data attributes — drop `@` |
+| `[@aria-label='x']` | `[aria-label='x']` | ARIA attributes — drop `@` |
+| `[contains(@attr,'val')]` | `[attr*='val']` | Contains shorthand (for non-class attrs) |
+| `[text()[normalize-space(.)='text']]` | `['text']` | XCSS direct text match |
+| `[text()[contains(normalize-space(.),'text')]]` | `[~'text']` | XCSS partial text match |
+| `/descendant::tag` or `//tag` (mid-chain) | ` tag` (space) | Descendant combinator |
+| `/tag` (direct child, mid-chain) | `>tag` | Child combinator |
+| `/following-sibling::tag` | `+tag` | Adjacent sibling |
+| `\|` (union) | `,` | Group selector |
+| `[not(...)]` | `[not(...)]` | Pass through as-is |
+| `[starts-with(@attr,'x')]` | `[starts-with(@attr,'x')]` | Pass through as-is |
+| `[normalize-space(.)='text']` | `[normalize-space(.)='text']` | Pass through (full text incl. descendants) |
+| `[position()=n]` | `[n]` (or `[position()=n]` passthrough) | Numeric index preferred |
+
+**Example:**
+```
+XPath: //*[@id='sidebar']/descendant::nav[@aria-label='Primary']/ol[contains(@class,'nav-links')]
+XCSS:  #sidebar nav[aria-label='Primary']>ol.nav-links
+```
 
 ---
 
