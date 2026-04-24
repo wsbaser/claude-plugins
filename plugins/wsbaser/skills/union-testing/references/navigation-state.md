@@ -54,7 +54,7 @@ These are the primary way to handle action-triggered page/component changes. The
 var dashboard = await loginPage.LoginButton
     .ClickAndWaitForRedirectAsync<DashboardPage>();
 // If redirect doesn't happen, dashboard is null → NullReferenceException fails test naturally
-await dashboard.WelcomeMessage.IsVisibleAsync();
+await Expect(dashboard.WelcomeMessage).ToBeVisibleAsync();
 ```
 
 ### ClickAndWaitForAlertAsync<T>() — Modal/Dialog Appearance

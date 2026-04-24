@@ -1,6 +1,6 @@
 ---
 name: wsbaser:union-testing
-description: Enforces Union.Playwright.NUnit framework usage in E2E tests, page objects, components, mocks, and test infrastructure. Trigger: code imports Union types, .cs files in Union test projects, or user mentions Union/E2E/page objects/test automation.
+description: Enforces Union.Playwright.NUnit framework usage in E2E tests, page objects, components, mocks, and test infrastructure. Use when code imports Union types, when working in Union test projects (.cs files), or when the user mentions Union, E2E testing, page objects, or test automation.
 ---
 
 # Union Framework Test Authoring
@@ -101,10 +101,39 @@ Scenario classes are mandatory for any workflow reused across multiple test clas
 
 ## Assertions
 
-- **Element state** (visible, text, enabled, checked): Playwright `Expect(unionElement)` — auto-retries until timeout
+- **Element state** (visible, text, enabled, checked): `Expect(unionElement)` — auto-retries until timeout
 - **Data/logic** (counts, booleans, computed strings): FluentAssertions (`.Should().Be()`)
-- **Never use `IsVisibleAsync()` / `TextContentAsync()` for assertions in tests** — these are instant checks with no retry. Use `Expect().ToBeVisibleAsync()` / `Expect().ToHaveTextAsync()` instead.
+- **Never use `IsVisibleAsync()` / `TextContentAsync()` for assertions** — these are instant checks with no retry. Use `Expect(element).ToBeVisibleAsync()` / `Expect(element).ToHaveTextAsync()` instead.
 - **No `Thread.Sleep()` / `Task.Delay()`** unless truly last resort (< 500ms, with comment explaining why)
+
+### Use `Expect(unionElement)`, never `Assertions.Expect(...)`
+
+Always go through the Union `Expect(unionElement)` wrapper — **never call `Assertions.Expect(element.RootLocator)` or `Assertions.Expect(locator)` directly.** The wrapper accepts only `UnionElement` (never a raw `ILocator`) and keeps all assertion call sites uniform.
+
+`Expect` is available in two contexts:
+- **In tests** (`UnionTest<TSession>` subclasses): `public static` method inherited from `UnionTest`
+- **In components** (`ComponentBase` subclasses): `protected static` method inherited from `ComponentBase`
+
+```csharp
+// CORRECT — in a test (Expect is public static from UnionTest)
+await Expect(loginPage.EmailInput).ToBeVisibleAsync();
+
+// CORRECT — inside a ComponentBase subclass (Expect is protected static from ComponentBase)
+public sealed class ToastComponent : ComponentBase
+{
+    [UnionInit(".toaster__icon--success")]
+    public UnionElement SuccessToast { get; set; }
+
+    public async Task WaitForSuccessToastAsync(int timeoutMs = 10_000)
+    {
+        await Expect(SuccessToast).ToBeVisibleAsync(new() { Timeout = timeoutMs });
+    }
+}
+
+// WRONG — bypasses Union wrapper; never use Assertions.Expect directly
+await Assertions.Expect(loginPage.EmailInput.RootLocator).ToBeVisibleAsync();
+await Assertions.Expect(page.Locator("#email")).ToBeVisibleAsync();
+```
 
 ### Anti-pattern: WaitForXxx before Expect()
 
@@ -164,7 +193,7 @@ Before committing a new test, verify:
 - **No manual instantiation** — page objects and components are obtained only via `Go.ToPage<T>()`, `ClickAndWaitForRedirectAsync<T>()`, or `[UnionInit]`; never `new`
 - **Elements declared with `[UnionInit]`** — no raw `ILocator` properties exposed from page objects or components
 - **Navigation via Union methods** — `Go.ToPage<T>()` or `ClickAndWaitForAsync<T>()`; no `page.GotoAsync()`
-- **Assertions use `Expect()`** — no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
+- **Assertions use `Expect(unionElement)`** — no `Assertions.Expect(...)` calls anywhere (in tests or component methods); no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
 - **Test name is subject-first** — follows `{Subject}_{WhenCondition}_{ExpectedOutcome}`; qualifiers never lead
 - **Test class inherits from service base** — never directly from `UnionTest<TSession>`; a service-specific base class (e.g., `StackOverflowTestBase`) owns `GetSessionProvider()` and exposes service shorthand properties
 
