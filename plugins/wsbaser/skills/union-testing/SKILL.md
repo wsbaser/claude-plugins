@@ -106,27 +106,26 @@ Scenario classes are mandatory for any workflow reused across multiple test clas
 - **Never use `IsVisibleAsync()` / `TextContentAsync()` for assertions** — these are instant checks with no retry. Use `Expect(element).ToBeVisibleAsync()` / `Expect(element).ToHaveTextAsync()` instead.
 - **No `Thread.Sleep()` / `Task.Delay()`** unless truly last resort (< 500ms, with comment explaining why)
 
-### Use `Expect(unionElement)`, never `Assertions.Expect(...)`
+### Use `Expect(...)`, never `Assertions.Expect(...)`
 
-Always go through the Union `Expect(unionElement)` wrapper — **never call `Assertions.Expect(element.RootLocator)` or `Assertions.Expect(locator)` directly.** The wrapper accepts only `UnionElement` (never a raw `ILocator`) and keeps all assertion call sites uniform.
+Never call `Assertions.Expect(element.RootLocator)` or `Assertions.Expect(locator)` directly. `Expect` is available in two contexts with different signatures:
 
-`Expect` is available in two contexts:
-- **In tests** (`UnionTest<TSession>` subclasses): `public static` method inherited from `UnionTest`
-- **In components** (`ComponentBase` subclasses): `protected static` method inherited from `ComponentBase`
+- **In tests** (`UnionTest<TSession>` subclasses): `public static Expect(UnionElement)` — accepts a `UnionElement`
+- **In components** (`ComponentBase` subclasses): `protected static Expect(ComponentBase)` — accepts a `ComponentBase` subclass (e.g., a nested component)
 
 ```csharp
-// CORRECT — in a test (Expect is public static from UnionTest)
+// CORRECT — in a test; Expect takes UnionElement
 await Expect(loginPage.EmailInput).ToBeVisibleAsync();
 
-// CORRECT — inside a ComponentBase subclass (Expect is protected static from ComponentBase)
-public sealed class ToastComponent : ComponentBase
+// CORRECT — inside a ComponentBase subclass; Expect takes a ComponentBase
+public sealed class FormRow : ContainerBase
 {
-    [UnionInit(".toaster__icon--success")]
-    public UnionElement SuccessToast { get; set; }
+    [UnionInit]
+    public ErrorToast Toast { get; set; }  // ErrorToast : ComponentBase
 
-    public async Task WaitForSuccessToastAsync(int timeoutMs = 10_000)
+    public async Task WaitForErrorAsync()
     {
-        await Expect(SuccessToast).ToBeVisibleAsync(new() { Timeout = timeoutMs });
+        await Expect(Toast).ToBeVisibleAsync();
     }
 }
 
@@ -193,7 +192,7 @@ Before committing a new test, verify:
 - **No manual instantiation** — page objects and components are obtained only via `Go.ToPage<T>()`, `ClickAndWaitForRedirectAsync<T>()`, or `[UnionInit]`; never `new`
 - **Elements declared with `[UnionInit]`** — no raw `ILocator` properties exposed from page objects or components
 - **Navigation via Union methods** — `Go.ToPage<T>()` or `ClickAndWaitForAsync<T>()`; no `page.GotoAsync()`
-- **Assertions use `Expect(unionElement)`** — no `Assertions.Expect(...)` calls anywhere (in tests or component methods); no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
+- **Assertions use `Expect(...)`** — no `Assertions.Expect(...)` calls anywhere (in tests or component methods); no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
 - **Test name is subject-first** — follows `{Subject}_{WhenCondition}_{ExpectedOutcome}`; qualifiers never lead
 - **Test class inherits from service base** — never directly from `UnionTest<TSession>`; a service-specific base class (e.g., `StackOverflowTestBase`) owns `GetSessionProvider()` and exposes service shorthand properties
 
