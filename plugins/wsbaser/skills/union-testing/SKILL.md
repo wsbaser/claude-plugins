@@ -41,7 +41,7 @@ public UnionElement ContinueButton { get; set; }
 public ILocator EmailInput => Page.Locator("#username");
 ```
 
-Selectors use XCSS syntax — not CSS pseudo-classes or Playwright selector strings. Invoke `wsbaser:selector-generation` to generate new selectors or validate and fix existing ones — it reads the markup and returns a named list of XCSS selectors for use in `[UnionInit]` attributes.
+Selectors use XCSS syntax — not CSS pseudo-classes or Playwright selector strings. Invoke `wsbaser:generate-selectors` to generate new selectors or validate and fix existing ones — it reads the markup and returns a named list of XCSS selectors for use in `[UnionInit]` attributes.
 
 ## Navigation
 
