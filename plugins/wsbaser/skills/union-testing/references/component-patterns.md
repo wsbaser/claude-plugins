@@ -250,8 +250,8 @@ Use for lists where each item has the same structure.
 ```csharp
 public class CompanyList : ListBase<CompanyItem>
 {
-    public override string RootScss => ".company-list.companies-wrap";
-    public override string ItemIdScss => ".select-company-option-wrap p";
+    public override string ItemIdXcss =>
+        InnerXcss(".select-company-option-wrap p").Selector;
     public override string? IdAttribute => null; // uses text content
 
     public async Task<CompanyItem> GetRandomInvitationAsync()
@@ -269,8 +269,8 @@ public class CompanyList : ListBase<CompanyItem>
 ```
 
 Key properties:
-- `ItemIdScss` — selector for elements containing item identifiers
-- `IdAttribute` — attribute name containing the ID (null = use text content)
+- `ItemIdXcss` — selector for elements containing item identifiers; **must** use `InnerXcss(xcss).Selector` (see rule below)
+- `IdAttribute` — attribute name containing the ID (`null` = use text content)
 
 Key methods:
 - `GetIdsAsync()` — extract all item IDs from DOM
@@ -278,6 +278,31 @@ Key methods:
 - `CreateItem(id)` — create a single item by ID
 - `FindSingleAsync()` — get first item
 - `FindRandomAsync()` — get random item
+
+#### MANDATORY: Always use `InnerXcss(xcss).Selector` for `ItemIdXcss`
+
+`ItemIdXcss` and `ItemXcss` **must** use `InnerXcss(xcss).Selector` (in `ListBase<T>`) or `Container.InnerXcss(xcss).Selector` (in `ItemBase`). A plain XCSS string bypasses the framework's selector translation and scoping — the item cannot be located correctly at runtime.
+
+```csharp
+// CORRECT — InnerXcss translates XCSS and scopes the selector to the container root
+public override string ItemIdXcss =>
+    InnerXcss(".select-company-option-wrap p").Selector;
+
+// WRONG — plain string bypasses translation; item location breaks at runtime
+public override string ItemIdXcss => ".select-company-option-wrap p";
+```
+
+This rule applies equally to `ItemXcss` inside `ItemBase`:
+
+```csharp
+// CORRECT
+public override string ItemXcss =>
+    Container.InnerXcss($".select-company-option-wrap:has(p:text-is(\"{Id}\"))").Selector;
+
+// WRONG
+public override string ItemXcss =>
+    $".select-company-option-wrap:has(p:text-is(\"{Id}\"))";
+```
 
 ### ItemBase — Individual List Items
 
@@ -288,8 +313,8 @@ Every interactive element inside an ItemBase must be an `[UnionInit]` field. No 
 ```csharp
 public class CompanyItem : ItemBase
 {
-    public override string ItemScss =>
-        $".select-company-option-wrap:has(p:text-is(\"{Id}\"))";
+    public override string ItemXcss =>
+        Container.InnerXcss($".select-company-option-wrap:has(p:text-is(\"{Id}\"))").Selector;
 
     [UnionInit("root:p")]
     public UnionElement Name { get; set; }

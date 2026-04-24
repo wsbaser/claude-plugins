@@ -1,0 +1,82 @@
+[
+  {
+    "query": "hey i have this xpath from our old selenium test suite that i need to convert to xcss: `//*[@id='company-selector']/descendant::li[contains(@class,'option-item')][not(contains(@class,'disabled'))]/a` — can you convert it for the UnionInit attribute?",
+    "should_trigger": true
+  },
+  {
+    "query": "need to convert `.dropdown-menu > li.menu-item.active a[href*='/settings']` to xcss syntax for a [UnionInit] attribute",
+    "should_trigger": true
+  },
+  {
+    "query": "here's the company dropdown markup — give me xcss selectors for the option wrapper and the company name text: `<div class='select-company-option-wrap'><p class='company-name'>Acme Corp</p><span class='status active'>Active</span></div>`",
+    "should_trigger": true
+  },
+  {
+    "query": "migrating from selenium to union playwright, need xcss equivalents for: `//table[@id='data-table']//tr[td[normalize-space(.)='Active']]`, `//button[text()[normalize-space(.)='Save Changes']]`, `//input[@type='email'][@name='user-email']`",
+    "should_trigger": true
+  },
+  {
+    "query": "what xcss selector do i put in the [UnionInit] for the active tab? `<ul class='tab-bar'><li class='tab tab--active' data-tab='overview'><span>Overview</span></li><li class='tab' data-tab='settings'>Settings</li></ul>`",
+    "should_trigger": true
+  },
+  {
+    "query": "convert these css selectors to xcss: `ul.sidebar-nav > li.nav-item.is-active`, `div.modal[data-modal='confirm'] > div.modal-footer > button.btn.btn-danger`",
+    "should_trigger": true
+  },
+  {
+    "query": "convert this xpath to xcss: `//*[contains(@class,'card')][descendant::h3[normalize-space(.)='Account Settings']]`",
+    "should_trigger": true
+  },
+  {
+    "query": "i have this button markup, give me an xcss selector for it: `<div class='form-row form-row--actions'><button type='submit' class='btn btn-primary btn-lg'>Save Changes</button><button type='button' class='btn btn-outline'>Discard</button></div>`",
+    "should_trigger": true
+  },
+  {
+    "query": "this css selector needs to go in a UnionInit: `[data-row-id]:first-child > td.status-column` — what's the xcss version?",
+    "should_trigger": true
+  },
+  {
+    "query": "convert `//*[@role='dialog']//button[@aria-label='Close dialog']` to xcss",
+    "should_trigger": true
+  },
+  {
+    "query": "write a CSS keyframe animation that makes the toast notification slide in from the right and fade out after 3 seconds",
+    "should_trigger": false
+  },
+  {
+    "query": "i already have the css selector `.modal-footer .btn-primary` — how do i click it in playwright using page.locator?",
+    "should_trigger": false
+  },
+  {
+    "query": "my CSS rule `.nav-item.active { font-weight: bold }` isn't applying even though DevTools shows the element has both classes — what could be overriding it?",
+    "should_trigger": false
+  },
+  {
+    "query": "can you scan this HTML file and give me a list of all unique CSS class names used? i want to audit what's there before a refactor",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the XPath syntax to select all XML nodes that have a specific attribute value? i'm querying an RSS/Atom XML feed, not HTML",
+    "should_trigger": false
+  },
+  {
+    "query": "write a TypeScript utility function that takes an XPath expression string and converts it to a CSS selector string — i want to build this converter as a library",
+    "should_trigger": false
+  },
+  {
+    "query": "how do i use querySelectorAll in vanilla JS to get all table rows where the status cell text is 'Active'? no jquery",
+    "should_trigger": false
+  },
+  {
+    "query": "refactor this SCSS so it uses CSS custom properties instead of hardcoded hex values: `.nav-item { color: #3366cc; font-size: 14px; padding: 8px 16px; }`",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to assert that `.table .row.highlighted` exists and has text 'John Doe' — what's the playwright assertion code for this? using @playwright/test",
+    "should_trigger": false
+  },
+  {
+    "query": "can you explain why `div#main .container a` overrides `.container a.link` in terms of CSS specificity rules?",
+    "should_trigger": false
+  }
+]
