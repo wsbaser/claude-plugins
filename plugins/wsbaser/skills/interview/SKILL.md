@@ -1,6 +1,6 @@
 ---
 name: wsbaser:interview
-description: Interview user to capture feature requirements, write spec to specs/. Add --plan for phased implementation plan. Trigger: spec a feature, share a ticket/doc/design link, or say "plan this out".
+description: Interview user to capture feature requirements, write spec to specs/. Add --plan for phased implementation plan, --scout to run pattern-scout reuse analysis. Trigger: spec a feature, share a ticket/doc/design link, or say "plan this out".
 ---
 
 Interview the user in depth about a feature or requirement from the current conversation, then produce a structured specification document.
@@ -8,8 +8,9 @@ Interview the user in depth about a feature or requirement from the current conv
 ## Arguments
 
 - `--plan` (optional): After generating the spec, perform deep codebase exploration and generate a phased implementation plan. Output goes to `specs/{slug}/`: `spec.md` + per-phase files (`phase-1-{name}.md`, `phase-2-{name}.md`, …). Without `--plan`, output is `specs/{slug}.md`.
+- `--scout` (optional): After codebase exploration, invoke `wsbaser:pattern-scout` to build a reuse map and surface existing primitives before the interview begins.
 
-Strip `--plan` from arguments before processing. Set `GENERATE_PLAN=true` if present.
+Strip `--plan` and `--scout` from arguments before processing. Set `GENERATE_PLAN=true` if `--plan` is present. Set `RUN_SCOUT=true` if `--scout` is present.
 
 ## Step 1: Context Gathering
 
@@ -25,27 +26,27 @@ Then explore the codebase to understand existing patterns relevant to the featur
 - Find similar implementations that could inform design decisions
 - Note any infrastructure that can be reused
 
-Invoke the `wsbaser:pattern-scout` skill, passing:
+If `RUN_SCOUT=true`, invoke the `wsbaser:pattern-scout` skill, passing:
 - The feature name and description
 - Any files or areas identified so far
 - The operations the feature needs to perform
 
 Wait for the reuse map before continuing. The scout's verdict informs the entire interview — prefer solutions that reuse existing primitives. If a new abstraction is proposed during the interview or spec writing, explain why the scout's findings don't cover it.
 
-Summarize what you found before starting the interview:
+Summarize what you found before starting the interview. Use the brutalist text-block format below — lowercase throughout, `▸` as the *label → content* pointer, `·` as the list separator, and Unicode box-drawing for the frame. Pad labels to a consistent column width (here, 8 chars).
 
 ```
-==============================================================
- INTERVIEW: {Feature Name}
-==============================================================
- Context from conversation: {1-2 sentence summary}
- External specs found: {URLs read, or "None"}
- Technical data extracted: {e.g., "30-value enum with integer assignments" or "None"}
- Codebase exploration: {key findings}
- Reuse map: {pattern-scout verdict — what exists and can be reused; or "nothing found, new primitive justified"}
- Topics to explore: {list of identified ambiguities}
- Mode: {Spec only | Spec + Implementation Plan}
-==============================================================
+╔══════════════════════════════════════════════════════════════╗
+║  INTERVIEW · {feature name}                                  ║
+╚══════════════════════════════════════════════════════════════╝
+
+  context  ▸ {1-2 sentence summary}
+  sources  ▸ {urls read, or "none"}
+  extract  ▸ {e.g., "30-value enum with integer assignments" or "none"}
+  codebase ▸ {key findings}
+  reuse    ▸ {pattern-scout verdict — what exists and can be reused; or "skipped (--scout not set)"}
+  topics   ▸ {list of identified ambiguities}
+  mode     ▸ {spec only | spec + implementation plan}
 ```
 
 ## Step 2: Determine Interview Categories
@@ -139,15 +140,48 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
 - Continue the interview until all categories are covered AND all clarifying questions are resolved.
 - Do NOT offer to wrap up if there are unanswered questions that could be resolved by asking the user.
 - If a question arises that you need answered, ask it rather than deferring to the spec.
-- When coverage is complete and no questions remain, offer to wrap up:
+- When coverage is complete and no questions remain, synthesize the interview into a solution summary and display it as a **text block** (before the `AskUserQuestion` call). Use the brutalist text-block format below. Only include sections for categories actually covered.
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  SOLUTION SUMMARY · {feature name}                           ║
+╚══════════════════════════════════════════════════════════════╝
+
+  approach ▸ {1-2 sentence description of the chosen technical approach}
+
+  ─── scope ────────────────────────────────────────────────────
+
+   in  ▸ {what will be built, items joined by · separators;
+          wrap onto continuation lines aligned under the first item}
+   out ▸ {explicit exclusions if discussed; omit this row otherwise}
+
+  ─── decisions ────────────────────────────────────────────────
+
+   {group}    ▸ {related decisions joined by · separators}
+   {group}    ▸ {related decisions joined by · separators}
+   ...
+
+  open items ▸ {unresolved items, or "none"}
+```
+
+**Format rules:**
+- Lowercase throughout the block (preserve casing only inside backticked code identifiers when needed).
+- `▸` is the *label → content* pointer. `·` is the list separator. Don't mix in other glyphs.
+- Frame uses Unicode box-drawing (`╔ ═ ╗ ║ ╚ ╝`); section dividers use `─── label ───`.
+- **Group decisions thematically** (e.g., `state`, `fsm`, `routing`, `rendering`, `persistence`, `ui`). Aim for 3–6 groups regardless of total decision count — collapse related decisions onto one line. Padding each group label to a consistent width within the block.
+- The `out` row is optional — omit when nothing was explicitly excluded.
+
+This bookends the interview with a concrete picture of what was agreed. The user can spot-check before committing to the spec.
+
+Then offer to wrap up, referencing the summary:
 
 ```json
 {
-  "question": "We've covered the major topics. How would you like to proceed?",
-  "header": "Continue?",
+  "question": "The solution summary above reflects what we've discussed. Does it look right?",
+  "header": "Wrap up?",
   "options": [
-    {"label": "Wrap up", "description": "Coverage is sufficient — generate the spec"},
-    {"label": "Continue exploring", "description": "There are more areas I want to discuss"},
+    {"label": "Looks good — wrap up", "description": "Summary is accurate — generate the spec"},
+    {"label": "Continue exploring", "description": "I want to revisit or discuss more before wrapping up"},
     {"label": "Deep-dive on a topic", "description": "I want to go deeper on a specific area"}
   ]
 }
