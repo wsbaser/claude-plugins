@@ -26,14 +26,32 @@ For each skill, determine its stage category by reading the SKILL.md content:
 | Writes a `.md` spec, plan, RFC, or structured report to disk as primary output | SPEC |
 | Modifies source files, implements features, writes or changes code | BUILD |
 | Runs tests, verifies UI behavior, checks assertions, reports pass/fail | TEST |
+| Classifies, routes, or scores input and may intentionally halt the pipeline based on the verdict | GATE |
 | Produces no file by default — question-based or purely conversational | CONVERSATIONAL |
+
+**GATE vs CONVERSATIONAL**: A skill is GATE when its primary purpose is to evaluate conditions and make a binary go/no-go decision for the rest of the pipeline (e.g., routing classification, preflight checks, complexity scoring). A skill is CONVERSATIONAL when it produces advisory output without a hard stop condition.
 
 Also determine for each skill:
 - **`artifactPath`**: file path pattern the skill naturally produces (e.g., `specs/{{slug}}.md` or `.ask-jenny/features/{{featureId}}/verify-report.md`). Use `null` if no file is produced.
 - **`artifactDescription`**: brief label for the artifact (e.g., `"feature specification"`, `"RFC file"`, `"verification report"`).
 - **`expects`**: what input this stage needs — `"feature description"` for the first stage, or `"artifact from [preceding stage label]"` for downstream stages.
 
-## Step 3 — Handle Conversational Skills
+## Step 3 — Handle GATE and Conversational Skills
+
+### GATE skills
+
+GATE skills classify input and may abort the workflow. They always produce an artifact (the verdict file) and use `category: SPEC` in the generated YAML. The `stageSystemPrompt` must instruct the agent to:
+1. Write the verdict to a file before calling `StageComplete`.
+2. Call `StageComplete` with `status: 'success'` when the pipeline should continue.
+3. Call `StageComplete` with `status: 'abort'` and a required `reason` string when the pipeline should stop.
+
+The `reason` passed to `StageComplete` must be a non-empty string explaining why the workflow is halted (e.g., `'Manual routing verdict — story requires human-led implementation'`). The workflow engine emits a `workflow_aborted` event containing this reason.
+
+**Canonical GATE example**: `7c:route-implementation` — classifies a Jira ticket as Automated or Manual. If the verdict is Manual, the agent calls `StageComplete({ status: 'abort', reason: 'Manual routing verdict — story requires human-led implementation' })` and subsequent stages (e.g., `implement-task`) are skipped. If the verdict is Automated, the agent calls `StageComplete({ status: 'success' })` and the pipeline continues.
+
+Use the **GATE template** from Step 4 for these stages.
+
+### Conversational skills
 
 If any skill is CONVERSATIONAL (produces no file by default), evaluate whether the `stageSystemPrompt` can force file output before including it in the pipeline.
 
@@ -67,6 +85,23 @@ If the user says no: remove the skill from the pipeline and continue with the re
 ## Step 4 — Draft stageSystemPrompts
 
 For each stage, select the matching template and fill in skill-specific details.
+
+### GATE template
+Use when: category is GATE (classifies/routes input and may conditionally abort the pipeline)
+
+```
+After completing {brief task description}, write your verdict to:
+  {artifact path}
+
+Then call the StageComplete MCP tool:
+- status: 'success' if the pipeline should continue (e.g., {continue condition})
+- status: 'abort' with a required reason string if the pipeline should stop
+  (e.g., reason: '{example stop reason}')
+
+Do NOT call StageComplete before the verdict file has been written to disk.
+```
+
+Map `category: GATE` to `category: SPEC` in the generated YAML (GATE is an internal classification only — the YAML engine does not need to distinguish gate from spec stages).
 
 ### SPEC template
 Use when: category is SPEC (produces a file artifact for the next stage to consume)
@@ -171,7 +206,7 @@ stages:
 **Validate before writing:**
 - `id` and `name` are present at root
 - Each stage has: `id`, `label`, `category`, `position`, `stagePrompt`, `stageSystemPrompt`
-- `category` is one of: `SPEC`, `BUILD`, `TEST`
+- `category` is one of: `SPEC`, `BUILD`, `TEST` (GATE stages use `SPEC` in the YAML)
 - All stage `id` values are unique within the workflow
 - Each sequential stage has a unique `position` value (same position = mutually exclusive alternatives)
 
