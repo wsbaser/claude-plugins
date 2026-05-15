@@ -43,21 +43,6 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 > existing patterns, API interfaces, base classes), spawn Explore subagents that
 > return summaries. Raw file contents must never enter your context window.
 
-1a. **Invoke pattern-scout** — for each implementation track identified in the spec, invoke the `wsbaser:pattern-scout` skill, passing:
-   - The track's task description
-   - The files the track will touch
-   - The operations the track needs to perform
-
-   Run all scouts in parallel (one per track). Collect the reuse maps and include them in the Phase 1 summary under:
-
-   ```
-   Reuse opportunities:
-     Track A: {scout verdict}
-     Track B: {scout verdict}
-   ```
-
-   > The reuse maps are passed to impl agents in Phase 3. Impl agents must use listed primitives where applicable, or explicitly justify why they did not.
-
 2. **Create todo list** tracking all phases/tasks from the spec
 3. **Analyze dependencies** between tasks:
    - Which tasks require previous tasks to complete?
@@ -242,7 +227,6 @@ During implementation, impl agents may freely DM any reviewer to spot-check a sp
    - Full spec content for their track
    - File ownership list (explicit: "you own ONLY these files")
    - Build/verification commands from the project (e.g., `dotnet build`, `npm run sass:web-dev-all`)
-   - **Reuse map from pattern-scout** for this track: "The following existing primitives were found — use them where applicable. If you choose not to use a listed primitive, state why in a code comment or DM the team lead."
    - Inter-agent communication protocols (3, 4, 5)
    - Decision protocol: "For non-trivial design decisions, message the team lead. Devils-advocate may contact you directly."
    - Spot-check protocol: "You may DM any reviewer to spot-check a pattern. Don't wait for response — continue working."
