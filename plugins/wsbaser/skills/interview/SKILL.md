@@ -110,6 +110,7 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
 - **Mid-interview exploration.** If an answer reveals a gap in your codebase understanding, pause to explore:
   - "Let me check how [related feature] is implemented..."
   - Then return with an informed follow-up question.
+- **Architecture fit.** Use `wsbaser:architecture-fit` when needed to evaluate whether a proposed approach fits the current architecture before committing to it.
 - **Visual aids for UI/UX.** Use ASCII diagrams when clarifying layouts or interactions:
   ```
   Current:              Proposed:

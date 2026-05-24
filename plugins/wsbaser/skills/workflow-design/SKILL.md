@@ -82,6 +82,19 @@ Options: **Yes, use proposed path** | **Yes, use different path** (ask for path)
 
 If the user says no: remove the skill from the pipeline and continue with the remaining skills.
 
+## How the Prompt System Works
+
+**`stagePrompt`** → **user prompt** — invokes the skill. Auto-constructed as:
+```
+{stagePrompt} {artifact-or-description}
+# e.g. /wsbaser:implement-spec specs/feature.md
+```
+Upstream artifacts are injected automatically — the agent already has the right input.
+
+**`stageSystemPrompt`** → **system prompt** — post-completion instructions only.
+Never write "Run /skill-name" here; the skill is already running.
+Allowed: one line describing the input argument + StageComplete instructions.
+
 ## Step 4 — Draft stageSystemPrompts
 
 For each stage, select the matching template and fill in skill-specific details.
@@ -93,10 +106,14 @@ Use when: category is GATE (classifies/routes input and may conditionally abort 
 After completing {brief task description}, write your verdict to:
   {artifact path}
 
-Then call the StageComplete MCP tool:
-- status: 'success' if the pipeline should continue (e.g., {continue condition})
-- status: 'abort' with a required reason string if the pipeline should stop
-  (e.g., reason: '{example stop reason}')
+Then call the StageComplete MCP tool as the LAST action before stopping:
+
+  If {continue condition}:
+    status:  'success'
+
+  If the pipeline should stop:
+    status:  'abort'
+    reason:  '{example stop reason}'
 
 Do NOT call StageComplete before the verdict file has been written to disk.
 ```
@@ -108,9 +125,10 @@ Use when: category is SPEC (produces a file artifact for the next stage to consu
 
 ```
 After completing {brief task description} and writing the {artifact description} to
-{artifact path}, call the StageComplete MCP tool with:
-- status: 'success'
-- artifacts: [{artifact path}]
+{artifact path}, call the StageComplete MCP tool as the LAST action before stopping:
+
+  status:    'success'
+  artifacts: [{artifact path}]
 
 Do NOT call StageComplete before the file has been written to disk.
 ```
@@ -133,10 +151,15 @@ When your verification work is fully complete, you MUST do both of these in orde
   1. Write a detailed findings report to:
         .ask-jenny/features/{{featureId}}/verify-report.md
      Include every issue found, its severity, and suggested fixes.
-  2. Call the StageComplete MCP tool:
-     - status 'success' if no issues were found
-     - status 'loop' if issues were found — this retries the {preceding BUILD stage label} stage
-     Include the report path as an artifact.
+  2. Call the StageComplete MCP tool as the LAST action before stopping:
+
+       If no issues found:
+         status:    'success'
+         artifacts: [.ask-jenny/features/{{featureId}}/verify-report.md]
+
+       If issues found:
+         status:    'loop'
+         artifacts: [.ask-jenny/features/{{featureId}}/verify-report.md]
 ```
 
 Substitute all placeholders with skill-specific values from Step 2:
