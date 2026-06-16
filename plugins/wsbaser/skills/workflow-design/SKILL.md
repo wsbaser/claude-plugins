@@ -84,16 +84,9 @@ If the user says no: remove the skill from the pipeline and continue with the re
 
 ## How the Prompt System Works
 
-**`stagePrompt`** → **user prompt** — invokes the skill. Auto-constructed as:
-```
-{stagePrompt} {artifact-or-description}
-# e.g. /wsbaser:implement-spec specs/feature.md
-```
-Upstream artifacts are injected automatically — the agent already has the right input.
+**`stagePrompt`** → **user prompt.** The engine appends the artifact path from the last successful prior stage as the skill's input argument. If no prior stage has artifacts, the feature description is appended instead. The skill receives its input automatically — no action needed.
 
-**`stageSystemPrompt`** → **system prompt** — post-completion instructions only.
-Never write "Run /skill-name" here; the skill is already running.
-Allowed: one line describing the input argument + StageComplete instructions.
+**`stageSystemPrompt`** → **system prompt.** StageComplete instructions only. Never mention the skill name. Never reference artifacts — the artifact is already the skill's argument via the user prompt.
 
 ## Step 4 — Draft stageSystemPrompts
 

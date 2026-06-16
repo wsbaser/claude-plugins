@@ -77,6 +77,8 @@ What are you modeling?
 
 The decision tree is the primary guide. Reuse count is one signal, not the gating rule — a list used on one page is still `ListBase<T>`; a cohesive sub-component on one page is still `ContainerBase`.
 
+**Inherit `ListBase<T>` only when the list IS the whole component.** If the class also owns non-list elements (summary, header, action buttons, totals), it `HAS-A` list — it is not one. Make it a `ContainerBase` with a nested `[UnionInit] FooList List` field. Test: any element that isn't a row or row-enumerator means `ContainerBase`, not `ListBase<T>`.
+
 **ContainerBase vs ComponentBase**: `ContainerBase` scopes child selectors via the `root:` prefix and is the right choice for any semantically distinct sub-component composed into a page or dialog. `ComponentBase` is for top-level wrappers (modals, loaders, overlays) that don't scope child selectors. **Do not use `ComponentBase` for reusable element groups** — use `ContainerBase`. Nest as deep as the DOM requires — no artificial depth limit. All `ItemBase` fields must use `[UnionInit]`.
 
 **[UnionInit] compatibility rule**: `[UnionInit]` properties must inherit from a Union base class (`ContainerBase`, `ComponentBase`, `ListBase<T>`, or `ItemBase`). Plain classes are invisible to the initialization chain — `[UnionInit]` will silently leave them `null`.
@@ -185,6 +187,24 @@ For the registry/SSN domain in this project, the agreed subject prefixes are:
 
 **Applying this to other domains:** the same rule holds everywhere. If tests cover "expired token" and "valid token" scenarios, both should start with `Token_` — not `ExpiredToken_` vs `Token_`. Put the distinguishing condition in the middle segment.
 
+## Test Body Structure
+
+Mark the three phases with `// .Arrange`, `// .Act`, `// .Assert` comments. Omit a phase's comment only when that phase is empty. Each marker may carry a short summary of what the block does: `// .Act - <summary>`.
+
+```csharp
+public async Task CompanySsn_WhenFound_FillsName()
+{
+    // .Arrange - open the registry page
+    var page = await SO.Go.ToPage<RegistryPage>();
+
+    // .Act - search by company SSN
+    await page.EnterSsnAndSearchAsync("1234567890");
+
+    // .Assert - name field populated from registry
+    await Expect(page.NameInput).ToHaveValueAsync("Acme Ltd");
+}
+```
+
 ## Test Authoring Checklist
 
 Before committing a new test, verify:
@@ -194,6 +214,7 @@ Before committing a new test, verify:
 - **Navigation via Union methods** — `Go.ToPage<T>()` or `ClickAndWaitForAsync<T>()`; no `page.GotoAsync()`
 - **Assertions use `Expect(...)`** — no `Assertions.Expect(...)` calls anywhere (in tests or component methods); no `WaitForXxx` immediately before an `Expect()` call; no `IsVisibleAsync()` / `TextContentAsync()` for assertions
 - **Test name is subject-first** — follows `{Subject}_{WhenCondition}_{ExpectedOutcome}`; qualifiers never lead
+- **Body marked AAA** — `// .Arrange`, `// .Act`, `// .Assert` comments delimit the three phases (optional `- <summary>` suffix)
 - **Test class inherits from service base** — never directly from `UnionTest<TSession>`; a service-specific base class (e.g., `StackOverflowTestBase`) owns `GetSessionProvider()` and exposes service shorthand properties
 
 ## Test Infrastructure
