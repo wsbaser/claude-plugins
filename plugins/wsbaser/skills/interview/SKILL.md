@@ -110,7 +110,6 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
 - **Mid-interview exploration.** If an answer reveals a gap in your codebase understanding, pause to explore:
   - "Let me check how [related feature] is implemented..."
   - Then return with an informed follow-up question.
-- **Architecture fit.** Use `wsbaser:architecture-fit` when needed to evaluate whether a proposed approach fits the current architecture before committing to it.
 - **Visual aids for UI/UX.** Use ASCII diagrams when clarifying layouts or interactions:
   ```
   Current:              Proposed:
@@ -141,7 +140,8 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
 - Continue the interview until all categories are covered AND all clarifying questions are resolved.
 - Do NOT offer to wrap up if there are unanswered questions that could be resolved by asking the user.
 - If a question arises that you need answered, ask it rather than deferring to the spec.
-- When coverage is complete and no questions remain, synthesize the interview into a solution summary and display it as a **text block** (before the `AskUserQuestion` call). Use the brutalist text-block format below. Only include sections for categories actually covered.
+- When coverage is complete and no questions remain, use the `Skill` tool to invoke `wsbaser:architecture-fit` (`Skill({ skill: "wsbaser:architecture-fit", args: "..." })`) on the proposed approach before wrapping up. **Never use the `Agent` tool for this — it must be the `Skill` tool.** If the verdict is **FITS**, print the response to output and proceed to the solution summary. If the verdict is **REFACTOR FIRST**, surface the violations as follow-up questions and continue the interview until the approach is adjusted or explicitly accepted.
+- When the approach passes architecture fit (or the user accepts it), synthesize the interview into a solution summary and display it as a **text block** (before the `AskUserQuestion` call). Use the brutalist text-block format below. Only include sections for categories actually covered.
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
