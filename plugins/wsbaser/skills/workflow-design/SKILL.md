@@ -1,6 +1,6 @@
 ---
 name: wsbaser:workflow-design
-description: Takes an ordered list of SKILL.md file paths (or skill names), reads each skill to infer artifact types and stage categories, drafts stageSystemPrompt instructions using SPEC/BUILD/TEST templates, shows each draft to the user for approval, then generates a workflow YAML and README into .ask-jenny/workflows/. Use this skill whenever the user wants to create a new Ask Jenny workflow from a set of known ordered skills, says "design a workflow from these skills", or to convert an existing skill pipeline into a workflow YAML. Also automatically invoked by wsbaser:workflow-discover after the user selects a candidate.
+description: Takes an ordered list of SKILL.md file paths (or skill names), reads each skill to infer artifact types and stage categories, drafts stageSystemPrompt instructions using SPEC/BUILD/TEST templates, shows each draft to the user for approval, then generates a workflow YAML into the current project's existing workflows folder. Use this skill whenever the user wants to create a new Ask Jenny workflow from a set of known ordered skills, says "design a workflow from these skills", or to convert an existing skill pipeline into a workflow YAML. Also automatically invoked by wsbaser:workflow-discover after the user selects a candidate.
 ---
 
 # Workflow Design
@@ -226,57 +226,27 @@ stages:
 - All stage `id` values are unique within the workflow
 - Each sequential stage has a unique `position` value (same position = mutually exclusive alternatives)
 
-## Step 7 — Write YAML and README
+## Step 7 — Write YAML
+
+### Locate the existing workflows folder
+
+Find where the current project already stores its workflow YAMLs — do not hardcode a path. Search the project for existing workflow definitions:
+- Search for `*.yaml` files whose path contains a `workflows` segment (e.g. via Glob `**/workflows/*.yaml`), excluding `node_modules` and `.worktrees`.
+- If matches are found, use the folder that contains the most existing workflow YAMLs as the destination.
+- If no workflows folder exists, fall back to `.ask-jenny/workflows/` (create it).
 
 Write the workflow YAML to:
 ```
-.ask-jenny/workflows/{workflow-id}.yaml
+{discovered-workflows-folder}/{workflow-id}.yaml
 ```
 
-Write the README to:
-```
-.ask-jenny/workflows/{workflow-id}.md
-```
-
-Both paths are relative to the current project root. Create `.ask-jenny/workflows/` if it does not exist.
-
-**README structure:**
-
-```markdown
-# {Workflow Name}
-
-## Purpose
-{2–3 sentences: what this workflow automates and when to use it}
-
-## Prerequisites
-{Required skills, tools, or project setup — e.g., "wsbaser plugin installed"}
-
-## Pipeline
-
-| Stage | Skill | Category | Produces | Consumes |
-|---|---|---|---|---|
-| /{label} | {skill-name} | SPEC/BUILD/TEST | {artifact or "code changes"} | {input} |
-
-## Stage Details
-
-### /{label} ({Category})
-**Skill**: {skill-name}
-**Produces**: {artifact path or "code changes"}
-**Consumes**: {prior artifact or "feature description"}
-
-{2–3 sentences describing what the agent does in this stage.}
-
-...
-
-## Notes
-{Caveats, known limitations, or important usage notes — omit if none}
-```
+Do not write any README or companion `.md` file — the YAML is the only artifact this skill produces.
 
 ## Step 8 — Executor Fix Notice
 
 Check: does any SPEC or CONVERSATIONAL stage produce an artifact that a subsequent stage (other than `implement-spec`) would consume via the artifact injection mechanism?
 
-If yes, append this block to the README's **Notes** section and print it to the terminal:
+If yes, print this block to the terminal:
 
 ```
 ⚠  This workflow requires the executor artifact injection fix.
@@ -286,11 +256,10 @@ If yes, append this block to the README's **Notes** section and print it to the 
 
 ## Final Confirmation
 
-After both files are written, confirm to the user:
+After the YAML is written, confirm to the user:
 
 ```
-✓ Workflow written to .ask-jenny/workflows/{workflow-id}.yaml
-✓ README written to .ask-jenny/workflows/{workflow-id}.md
+✓ Workflow written to {discovered-workflows-folder}/{workflow-id}.yaml
 {executor fix notice if applicable}
 
 To use this workflow, select "{Workflow Name}" in the Ask Jenny workflow selector
