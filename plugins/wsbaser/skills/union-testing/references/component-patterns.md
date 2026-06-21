@@ -251,7 +251,7 @@ Use for lists where each item has the same structure.
 public class CompanyList : ListBase<CompanyItem>
 {
     public override string ItemIdXcss =>
-        InnerXcss(".select-company-option-wrap p").Selector;
+        InnerXcss(".select-company-option-wrap p").XPath;
     public override string? IdAttribute => null; // uses text content
 
     public async Task<CompanyItem> GetRandomInvitationAsync()
@@ -269,7 +269,7 @@ public class CompanyList : ListBase<CompanyItem>
 ```
 
 Key properties:
-- `ItemIdXcss` — selector for elements containing item identifiers; **must** use `InnerXcss(xcss).Selector` (see rule below)
+- `ItemIdXcss` — **absolute** selector for elements containing item identifiers; when the rows must be scoped under the list root, author it as `InnerXcss(xcss).XPath` (see rule below)
 - `IdAttribute` — attribute name containing the ID (`null` = use text content)
 
 Key methods:
@@ -279,29 +279,43 @@ Key methods:
 - `FindSingleAsync()` — get first item
 - `FindRandomAsync()` — get random item
 
-#### MANDATORY: Always use `InnerXcss(xcss).Selector` for `ItemIdXcss`
+#### MANDATORY: `ItemIdXcss` / `ItemXcss` are ABSOLUTE selectors — scope via `InnerXcss(xcss).XPath`
 
-`ItemIdXcss` and `ItemXcss` **must** use `InnerXcss(xcss).Selector` (in `ListBase<T>`) or `Container.InnerXcss(xcss).Selector` (in `ItemBase`). A plain XCSS string bypasses the framework's selector translation and scoping — the item cannot be located correctly at runtime.
+As of `Union.Playwright.NUnit` **0.9.6-beta**, `ItemIdXcss` (on `ListBase<T>`) and `ItemXcss` (on `ItemBase`) are **absolute** selectors. The framework resolves them through the shared `GetLocatorFor` helper (same path as `RootLocator`) and does **NOT** concatenate them with the list/container root. So the scope must be authored *into* the selector.
+
+When the rows/items must be scoped under the container root, build that scope with `InnerXcss(xcss).XPath` (in `ListBase<T>`) or `Container.InnerXcss(xcss).XPath` (in `ItemBase`):
+
+- Use **`.XPath`**, never `.Selector`. The XCSS→CSS `.Selector` form drops the descendant axis after a trailing `[predicate]`, so a root ending in `[...]` plus a descendant silently matches nothing.
+- **Never** prefix with a literal `"xpath="`. `.XPath` already yields a raw `//…` path; `GetLocatorFor` detects the leading `/` and hands it to Playwright as `xpath=…`. Keep `"xpath="` out of page objects.
+- Pre-0.9.6 (≤0.9.5) `GetIdsAsync` concatenated `InnerXcss(ItemIdXcss)` itself, so authors wrote a *bare relative* string and pre-scoping double-wrapped. That is no longer the case — author the absolute selector now.
 
 ```csharp
-// CORRECT — InnerXcss translates XCSS and scopes the selector to the container root
+// CORRECT — InnerXcss concatenates root + relative and emits a raw XPath; no "xpath=" literal
 public override string ItemIdXcss =>
-    InnerXcss(".select-company-option-wrap p").Selector;
+    InnerXcss("table[role='grid'] tr[spreadsheet-row]").XPath;
 
-// WRONG — plain string bypasses translation; item location breaks at runtime
-public override string ItemIdXcss => ".select-company-option-wrap p";
+// WRONG — .Selector drops the descendant axis after a predicate-ending root → 0 matches
+public override string ItemIdXcss =>
+    InnerXcss("table[role='grid'] tr[spreadsheet-row]").Selector;
+
+// WRONG — literal "xpath=" prefix does not belong in page objects
+public override string ItemIdXcss =>
+    "xpath=" + InnerXcss("table[role='grid'] tr[spreadsheet-row]").XPath;
 ```
 
-This rule applies equally to `ItemXcss` inside `ItemBase`:
+The same applies to `ItemXcss` inside `ItemBase` when it needs container scoping:
 
 ```csharp
-// CORRECT
+// CORRECT — scoped under the container root via InnerXcss(...).XPath
 public override string ItemXcss =>
-    Container.InnerXcss($".select-company-option-wrap:has(p:text-is(\"{Id}\"))").Selector;
+    Container.InnerXcss($"table[role='grid'] tr[spreadsheet-row='{Id}']").XPath;
+```
 
-// WRONG
-public override string ItemXcss =>
-    $".select-company-option-wrap:has(p:text-is(\"{Id}\"))";
+A single-level item that does not need container scoping may use a bare XCSS string with an id predicate (it resolves on its own via `GetLocatorFor`):
+
+```csharp
+// OK — unique, self-scoping; no InnerXcss needed
+public override string ItemXcss => $".select-company-option-wrap[p['{Id}']]";
 ```
 
 ### ItemBase — Individual List Items
@@ -313,8 +327,8 @@ Every interactive element inside an ItemBase must be an `[UnionInit]` field. No 
 ```csharp
 public class CompanyItem : ItemBase
 {
-    public override string ItemXcss =>
-        Container.InnerXcss($".select-company-option-wrap:has(p:text-is(\"{Id}\"))").Selector;
+    // Self-scoping single-level item: a bare XCSS with an id predicate (no InnerXcss needed).
+    public override string ItemXcss => $".select-company-option-wrap[p['{Id}']]";
 
     [UnionInit("root:p")]
     public UnionElement Name { get; set; }
