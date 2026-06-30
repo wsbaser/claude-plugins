@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E2E Report — {{TITLE}}</title>
+<style>
+/* Design tokens — inherited from generate-test-report (GitHub-ish), + flaky/diff additions */
+:root{
+  --bg:#f6f8fa;--surface:#fff;--border:#d0d7de;--bsub:#e8ecf0;
+  --text:#1f2328;--muted:#656d76;--light:#8c959f;
+  --green:#1a7f37;--gbg:rgba(26,127,55,.08);--gbd:rgba(26,127,55,.3);
+  --red:#cf222e;--rbg:rgba(207,34,46,.08);--rbd:rgba(207,34,46,.3);
+  --amber:#bf8700;--abg:rgba(191,135,0,.08);--abd:rgba(191,135,0,.3);
+  --blue:#0969da;--bbg:rgba(9,105,218,.08);--bbd:rgba(9,105,218,.2);
+  --purple:#8250df;--pbg:rgba(130,80,223,.08);--pbd:rgba(130,80,223,.3);
+  --grey:#6e7781;--gybg:rgba(110,119,129,.08);--gybd:rgba(110,119,129,.3);
+  --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:8px;--sh:0 1px 3px rgba(0,0,0,.08);
+  --diff-add:rgba(26,127,55,.14);--diff-del:rgba(207,34,46,.14);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+code{font-family:var(--mono);font-size:12px;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* Header — compact single-row masthead: brand · inline stats · meta */
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:20px 28px;flex-wrap:wrap}
+.hbrand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.hl{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--light);align-self:center}
+.htitle{font-size:18px;font-weight:700;line-height:1.15}
+.bp{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10.5px;color:var(--muted);background:none;border:none;padding:0;width:fit-content;align-self:center}
+.hright{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:1px 12px;text-align:right;font-size:10.5px;color:var(--light);line-height:1.4;flex-shrink:0}
+.hright strong{color:var(--muted);font-weight:600}
+
+/* Stat scorecard — grouped panel, visually distinct from the brand zone; the run verdict lives here */
+.stats{display:flex;align-items:center;gap:16px;flex:1 1 auto;min-width:380px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--bsub);border-radius:10px;padding:6px 8px 6px 16px}
+.sc-counts{display:flex;align-items:center;gap:6px 13px;flex-wrap:wrap}
+.stat{display:flex;align-items:baseline;gap:5px}
+.stat.zero{opacity:.4}
+.sv{font-family:var(--mono);font-size:16px;font-weight:700;line-height:1}
+.sv.g{color:var(--green)}.sv.r{color:var(--red)}.sv.a{color:var(--amber)}.sv.b{color:var(--blue)}.sv.p{color:var(--purple)}.sv.y{color:var(--grey)}
+.sl{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.sdiv{width:1px;background:var(--border);height:18px}
+.passbar{flex:1;min-width:90px;height:7px;border-radius:5px;background:var(--bsub);overflow:hidden;display:flex}
+/* Pass-rate hero — dominant verdict element, color-coded by run health */
+.sc-rate{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:1px 16px;border-left:1px solid var(--border);align-self:stretch}
+.sc-pct{font-family:var(--mono);font-size:25px;font-weight:800;letter-spacing:-.02em}
+.sc-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:3px}
+.sc-rate.h-g .sc-pct{color:var(--green)}.sc-rate.h-a .sc-pct{color:var(--amber)}.sc-rate.h-r .sc-pct{color:var(--red)}
+.passbar>i{display:block;height:100%}
+.passbar>i.g{background:var(--green)}.passbar>i.r{background:var(--red)}.passbar>i.p{background:var(--purple)}.passbar>i.y{background:var(--grey)}
+
+/* Toolbar: filters + search */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:7px 24px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:600;padding:4px 12px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .12s}
+.chip:hover{border-color:var(--light)}
+.chip.on{background:var(--text);color:#fff;border-color:var(--text)}
+.chip .ct{font-family:var(--mono);font-size:11px;opacity:.8}
+.search{flex:1;min-width:160px;max-width:340px;margin-left:auto;display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:6px;padding:5px 10px;background:var(--surface)}
+.search input{border:none;outline:none;font-size:13px;flex:1;background:transparent;color:var(--text)}
+
+/* Main */
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:554px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;background:var(--surface)}
+.sidebar-hd{padding:9px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--bsub);background:var(--bg);position:sticky;top:0;z-index:2}
+.suite{border-bottom:1px solid var(--bsub)}
+.suite-hd{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;background:var(--bg);user-select:none}
+.suite-hd:hover{background:var(--bsub)}
+.caret{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex-shrink:0;margin-left:2px}
+.suite.open .caret{transform:rotate(45deg)}
+.suite-nm{font-weight:700;font-size:13px;color:var(--text);flex:1;line-height:1.3;min-width:0;letter-spacing:-.01em}
+.suite-ct{font-family:var(--mono);font-size:10.5px;font-weight:600;flex-shrink:0;padding:2px 8px;border-radius:10px;border:1px solid transparent}
+.suite-ct.pass{color:var(--green);background:var(--gbg);border-color:var(--gbd)}
+.suite-ct.fail{color:var(--red);background:var(--rbg);border-color:var(--rbd)}
+.suite-ct.mixed{color:var(--amber);background:var(--abg);border-color:var(--abd)}
+.suite-tests{display:none}
+.suite.open .suite-tests{display:block}
+.sitem{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 13px;cursor:pointer;border-top:1px solid var(--bsub);border-left:3px solid transparent;transition:background .1s,border-color .1s}
+.sitem:hover{background:var(--bg)}
+.sitem.active{background:var(--bbg);border-left-color:var(--blue)}
+.sitem.active .sname{font-weight:600;color:var(--blue)}
+.sitem.hidden,.suite.hidden{display:none}
+.snum{flex-shrink:0;min-width:40px;margin-right:-5px;text-align:left;font-family:var(--mono);font-size:10.5px;color:var(--light);font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.sicon{width:15px;height:15px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sicon svg{width:14px;height:14px;display:block}
+.sicon.pass{color:var(--green)}.sicon.fail{color:var(--red)}.sicon.flaky{color:var(--purple)}.sicon.skipped{color:var(--light)}
+.sname{flex:1;min-width:0;font-size:12.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sdur{font-family:var(--mono);font-size:10.5px;color:var(--light);flex-shrink:0}
+
+/* Detail */
+.detail{flex:1;overflow-y:auto;padding:26px 36px}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px}
+
+/* L0 overview */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:4px}
+.ov-card{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);padding:18px 20px}
+.ov-card h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px}
+.catbar{margin-bottom:11px;cursor:pointer}
+.catbar:last-child{margin-bottom:0}
+.catbar-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+.catbar-top b{font-family:var(--mono)}
+.catbar-track{height:7px;border-radius:5px;background:var(--bsub);overflow:hidden}
+.catbar-track>i{display:block;height:100%;background:var(--red);border-radius:5px}
+.slow-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bsub);font-size:13px;cursor:pointer}
+.slow-row:last-child{border-bottom:none}
+.slow-row:hover{color:var(--blue)}
+.slow-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.slow-nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slow-dur{font-family:var(--mono);font-size:12px;color:var(--muted);flex-shrink:0}
+
+/* Test detail header */
+.dtitle{font-size:20px;font-weight:700;margin-bottom:3px;line-height:1.3}
+.dsub{font-size:12.5px;color:var(--muted);font-family:var(--mono);margin-bottom:12px}
+.dmeta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px}
+.pill.pass{color:var(--green);background:var(--gbg);border:1px solid var(--gbd)}
+.pill.fail{color:var(--red);background:var(--rbg);border:1px solid var(--rbd)}
+.pill.flaky{color:var(--purple);background:var(--pbg);border:1px solid var(--pbd)}
+.pill.skipped{color:var(--grey);background:var(--gybg);border:1px solid var(--gybd)}
+.tag{font-size:11px;font-family:var(--mono);color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:2px 9px}
+
+/* Section */
+.sec{margin-bottom:24px}
+.stit{font-size:14px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bsub);display:flex;align-items:center;gap:8px}
+.stit::before{content:'';display:inline-block;width:3px;height:14px;background:var(--blue);border-radius:2px}
+.stit.danger::before{background:var(--red)}
+
+/* Two-column: BDD intent vs reality */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:1100px){.cols{grid-template-columns:1fr}.ov-grid{grid-template-columns:1fr}}
+.col h4{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+.bdd-sum{font-size:13px;color:var(--text);margin-bottom:12px;font-style:italic}
+/* Gherkin step flow — semantic keyword chips */
+.gflow{display:flex;flex-direction:column;gap:1px}
+.gline{display:flex;gap:6px;align-items:baseline;padding:3px 6px;font-size:13.5px;line-height:1.5}
+.gkw{font-family:var(--sans);font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;flex-shrink:0;min-width:40px;text-align:right}
+.gkw.k-given{color:var(--purple)}
+.gkw.k-when{color:var(--blue)}
+.gkw.k-then{color:var(--green)}
+.gkw.k-and,.gkw.k-but{color:var(--light)}
+.gtext{color:var(--text)}
+.gnum{font-family:var(--mono);font-weight:600;font-size:.9em;color:var(--blue)}
+.gquote{font-weight:600;color:#e8480c}
+.gderived{font-size:11px;color:var(--amber);background:var(--abg);border:1px solid var(--abd);border-radius:10px;padding:1px 8px;margin-left:6px}
+
+/* Step timeline */
+.tl{position:relative}
+.step{display:flex;gap:12px;padding:9px 8px;border-radius:6px;position:relative;border-left:3px solid transparent;transition:background .1s}
+.step:hover{background:var(--bg)}
+.step.fail{border-left-color:var(--red);background:var(--rbg)}
+.step.pass{border-left-color:var(--green)}
+.step.info{border-left-color:var(--light)}
+.st-n{width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--light)}
+.st-n.pass{background:var(--green)}.st-n.fail{background:var(--red)}
+.st-body{flex:1;min-width:0}
+.st-title{font-weight:600;font-size:13px}
+.st-note{color:var(--muted);font-size:12.5px;margin-top:1px;word-break:break-word}
+.st-time{font-family:var(--mono);font-size:11px;color:var(--light);flex-shrink:0;padding-top:3px}
+
+/* Failure card */
+.fcard{border:1px solid var(--rbd);background:var(--rbg);border-radius:var(--r);padding:16px 18px;margin-bottom:20px}
+.fcat{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--red);background:var(--surface);border:1px solid var(--rbd);border-radius:14px;padding:3px 10px;margin-bottom:12px}
+.fstep{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.fmsg{font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--text)}
+.fmsg b{color:var(--red)}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+@media(max-width:760px){.diff{grid-template-columns:1fr}}
+.diff-box{border-radius:6px;padding:9px 12px;font-family:var(--mono);font-size:12.5px;word-break:break-word;white-space:pre-wrap}
+.diff-box .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;opacity:.8}
+.diff-box.exp{background:var(--diff-add);border:1px solid var(--gbd)}
+.diff-box.exp .lbl{color:var(--green)}
+.diff-box.act{background:var(--diff-del);border:1px solid var(--rbd)}
+.diff-box.act .lbl{color:var(--red)}
+
+/* Scenario card (matched .feature or agent-generated Gherkin) */
+.scen{position:relative;border:1px solid var(--border);border-radius:12px;padding:16px 18px 16px 22px;margin-bottom:16px;overflow:hidden;box-shadow:var(--sh);background:linear-gradient(180deg,rgba(9,105,218,.03),transparent 70px),var(--surface)}
+.scen::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--blue),var(--purple));opacity:.9}
+.scen.gen{background:linear-gradient(180deg,rgba(191,135,0,.03),transparent 70px),var(--surface)}
+.scen.gen::before{background:linear-gradient(180deg,var(--amber),#d4a017)}
+.scen-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.scen-title{font-size:15px;font-weight:700;color:var(--text);line-height:1.3;letter-spacing:-.01em;flex:1;min-width:0}
+.scen-meta{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:11px;color:var(--light);font-weight:500;white-space:nowrap}
+.scen-meta .dia{font-size:9px}
+.scen.gen .scen-meta{color:var(--amber)}
+.scen-note{font-size:11px;color:var(--light);font-weight:400}
+
+/* Agent failure analysis — the real cause, above the raw console evidence */
+.anl{border:1px solid var(--rbd);background:var(--rbg);border-radius:var(--r);padding:16px 18px;margin-bottom:16px}
+.anl-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.anl-verdict{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 10px;border-radius:13px;border:1px solid var(--border)}
+.anl-verdict.product-bug{background:var(--rbg);color:var(--red);border-color:var(--rbd)}
+.anl-verdict.test-issue{background:var(--abg);color:var(--amber);border-color:var(--abd)}
+.anl-verdict.infra-noise{background:var(--bbg);color:var(--blue);border-color:var(--bbd)}
+.anl-verdict.flaky{background:var(--abg);color:var(--amber);border-color:var(--abd)}
+.anl-verdict.unknown{background:var(--bg);color:var(--muted)}
+.anl-tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.anl-head{font-size:14px;font-weight:700;color:var(--text);line-height:1.45;margin-bottom:8px}
+.anl-detail{font-size:13px;line-height:1.6;color:var(--text);margin-bottom:10px;white-space:pre-wrap}
+.anl-noise{border-top:1px dashed var(--rbd);padding-top:9px;margin-top:4px}
+.anl-noise-h{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:5px}
+.anl-noise div{font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.5;opacity:.85}
+.anl-noise div::before{content:'≠ ';color:var(--light)}
+
+/* Collapsibles */
+details{border:1px solid var(--border);border-radius:6px;margin-bottom:10px;background:var(--surface);overflow:hidden}
+summary{padding:10px 14px;cursor:pointer;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px;user-select:none;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'';width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex-shrink:0}
+details[open] summary::before{transform:rotate(45deg)}
+summary .badge{margin-left:auto}
+.det-body{padding:0 14px 14px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px}
+.badge.pass{background:var(--gbg);color:var(--green);border:1px solid var(--gbd)}
+.badge.fail{background:var(--rbg);color:var(--red);border:1px solid var(--rbd)}
+.badge.warn{background:var(--abg);color:var(--amber);border:1px solid var(--abd)}
+.badge.info{background:var(--bbg);color:var(--blue);border:1px solid var(--bbd)}
+.badge.mut{background:var(--gybg);color:var(--grey);border:1px solid var(--gybd)}
+
+/* Console list */
+.clog{font-family:var(--mono);font-size:12px;line-height:1.55;max-height:320px;overflow:auto}
+.cl-row{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--bsub)}
+.cl-row:last-child{border-bottom:none}
+.cl-t{color:var(--light);flex-shrink:0}
+.cl-lvl{flex-shrink:0;font-weight:700;width:54px}
+.cl-lvl.error{color:var(--red)}.cl-lvl.warning{color:var(--amber)}.cl-lvl.info{color:var(--blue)}.cl-lvl.log{color:var(--muted)}
+.cl-txt{flex:1;word-break:break-word;white-space:pre-wrap}
+.cl-x{color:var(--light);margin-left:4px}
+
+/* Network table */
+.ntbl{width:100%;border-collapse:collapse;font-size:12px}
+.ntbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border)}
+.ntbl td{padding:6px 8px;border-bottom:1px solid var(--bsub);font-family:var(--mono);vertical-align:top}
+.ntbl tr:hover td{background:var(--bg)}
+.nstatus{font-weight:700}
+.nstatus.ok{color:var(--green)}.nstatus.err{color:var(--red)}
+.nurl{max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nbar{height:5px;border-radius:3px;background:var(--blue);min-width:2px}
+
+/* Code/DOM/stack */
+.cw{background:#0d1117;border:1px solid #30363d;border-radius:6px;overflow:hidden}
+.ch{background:#161b22;border-bottom:1px solid #30363d;padding:7px 14px;font-family:var(--mono);font-size:11px;color:#8b949e;display:flex;align-items:center;gap:8px}
+.dots{display:flex;gap:6px}.dot{width:10px;height:10px;border-radius:50%}.dr{background:#ff5f57}.dy{background:#ffbd2e}.dg{background:#28c840}
+pre{padding:14px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow:auto;color:#e6edf3;margin:0;max-height:420px}
+pre .own{color:#79c0ff}
+.crash{color:var(--amber);font-weight:600;font-size:12.5px;padding:8px 0}
+
+/* Attempts (flake) tabs */
+.atabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.atab{font-size:12px;font-weight:600;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;gap:6px}
+.atab.on{border-color:var(--text);background:var(--text);color:#fff}
+
+/* Screenshot */
+.shot{border:1px solid var(--border);border-radius:6px;max-width:100%;cursor:zoom-in;display:block}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.thumb{width:120px;height:78px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s,transform .15s}
+.thumb:hover{border-color:var(--blue);transform:scale(1.03)}
+.cap{font-size:11.5px;color:var(--muted);margin-top:5px}
+
+/* Lightbox + toast (from original) */
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#lb.active{display:flex}
+#lbi{max-width:92vw;max-height:84vh;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+#lbnav{display:flex;gap:16px;align-items:center}
+#lbnav button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:18px;width:40px;height:40px;border-radius:50%;cursor:pointer}
+#lbnav button:hover{background:rgba(255,255,255,.2)}
+#lbx{position:absolute;top:16px;right:20px;color:#fff;font-size:26px;cursor:pointer;background:none;border:none;opacity:.8}
+#lbc{color:rgba(255,255,255,.55);font-size:12px;font-family:var(--mono)}
+#lbcap{color:rgba(255,255,255,.8);font-size:13px;max-width:80vw;text-align:center}
+#toast{position:fixed;bottom:20px;right:20px;background:#1f2328;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:2000}
+#toast.visible{opacity:1}
+
+/* ============================================================
+   Triage-first detail layout — verdict → root cause + screenshot,
+   all above the fold. Auxiliary detail lives in collapsed panels
+   below. (Reports show only the latest run; no flake fingerprint
+   unless multiple attempts are present.)
+   ============================================================ */
+.detail{padding:20px 30px}
+.dtitle{margin-bottom:2px}
+.dsub{margin-bottom:14px}
+
+/* Verdict row */
+.verdict{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pill{font-size:13.5px;padding:5px 14px}
+
+/* Flake fingerprint — only renders when a test has >1 attempt */
+.flake{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);
+  box-shadow:var(--sh);padding:13px 18px;margin-bottom:18px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.fk-stat{display:flex;flex-direction:column;line-height:1;flex-shrink:0}
+.fk-num{font-family:var(--mono);font-size:23px;font-weight:800;letter-spacing:-.02em}
+.fk-num.r{color:var(--red)}.fk-num.a{color:var(--amber)}.fk-num.g{color:var(--green)}
+.fk-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:5px}
+.fk-fpwrap{flex:1;min-width:260px}
+.fp{display:flex;align-items:stretch;gap:1px;height:32px;border-radius:5px;overflow:hidden;background:var(--bsub)}
+.fp>i{flex:1 1 0;min-width:1.5px}
+.fp>i.p{background:var(--green)}.fp>i.f{background:var(--red)}
+.fp-cap{display:flex;justify-content:space-between;font-size:10.5px;color:var(--light);font-family:var(--mono);margin-top:6px}
+
+/* Root cause — dominant block: WHY (left) beside WHAT IT LOOKED LIKE (right) */
+.rc{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;margin-bottom:22px;align-items:start}
+@media(max-width:1040px){.rc{grid-template-columns:1fr}}
+.rc-card{border:1px solid var(--rbd);background:var(--rbg);border-radius:var(--r);padding:16px 18px;
+  display:flex;flex-direction:column;min-height:100%}
+.rc-tag{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--red);background:var(--surface);
+  border:1px solid var(--rbd);border-radius:14px;padding:3px 11px;margin-bottom:13px}
+.rc-head{font-family:var(--mono);font-size:14.5px;font-weight:700;color:var(--red);
+  line-height:1.5;word-break:break-word;margin-bottom:11px}
+.rc-where{font-size:12px;color:var(--muted);margin-bottom:14px}
+.rc-where code{font-size:11.5px}
+.rc-more{margin-top:auto;border-top:1px dashed var(--rbd);padding-top:11px}
+.rc-more-h{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:7px}
+.rc-er{font-family:var(--mono);font-size:11.5px;line-height:1.55;color:var(--muted);
+  display:flex;gap:8px;padding:2px 0;word-break:break-word}
+.rc-er .cl-t{flex-shrink:0}
+.rc-foot{font-size:11px;color:var(--light);margin-top:12px}
+.rc-shotwrap{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface);box-shadow:var(--sh)}
+.rc-shot{width:100%;display:block;cursor:zoom-in}
+.rc-shotcap{font-size:11px;color:var(--muted);padding:7px 12px;border-top:1px solid var(--bsub);
+  display:flex;align-items:center;gap:6px}
+
+/* Secondary — everything auxiliary, collapsed by default */
+.sec2{border-top:1px solid var(--bsub);padding-top:18px;margin-top:4px}
+.sec2-hd{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--light);margin-bottom:11px}
+.passnote{color:var(--green);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:18px}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hbrand">
+    <span class="hl">E2E Test Report</span>
+    <div class="htitle" id="rTitle"></div>
+    <div class="bp" id="rBranch" hidden></div>
+  </div>
+  <div class="stats" id="rStats"></div>
+  <div class="hright" id="rMeta"></div>
+</header>
+
+<div class="toolbar">
+  <div id="rChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  <label class="search">
+    <span aria-hidden="true">⌕</span>
+    <input id="rSearch" type="search" placeholder="Search tests, errors, URLs…" aria-label="Search">
+  </label>
+</div>
+
+<div class="main">
+  <nav class="sidebar" aria-label="Test suites">
+    <div class="sidebar-hd">Suites · Tests</div>
+    <div id="rTree"></div>
+  </nav>
+  <div class="detail" id="rDetail"></div>
+</div>
+
+<div id="lb" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
+  <button id="lbx" onclick="closeLb()" title="Close (Esc)" aria-label="Close">&times;</button>
+  <img id="lbi" src="" alt="">
+  <div id="lbcap"></div>
+  <div id="lbnav"><button onclick="lbPrev()" aria-label="Previous">&#8592;</button><span id="lbc"></span><button onclick="lbNext()" aria-label="Next">&#8594;</button></div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+const D = {{REPORT_DATA_JSON}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmtDur=ms=>ms==null?'—':ms<1000?ms+'ms':(ms/1000).toFixed(ms<10000?1:0)+'s';
+const SHOTS=D.screenshots||[]; const shotById=Object.fromEntries(SHOTS.map((s,i)=>[s.id,i]));
+const consoleById=Object.fromEntries((D.console||[]).map(c=>[c.id,c]));
+const netById=Object.fromEntries((D.network||[]).map(n=>[n.id,n]));
+const T=D.tests||[];
+const STATUS_LABEL={pass:'PASSED',fail:'FAILED',flaky:'FLAKY',skipped:'SKIPPED'};
+const STATUS_ICON={pass:'✓',fail:'✗',flaky:'↻',skipped:'⤬'};
+let filter={status:'failfirst',q:''};
+
+// Header + meta
+$('rTitle').textContent=D.run.title||'E2E Test Run';
+if(D.run.branch){const b=$('rBranch');b.hidden=false;b.innerHTML='&#9135; '+esc(D.run.branch)+(D.run.commit?' · '+esc(String(D.run.commit).slice(0,8)):'');}
+$('rMeta').innerHTML=[
+  D.run.generatedAt?`<span><strong>Generated:</strong> ${esc(D.run.generatedAt)}</span>`:'',
+  D.run.os?`<span><strong>OS:</strong> ${esc(D.run.os)}</span>`:'',
+  D.run.browser?`<span><strong>Browser:</strong> ${esc(D.run.browser)}${D.run.viewport?' · '+esc(D.run.viewport):''}</span>`:'',
+  D.run.runsettings?`<span><strong>Settings:</strong> <code>${esc(D.run.runsettings)}</code></span>`:'',
+  D.run.durationMs!=null?`<span><strong>Duration:</strong> ${fmtDur(D.run.durationMs)}</span>`:''
+].join('');
+
+// Stat scorecard: counts group · proportional bar · hero pass-rate (health-coloured)
+(function(){
+  const t=D.run.totals||{}; const tot=t.total||T.length||0; const pct=D.run.passRatePct!=null?D.run.passRatePct:(tot?Math.round((t.passed||0)/tot*100):0);
+  const seg=(n,c)=>tot&&n?`<i class="${c}" style="width:${n/tot*100}%"></i>`:'';
+  const health=pct>=90?'g':pct>=70?'a':'r';
+  const stat=(v,c,l,zero=false)=>`<div class="stat${zero?' zero':''}"><span class="sv ${c}">${v}</span><span class="sl">${l}</span></div>`;
+  $('rStats').innerHTML=
+    `<div class="sc-counts">`+
+      stat(tot,'b','Tests')+`<span class="sdiv"></span>`+
+      stat(t.passed||0,'g','Passed')+
+      stat(t.failed||0,'r','Failed')+
+      stat(t.flaky||0,'p','Flaky')+
+      stat(t.skipped||0,'y','Skipped',!t.skipped)+
+    `</div>`+
+    `<div class="passbar" title="${pct}% passing">${seg(t.passed,'g')}${seg(t.flaky,'p')}${seg(t.failed,'r')}${seg(t.skipped,'y')}</div>`+
+    `<div class="sc-rate h-${health}" title="${pct}% pass rate"><span class="sc-pct">${pct}%</span><span class="sc-lbl">Pass rate</span></div>`;
+})();
+
+// Filter chips
+(function(){
+  const t=D.run.totals||{};
+  const chips=[['failfirst','Failed + Flaky',(t.failed||0)+(t.flaky||0)],['all','All',t.total||T.length],['fail','Failed',t.failed||0],['flaky','Flaky',t.flaky||0],['pass','Passed',t.passed||0],['skipped','Skipped',t.skipped||0]];
+  $('rChips').innerHTML=chips.map(([k,l,n])=>`<button class="chip${k===filter.status?' on':''}" data-st="${k}">${l}<span class="ct">${n}</span></button>`).join('');
+  $('rChips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{filter.status=c.dataset.st;$('rChips').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));applyFilter();});
+})();
+$('rSearch').addEventListener('input',e=>{filter.q=e.target.value.toLowerCase();applyFilter();});
+
+// Build suite tree
+function testMatchesStatus(t){const f=filter.status;if(f==='all')return true;if(f==='failfirst')return t.status==='fail'||t.status==='flaky';return t.status===f;}
+function testMatchesQ(t){if(!filter.q)return true;const hay=[t.name,t.displayName,t.className,t.failure&&t.failure.message,t.failure&&t.failure.stack,...(t.consoleIds||[]).map(id=>consoleById[id]&&consoleById[id].text),...(t.networkIds||[]).map(id=>netById[id]&&netById[id].url)].join(' ').toLowerCase();return hay.includes(filter.q);}
+
+(function buildTree(){
+  const tree=$('rTree');tree.innerHTML='';
+  (D.suites||[]).forEach((su,si)=>{
+    const tests=su.testIds.map(id=>T.find(t=>t.id===id)).filter(Boolean);
+    const sd=document.createElement('div');sd.className='suite open';sd.dataset.si=si;
+    const fails=tests.filter(t=>t.status==='fail'||t.status==='flaky').length;
+    const passCt=tests.filter(t=>t.status==='pass').length;
+    const ctState=tests.some(t=>t.status==='fail')?'fail':(passCt===tests.length?'pass':'mixed');
+    const niceName=esc(su.name.replace(/Tests?$/,'').replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g,'$1 $2').trim()||su.name);
+    sd.innerHTML=`<div class="suite-hd"><span class="caret"></span><span class="suite-nm" title="${esc(su.name)}">${niceName}</span><span class="suite-ct ${ctState}">${passCt}/${tests.length}</span></div><div class="suite-tests"></div>`;
+    if(!fails)sd.classList.remove('open');
+    const body=sd.querySelector('.suite-tests');
+    // Family prefix from the test-name's first segment (e.g. AutoDeduct_… → AD); alpha-sort so families cluster
+    const grpCode=n=>{const seg=String(n||'').split('_')[0]||'T';const caps=seg.match(/[A-Z]/g)||[];return (caps.length>=2?caps.join(''):seg.slice(0,3)).toUpperCase();};
+    const ordered=tests.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+    const grpCount={};
+    ordered.forEach(t=>{
+      const it=document.createElement('div');it.className='sitem';it.dataset.tid=t.id;
+      const gc=grpCode(t.name);const idx=grpCount[gc]=(grpCount[gc]||0)+1;
+      const iconPath={pass:'<path d="M3.5 8.5l3 3 6-6.5"/>',fail:'<path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/>',flaky:'<path d="M3 9q2-3 4 0t4 0"/>',skipped:'<path d="M4 8h8"/>'}[t.status]||'<path d="M8 8h.01"/>';
+      const svg=`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg>`;
+      it.innerHTML=`<span class="snum">${gc}${idx}</span><span class="sicon ${t.status}" title="${STATUS_LABEL[t.status]}">${svg}</span><span class="sname" title="${esc(t.displayName||t.name)}">${esc(t.displayName||t.name)}</span><span class="sdur">${fmtDur(t.durationMs)}</span>`;
+      it.onclick=()=>selectTest(t.id);
+      body.appendChild(it);
+    });
+    sd.querySelector('.suite-hd').onclick=()=>sd.classList.toggle('open');
+    tree.appendChild(sd);
+  });
+})();
+
+function applyFilter(){
+  document.querySelectorAll('.suite').forEach(sd=>{
+    let visible=0;
+    sd.querySelectorAll('.sitem').forEach(it=>{
+      const t=T.find(x=>x.id==it.dataset.tid);
+      const show=t&&testMatchesStatus(t)&&testMatchesQ(t);
+      it.classList.toggle('hidden',!show);if(show)visible++;
+    });
+    sd.classList.toggle('hidden',visible===0);
+    if(visible>0&&(filter.q||filter.status!=='all'))sd.classList.add('open');
+  });
+}
+
+// L0 overview
+function renderOverview(){
+  const t=D.run.totals||{};
+  const cats=(D.categories||[]).slice().sort((a,b)=>b.count-a.count);
+  const maxCat=Math.max(1,...cats.map(c=>c.count));
+  const slow=T.filter(x=>x.durationMs!=null).slice().sort((a,b)=>b.durationMs-a.durationMs).slice(0,8);
+  let h=`<div class="dtitle">Run overview</div><div class="dsub">${esc((D.run.totals&&D.run.totals.total)||T.length)} tests · ${fmtDur(D.run.durationMs)}</div>`;
+  h+=`<div class="ov-grid">`;
+  h+=`<div class="ov-card"><h3>Failure categories</h3>`;
+  h+= cats.length? cats.map(c=>`<div class="catbar" onclick="filterCat('${esc(c.cause||c.name)}')"><div class="catbar-top"><span>${esc(c.name)}</span><b>${c.count}</b></div><div class="catbar-track"><i style="width:${c.count/maxCat*100}%"></i></div></div>`).join('') : `<div style="color:var(--muted);font-size:13px">No failures 🎉</div>`;
+  h+=`</div>`;
+  h+=`<div class="ov-card"><h3>Slowest tests</h3>`;
+  h+= slow.length? slow.map(t=>`<div class="slow-row" onclick="selectTest(${t.id})"><span class="slow-dot sdot ${t.status}"></span><span class="slow-nm">${esc(t.displayName||t.name)}</span><span class="slow-dur">${fmtDur(t.durationMs)}</span></div>`).join('') : `<div style="color:var(--muted);font-size:13px">No timing data (run with <code>--logger trx</code>)</div>`;
+  h+=`</div></div>`;
+  if(!T.some(x=>x.durationMs!=null)) h+=`<p class="cap" style="margin-top:16px">⚠ No per-test durations/assertion messages found — pass <code>--logger "trx;LogFileName=results.trx"</code> when running tests to capture them.</p>`;
+  $('rDetail').innerHTML=h;
+}
+function filterCat(cause){filter.status='all';filter.q='';$('rSearch').value='';T.forEach(t=>{});filter.status='fail';$('rChips').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.dataset.st==='fail'));applyFilter();showToast('Filtered failures: '+cause);}
+
+// Select test
+function selectTest(id){
+  document.querySelectorAll('.sitem').forEach(el=>el.classList.toggle('active',el.dataset.tid==id));
+  const t=T.find(x=>x.id===id);if(t)renderTest(t);
+}
+
+// Of the console errors at failure, the generic "Failed to load resource" 404s are
+// noise that follows the real fault. Surface the first app-specific exception as the
+// headline; everything else becomes supporting detail.
+function pickRootCause(errs){
+  if(!errs||!errs.length)return null;
+  return errs.find(c=>!/failed to load resource/i.test(c.text||''))||errs[errs.length-1];
+}
+
+function flakeBlock(t){
+  if(!t.attempts||t.attempts.length<2)return '';
+  const a=t.attempts,total=a.length;
+  const p=a.filter(x=>x.status==='pass').length,f=total-p;
+  const rate=Math.round(f/total*100);
+  const rc=rate>=15?'r':rate>0?'a':'g';
+  const fp=a.map(x=>`<i class="${x.status==='pass'?'p':'f'}"></i>`).join('');
+  return `<div class="flake">
+    <div class="fk-stat"><span class="fk-num ${f?'r':'g'}">${f}<span style="color:var(--light)">/${total}</span></span><span class="fk-lbl">runs failed</span></div>
+    <div class="fk-stat"><span class="fk-num ${rc}">${rate}%</span><span class="fk-lbl">flake rate</span></div>
+    <div class="fk-fpwrap"><div class="fp" title="${total} attempts, oldest → newest">${fp}</div><div class="fp-cap"><span>oldest</span><span>${p}✓ · ${f}✗ over ${total} runs</span><span>newest →</span></div></div>
+  </div>`;
+}
+
+// Primary triage block: WHY it broke (left) beside WHAT it looked like (right).
+function rootCauseBlock(f,t){
+  if(!f)return '';
+  const cErr=(f.consoleErrorIds||[]).map(id=>consoleById[id]).filter(Boolean);
+  const root=pickRootCause(cErr);
+  const others=cErr.filter(c=>c!==root);
+  const step=t.steps&&f.stepIdx!=null?t.steps[f.stepIdx-1]:null;
+  const noAssert=/no assertion/i.test(f.message||'');
+
+  let left=`<div class="rc-card">`;
+  left+=`<div class="rc-tag">▲ ${esc(f.category||'Failure')}</div>`;
+  if(f.expected!=null||f.actual!=null){
+    left+=`<div class="diff" style="margin:0 0 12px"><div class="diff-box exp"><span class="lbl">Expected</span>${esc(f.expected)}</div><div class="diff-box act"><span class="lbl">Actual</span>${esc(f.actual)}</div></div>`;
+  }
+  left+=`<div class="rc-head">${root?esc(root.text)+(root.count>1?` ×${root.count}`:''):esc(f.message||'Test failed')}</div>`;
+  if(f.pageUrl)left+=`<div class="rc-where">while on <code>${esc(f.pageUrl)}</code></div>`;
+  if(others.length){
+    left+=`<div class="rc-more"><div class="rc-more-h">${others.length} preceding console error${others.length>1?'s':''}</div>`+
+      others.map(c=>`<div class="rc-er"><span class="cl-t">${esc(c.ts||'')}</span><span>${esc(c.text)}${c.count>1?` ×${c.count}`:''}</span></div>`).join('')+`</div>`;
+  }
+  left+=`<div class="rc-foot">Failed at step ${f.stepIdx}${step?' · '+esc(step.title):''}${noAssert?' · no assertion text captured (run with --logger trx)':''}</div>`;
+  left+=`</div>`;
+
+  const sid=f.failureScreenshotId;
+  let right='';
+  if(sid&&shotById[sid]!=null){
+    right=`<div class="rc-shotwrap"><img class="rc-shot" src="${SHOTS[shotById[sid]].dataUri}" alt="Page at moment of failure" onclick="openLb('${sid}')"><div class="rc-shotcap">⛶ Page at moment of failure · click to zoom</div></div>`;
+  }
+  return `<div class="rc">${left}${right}</div>`;
+}
+
+// Everything auxiliary — collapsed, found only when the headline isn't enough.
+function secondary(t){
+  const f=t.failure;
+  let parts='';
+  // Executed steps
+  if(t.steps&&t.steps.length){
+    parts+=`<details><summary>Executed steps <span class="badge mut">${t.steps.length}</span></summary><div class="det-body"><div class="tl">`+
+      t.steps.map(s=>`<div class="step ${s.status||'info'}"><div class="st-n ${s.status||'info'}">${s.status==='fail'?'✗':s.status==='pass'?'✓':s.idx}</div><div class="st-body"><div class="st-title">${esc(s.title)}</div>${s.note?`<div class="st-note">${esc(s.note)}</div>`:''}</div>${s.tOffset!=null?`<span class="st-time">${esc(s.tOffset)}</span>`:''}</div>`).join('')+
+      `</div></div></details>`;
+  }
+  // (Intent is now rendered prominently as the scenario card in renderTest — see scenarioBlock.)
+  // Evidence — full console + network
+  const allC=(t.consoleIds||[]).map(id=>consoleById[id]).filter(Boolean);
+  const allN=(t.networkIds||[]).map(id=>netById[id]).filter(Boolean);
+  const failedN=allN.filter(n=>n.status>=400||n.error||!n.status);
+  if(allC.length){const errs=allC.filter(c=>c.level==='error').length,warns=allC.filter(c=>c.level==='warning').length;
+    parts+=`<details><summary>Console log <span class="badge ${errs?'fail':warns?'warn':'mut'}">${errs} err · ${warns} warn · ${allC.length} total</span></summary><div class="det-body"><div class="clog">${allC.slice(0,300).map(c=>`<div class="cl-row"><span class="cl-t">${esc(c.ts||'')}</span><span class="cl-lvl ${c.level}">${esc((c.level||'').toUpperCase())}</span><span class="cl-txt">${esc(c.text)}${c.count>1?`<span class="cl-x">×${c.count}</span>`:''}</span></div>`).join('')}</div></div></details>`;}
+  if(allN.length)parts+=`<details><summary>Network <span class="badge ${failedN.length?'fail':'mut'}">${failedN.length?failedN.length+' failed · ':''}${allN.length} total</span></summary><div class="det-body">${netTable(allN.slice(0,200))}</div></details>`;
+  // DOM at failure
+  if(f&&f.domHtml)parts+=`<details><summary>DOM at failure ${f.crash?'<span class="badge warn">Blazor crash overlay</span>':''}</summary><div class="det-body">${f.crash?`<div class="crash">⚠ Page shows only the reload overlay — the WASM app crashed (no app DOM rendered).</div>`:''}<div class="cw"><div class="ch"><div class="dots"><span class="dot dr"></span><span class="dot dy"></span><span class="dot dg"></span></div><span>failure_html.html</span></div><pre>${esc(f.domHtml)}</pre></div></div></details>`;
+  // Stack
+  if(f&&f.stack)parts+=`<details><summary>Stack trace</summary><div class="det-body"><div class="cw"><div class="ch"><span>.NET stack</span></div><pre>${highlightStack(f.stack)}</pre></div></div></details>`;
+  // Extra screenshots not already shown as the failure shot
+  const shown=f&&f.failureScreenshotId;
+  const extra=(t.screenshotIds||[]).filter(id=>shotById[id]!=null&&id!==shown);
+  if(extra.length)parts+=`<details><summary>More screenshots <span class="badge mut">${extra.length}</span></summary><div class="det-body"><div class="thumbs">${extra.map(id=>`<img class="thumb" src="${SHOTS[shotById[id]].dataUri}" alt="${esc(SHOTS[shotById[id]].caption||'')}" title="${esc(SHOTS[shotById[id]].caption||'')}" onclick="openLb('${id}')">`).join('')}</div></div></details>`;
+
+  if(!parts)return '';
+  return `<div class="sec2"><div class="sec2-hd">Details &amp; evidence</div>${parts}</div>`;
+}
+function netTable(rows){
+  return `<table class="ntbl"><thead><tr><th>Status</th><th>Method</th><th>URL</th><th>Dur</th></tr></thead><tbody>`+
+    rows.map(n=>{const err=(n.status>=400||n.error||!n.status);return `<tr><td><span class="nstatus ${err?'err':'ok'}">${n.status||(n.error?'ERR':'—')}</span></td><td>${esc(n.method)}</td><td class="nurl" title="${esc(n.url)}">${esc(n.url)}${n.error?` <span style="color:var(--red)">${esc(n.error)}</span>`:''}</td><td>${n.durationMs!=null?Math.round(n.durationMs)+'ms':'—'}</td></tr>`;}).join('')+
+    `</tbody></table>`;
+}
+function highlightStack(s){return esc(s).replace(/(_7c\.FrontEnd\.E2ETests[^\n]*)/g,'<span class="own">$1</span>');}
+
+function scenarioBlock(t){
+  const s=t.scenario||t.bdd;
+  if(!s||!Array.isArray(s.steps)||!s.steps.length)return '';
+  const title=s.title||s.summary;
+  const gen=s.source!=='feature';
+  const metaLabel=gen?'Generated':'BDD';
+  const noteStr=s.note?` · ${esc(s.note)}`:'';
+  const kwClass=k=>{const l=(k||'').trim().toLowerCase();return l==='given'?'k-given':l==='when'?'k-when':l==='then'?'k-then':l==='but'?'k-but':'k-and';};
+  const hl=txt=>esc(txt).replace(/("[^"]*"|“[^”]*”|'[^']*'|-?\d[\d,.]*\d|-?\d)/g,m=>{const c=m[0];return c==='"'||c==='“'||c==="'"?`<span class="gquote">${m}</span>`:`<span class="gnum">${m}</span>`;});
+  return `<div class="scen${gen?' gen':''}">`+
+    `<div class="scen-hd">`+
+    `<span class="scen-title">${title?esc(title):'(no title)'}</span>`+
+    `<span class="scen-meta"><span class="dia">${gen?'✦':'◆'}</span>${esc(metaLabel)}${noteStr}</span>`+
+    `</div>`+
+    `<div class="gflow">`+s.steps.map(g=>`<div class="gline"><span class="gkw ${kwClass(g.keyword)}">${esc(g.keyword)}</span><span class="gtext">${hl(g.text)}</span></div>`).join('')+`</div></div>`;
+}
+function analysisBlock(t){
+  const a=t.failureAnalysis;
+  if(!a||(!a.headline&&!a.detail))return '';
+  const v=(a.verdict||'unknown').toLowerCase();
+  const vlabel={'product-bug':'Product bug','test-issue':'Test issue','infra-noise':'Infra / mock noise','flaky':'Flaky','unknown':'Unclear'}[v]||a.verdict;
+  let h=`<div class="anl"><div class="anl-hd"><span class="anl-verdict ${v}">${esc(vlabel)}</span><span class="anl-tag">Failure analysis</span></div>`;
+  if(a.headline)h+=`<div class="anl-head">${esc(a.headline)}</div>`;
+  if(a.expected!=null||a.actual!=null)h+=`<div class="diff"><div class="diff-box exp"><span class="lbl">Expected</span>${esc(a.expected!=null?a.expected:'—')}</div><div class="diff-box act"><span class="lbl">Actual</span>${esc(a.actual!=null?a.actual:'—')}</div></div>`;
+  if(a.detail)h+=`<div class="anl-detail">${esc(a.detail)}</div>`;
+  if(Array.isArray(a.noise)&&a.noise.length)h+=`<div class="anl-noise"><div class="anl-noise-h">Unrelated noise — ignore</div>${a.noise.map(n=>`<div>${esc(n)}</div>`).join('')}</div>`;
+  return h+`</div>`;
+}
+
+function renderTest(t){
+  let h=`<div class="dtitle">${esc(t.displayName||t.name)}</div><div class="dsub">${esc((t.className?t.className+'.':'')+t.name)}</div>`;
+  // Verdict
+  h+=`<div class="verdict"><span class="pill ${t.status}">${STATUS_ICON[t.status]} ${STATUS_LABEL[t.status]}</span>${t.durationMs!=null?`<span class="tag">${fmtDur(t.durationMs)}</span>`:''}${(t.tags||[]).map(g=>`<span class="tag">${esc(g)}</span>`).join('')}</div>`;
+  // Flake fingerprint (only renders when >1 attempt is present)
+  h+=flakeBlock(t);
+  // Intent — matched or generated Gherkin scenario (always shown when available)
+  h+=scenarioBlock(t);
+  // Agent failure analysis (the real cause) FIRST, then the raw console/screenshot evidence
+  if(t.failure){h+=analysisBlock(t)+rootCauseBlock(t.failure,t);}
+  else if(t.status==='pass'){h+=`<div class="passnote">✓ Passed — no failures captured${t.attempts&&t.attempts.length>1?` across ${t.attempts.length} runs`:''}.</div>`;}
+  // Auxiliary, collapsed
+  h+=secondary(t);
+  $('rDetail').innerHTML=h;
+}
+
+// Lightbox
+const lbList=SHOTS.map(s=>s.id);let lbCur=0;
+function openLb(id){lbCur=lbList.indexOf(id);if(lbCur<0)lbCur=0;$('lb').classList.add('active');showLb();}
+function showLb(){const s=SHOTS[lbCur];$('lbi').src=s.dataUri;$('lbcap').textContent=s.caption||'';$('lbc').textContent=(lbCur+1)+' / '+SHOTS.length;}
+function closeLb(){$('lb').classList.remove('active');}
+function lbNext(){lbCur=(lbCur+1)%SHOTS.length;showLb();}
+function lbPrev(){lbCur=(lbCur-1+SHOTS.length)%SHOTS.length;showLb();}
+$('lb').addEventListener('click',e=>{if(e.target===$('lb'))closeLb();});
+document.addEventListener('keydown',e=>{if(!$('lb').classList.contains('active'))return;if(e.key==='Escape')closeLb();if(e.key==='ArrowRight')lbNext();if(e.key==='ArrowLeft')lbPrev();});
+function showToast(m){const t=$('toast');t.textContent=m;t.classList.add('visible');setTimeout(()=>t.classList.remove('visible'),1500);}
+
+// Init
+applyFilter();renderOverview();
+const firstFail=T.find(t=>t.status==='fail'||t.status==='flaky');
+if(firstFail)selectTest(firstFail.id);
+</script>
+</body>
+</html>

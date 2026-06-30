@@ -21,6 +21,8 @@ Always cover these layers — apply judgment on depth based on feature risk and 
 
 ## Optimization
 
+**One scenario per behavior, not per assertion.** Group every assertion that verifies one outcome; split when a single action causes independent outcomes (e.g. transforms data *and* sets a flag). If naming the outcome needs "and", it's two scenarios.
+
 **Combine into one scenario:**
 - Multiple field validations triggered by the same action (submit once, assert all error messages)
 - Multiple UI elements that are always rendered together (one scenario, multiple `And` assertions)
@@ -38,13 +40,18 @@ Always cover these layers — apply judgment on depth based on feature risk and 
 
 ## Gherkin Rules
 
+- **First person, one actor.** Write every user step as `I` (`When I click Save`, `Given I have added a row`), never "the user". When a step needs a specific role, declare it in a dedicated `Given I am a <role>` step (e.g. `Given I am an accountant`); scenarios with no role-specific behavior need no such step.
 - `Given` sets up pre-conditions (system state, authenticated user role, existing data)
 - `When` describes one user action or event
 - `Then` asserts a specific, observable outcome — use concrete values, not vague descriptions
 - Use `Background` when 2+ scenarios share identical setup steps
 - Use `Scenario Outline` + `Examples` table when the same flow runs with 3+ distinct data sets
 - Order: critical path → alternative flows → edge/boundary cases → error handling
-- **Scenario titles name only what's different.** The Feature name provides the common context — don't repeat it in every title. Line scenarios up side by side: the title alone should tell you which one you care about. "Company is delisted" is a good title; "New customer is marked inactive when the registry returns a delisted company" is not — it restates the Feature. Good examples from a cash withdrawal feature: "Account has sufficient funds" / "Account has insufficient funds" / "Card has been disabled" — each title is the distinguishing condition, nothing more.
+- **Scenario titles: `Family — distinguishing condition`.** Lead with the behavior family that sibling scenarios share (the action or subject: `Auto-deduct`, `Save`, `Delete row`, `Negative source`); after the em-dash put only what differs. The prefix groups siblings together when titles are sorted; the suffix is the part you scan. Never restate the Feature in either part. `Save — blocked when amount is zero` / `Save — blocked on wrong sign` / `Save — valid split applies rows`, not `Saving a zero line is blocked`. Single-of-a-kind scenarios still take a family prefix so they sort with their kin.
+
+## Tables vs Prose
+
+Prefer prose. When the input or outcome spans several rows, use a data table rather than stringing values into prose; add a `| note |` column when a row's result isn't self-evident.
 
 ## Output
 
