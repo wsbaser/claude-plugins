@@ -16,14 +16,31 @@ description: Enforces Union.Playwright.NUnit framework usage in E2E tests, page 
 
 **Never use `WebPageBuilder` in test code** — it is an internal framework class.
 
-## No Raw Playwright in Tests
+A modal opened by a click is obtained with `element.ClickAndWaitForAlertAsync<TDialog>()`, never `new TDialog(...)`. This holds even when existing code hand-constructs the dialog with a comment explaining why `[UnionInit]` is null on it — that comment documents a violation, it does not sanction it. The real fix is to make `TDialog` a `ComponentBase + IUnionModal` so the framework constructs and actualizes it (which also restores its own `[UnionInit]` elements). Matching the surrounding `new`-everywhere style is not a reason to repeat it.
 
-Test method bodies must never use raw Playwright APIs:
-- No `page.GotoAsync()` — use `Go.ToPage<T>()` or `Go.ToUrl()`
-- No `page.Locator()`, `GetByRole()`, `GetByTestId()`, `GetByLabel()` — use `[UnionInit]` fields
-- No `page.ClickAsync()` for navigation — use `ClickAndWaitForRedirectAsync<T>()`
+## No Raw Playwright — Tests AND Component Internals
 
-**In page object/component internals**, raw Playwright is allowed only for browser-level infrastructure not covered by Union (e.g., `EvaluateAsync` for JS execution, `WaitForLoadStateAsync`). Element interaction APIs are still not allowed — use `[UnionInit]` fields.
+The ban applies everywhere: test bodies, page object methods, and component methods. Raw element APIs bypass the Union initialization chain and `Expect()` auto-retry, so they are forbidden no matter where they appear.
+
+Banned element APIs (use `[UnionInit]` fields instead): `Locator(...)`, `GetByRole/GetByTestId/GetByLabel(...)`, `.Nth(...)`, `.First`, `.All*Async()`, `.ClickAsync()`, `.FillAsync()`, `.WaitForAsync()`, `.IsVisibleAsync()`, `.TextContentAsync()`. Navigation: no `page.GotoAsync()` — use `Go.ToPage<T>()` / `Go.ToUrl()`.
+
+The **only** raw Playwright allowed inside page-object/component internals is browser-level infrastructure Union does not model: `EvaluateAsync` (JS execution), `WaitForLoadStateAsync`. Everything that touches an element goes through `[UnionInit]`.
+
+```csharp
+// WRONG — raw locator chain by row index inside a page-object method
+var btn = RootLocator.Locator("tbody tr").Nth(rowIndex).Locator(".button[.fa-split]");
+await btn.WaitForAsync(...);
+await btn.ClickAsync(new() { Force = true });
+
+// CORRECT — model the repeating row as a parameterized ContainerBase (see component-patterns.md),
+// expose the button as [UnionInit], and let the framework open the modal
+public LineRow Row(int rowIndex) => new(_page, rowIndex);
+await Row(rowIndex).SplitButton.ClickAndWaitForAlertAsync<SplitLineDialog>();
+```
+
+### Tidying a banned call is not fixing it
+
+A raw element call is a structural violation, not a style nit. Removing `Force = true`, deleting a redundant `WaitForAsync`, or renaming variables leaves the violation in place — the call is still raw Playwright. The fix is always to **replace** the raw call with a `[UnionInit]` field (and a component for repeating elements), never to clean it up in place. If a proposed "minimal fix" still contains `.Locator(...)`/`.ClickAsync()`/`new SomeDialog(...)`, it is not a fix — do not offer it as an option.
 
 ## Element Declaration
 
@@ -216,6 +233,15 @@ Before committing a new test, verify:
 - **Test name is subject-first** — follows `{Subject}_{WhenCondition}_{ExpectedOutcome}`; qualifiers never lead
 - **Body marked AAA** — `// .Arrange`, `// .Act`, `// .Assert` comments delimit the three phases (optional `- <summary>` suffix)
 - **Test class inherits from service base** — never directly from `UnionTest<TSession>`; a service-specific base class (e.g., `StackOverflowTestBase`) owns `GetSessionProvider()` and exposes service shorthand properties
+
+## Page Object & Component Checklist
+
+The test-body rules above are not enough — most violations hide inside page-object and component methods. Before committing one, verify:
+
+- **No raw element API** — no `Locator(...)`, `.Nth(...)`, `.First`, `.All*Async()`, `.ClickAsync()`, `.FillAsync()`, `.WaitForAsync()`, `.IsVisibleAsync()`, `.TextContentAsync()` anywhere in the method body. Only `EvaluateAsync` / `WaitForLoadStateAsync` are exempt.
+- **Every element is a `[UnionInit]` field** — including elements addressed by row index (model the row as a parameterized `ContainerBase`, not `.Nth(i)`).
+- **Modals via `ClickAndWaitForAlertAsync<T>()`** — no `new TDialog(...)`, even with a justifying comment.
+- **A "minimal fix" that keeps a raw call is rejected** — replacing the primitive is the only fix; tidying it (dropping `Force`, removing a redundant wait) is not.
 
 ## Test Infrastructure
 
