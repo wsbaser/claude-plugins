@@ -1,6 +1,13 @@
 ---
 name: wsbaser:interview
 description: Interview user to capture feature requirements, write spec to specs/. Add --plan for phased implementation plan, --scout to run pattern-scout reuse analysis. Trigger: spec a feature, share a ticket/doc/design link, or say "plan this out".
+allowed-tools: Agent,
+  Skill,
+  Read,
+  Write,
+  Glob,
+  Grep,
+  WebFetch
 ---
 
 Interview the user in depth about a feature or requirement from the current conversation, then produce a structured specification document.
@@ -76,7 +83,7 @@ Interview will cover: {Category1}, {Category2}, {Category3}
 
 ## Step 3: Conduct the Interview
 
-Use `AskUserQuestion` for each question. Provide **3 options** per question (the tool automatically adds an "Other" option for custom input).
+Number each question sequentially across the interview (`1.`, `2.`, ...) with 3 lettered options (`A.`/`B.`/`C.`), each a real, distinct answer — no catch-all like "Something else" (free text covers off-menu answers). Ask one, wait for the reply.
 
 ### Questioning Techniques (rotate between these)
 
@@ -102,14 +109,8 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
   - "Can you be more specific about [aspect]?"
   - "Give me a concrete example of that scenario."
   - "What exactly do you mean by [term]?"
-- **Embed codebase context in questions.** For any question referencing an internal mechanism, explore it first if needed, then explain what it is and why it exists in the question text. Do not assume the user knows the internals.
-
-  Bad: "Should the unified dialog always run `migrateModelId()` on the initial model?"
-  Good: "The codebase has a `migrateModelId()` function that converts old short model names
-  ('opus') to canonical prefixed names ('claude-opus') — this exists because older feature.json files may still contain the short format. In create mode the store default is already migrated, but in edit mode the value comes from disk. Should the dialog always run migration defensively, or only in edit mode?"
-- **Mid-interview exploration.** If an answer reveals a gap in your codebase understanding, pause to explore:
-  - "Let me check how [related feature] is implemented..."
-  - Then return with an informed follow-up question.
+- **Context only when needed.** Judge whether the question is self-explanatory before asking. If it leans on an internal mechanism, acronym, or codebase detail the user wouldn't recognize, explore it and add a short `Context:` line above the question — see example below. Skip the line otherwise; don't pad an obvious question.
+- **Mid-interview exploration.** If an answer reveals a gap in your codebase understanding, pause to explore it, then return with an informed follow-up.
 - **Visual aids for UI/UX.** Use ASCII diagrams when clarifying layouts or interactions:
   ```
   Current:              Proposed:
@@ -119,29 +120,35 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
   +--------+            | Item C |
                         +--------+
   ```
-- **Track coverage.** Mentally track which categories have been adequately covered.
 
 ### Question Format Example
 
-```json
-{
-  "question": "For the notification feature, how should it handle the case where a user has notifications disabled at the OS level?",
-  "header": "OS disabled",
-  "options": [
-    {"label": "Silent fallback", "description": "Fall back to in-app notifications without alerting the user"},
-    {"label": "Prompt to enable", "description": "Show a one-time prompt explaining they're missing notifications"},
-    {"label": "Badge only", "description": "Only update the badge count, no toasts or banners"}
-  ]
-}
 ```
+Context: `deleteUser()` doesn't hard-delete today — it sets `deletedAt` and the
+record stays queryable for a 30-day recovery window before a nightly job purges
+it, so it still counts against the account's seat limit until then.
+
+3. Should the new bulk-delete feature soft-delete each user the same way, or skip
+   straight to a hard delete?
+
+A. Soft-delete — stays consistent with the existing 30-day recovery window
+B. Hard-delete — bulk removals are intentional, skip the grace period
+C. Configurable — caller passes a flag per bulk-delete call
+
+4. Should the user search box match partial names, or require an exact match?
+
+A. Partial match — matches the substring anywhere in the name
+B. Prefix match — matches only from the start of the name
+C. Exact match — the full name must match exactly
+```
+
+Question 4 needs no `Context:` line — partial vs. exact search matching is self-explanatory.
 
 ### Turn Management
 
-- Continue the interview until all categories are covered AND all clarifying questions are resolved.
-- Do NOT offer to wrap up if there are unanswered questions that could be resolved by asking the user.
-- If a question arises that you need answered, ask it rather than deferring to the spec.
+- Continue until all categories are covered and no resolvable question remains — never defer a resolvable question to the spec.
 - When coverage is complete and no questions remain, use the `Skill` tool to invoke `wsbaser:architecture-fit` (`Skill({ skill: "wsbaser:architecture-fit", args: "..." })`) on the proposed approach before wrapping up. **Never use the `Agent` tool for this — it must be the `Skill` tool.** If the verdict is **FITS**, print the response to output and proceed to the solution summary. If the verdict is **REFACTOR FIRST**, surface the violations as follow-up questions and continue the interview until the approach is adjusted or explicitly accepted.
-- When the approach passes architecture fit (or the user accepts it), synthesize the interview into a solution summary and display it as a **text block** (before the `AskUserQuestion` call). Use the brutalist text-block format below. Only include sections for categories actually covered.
+- When the approach passes architecture fit (or the user accepts it), synthesize the interview into a solution summary and display it as a **text block** (before the wrap-up question). Use the brutalist text-block format below. Only include sections for categories actually covered.
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -172,24 +179,17 @@ Use `AskUserQuestion` for each question. Provide **3 options** per question (the
 - **Group decisions thematically** (e.g., `state`, `fsm`, `routing`, `rendering`, `persistence`, `ui`). Aim for 3–6 groups regardless of total decision count — collapse related decisions onto one line. Padding each group label to a consistent width within the block.
 - The `out` row is optional — omit when nothing was explicitly excluded.
 
-This bookends the interview with a concrete picture of what was agreed. The user can spot-check before committing to the spec.
+Then offer to wrap up, referencing the summary, using the same numbered/lettered format:
 
-Then offer to wrap up, referencing the summary:
+```
+N. Wrap up? — the solution summary above reflects what we've discussed. Does it look right?
 
-```json
-{
-  "question": "The solution summary above reflects what we've discussed. Does it look right?",
-  "header": "Wrap up?",
-  "options": [
-    {"label": "Looks good — wrap up", "description": "Summary is accurate — generate the spec"},
-    {"label": "Continue exploring", "description": "I want to revisit or discuss more before wrapping up"},
-    {"label": "Deep-dive on a topic", "description": "I want to go deeper on a specific area"}
-  ]
-}
+A. Looks good — wrap up — summary is accurate, generate the spec
+B. Continue exploring — I want to revisit or discuss more before wrapping up
+C. Deep-dive on a topic — I want to go deeper on a specific area
 ```
 
-- If user wants to continue or deep-dive, resume the interview.
-- Continue checking periodically until the user confirms readiness.
+- If the user picks continue or deep-dive, resume and re-offer wrap-up once ready.
 
 ## Step 4: Generate the Spec
 
@@ -197,11 +197,7 @@ After the interview is complete:
 
 ### 1. Generate a slug from the feature name
 
-Convert the feature name to a filename-safe slug:
-- Lowercase
-- Replace spaces with hyphens
-- Remove special characters
-- Maximum 6 content words (skip stopwords like the, a, an, to, for, of, in, on, at, by, with)
+Lowercase, hyphenated, special characters stripped, max 6 content words (skip stopwords like the, a, an, to, for, of, in, on, at, by, with).
 
 Example: "User notification preferences panel" -> `user-notification-preferences-panel`
 
@@ -309,13 +305,13 @@ Write the spec with the following structure:
 
 ## Step 5: Generate Implementation Plan (only when `GENERATE_PLAN=true`)
 
-This step runs only when the `--plan` flag was provided. The goal is to produce a comprehensive, self-contained implementation plan that a fresh Claude session can execute with zero additional context.
+Produce a comprehensive, self-contained implementation plan that a fresh Claude session can execute with zero additional context.
 
 ### 5a. Deep codebase exploration
 
 Launch **up to 3 Task-tool subagents** in parallel to gather codebase context for the plan. Tailor exploration to the feature — common topics: design system (colors, theme maps, SCSS), component patterns (file conventions, base classes, namespaces), icon system, similar existing components, story/test patterns, build commands, API/service patterns, and routing conventions.
 
-Each agent should return **actual code snippets** from the codebase, not just descriptions. The plan must contain enough real code context that a developer with zero prior knowledge of this codebase can implement correctly.
+Each agent should return **actual code snippets** from the codebase, not just descriptions.
 
 ### 5b. Write phase files
 
