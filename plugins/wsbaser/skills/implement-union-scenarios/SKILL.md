@@ -114,18 +114,26 @@ DA reviews test code: faithfulness to Given/When/Then, meaningful assertions, pa
 
 ## Phase 7 — Full run
 
-`dotnet test [TEST_PROJECT_PATH]`. Collect: exit code, console, TRX (`TestResults/`), and any failure screenshots (wherever this project's diagnostics config writes them — discover the path, don't assume). Print totals (total/passed/failed/skipped). All pass → Phase 9; failures → Phase 8.
+Resolve once: `DIAG_RESULTS_ROOT` (this project's diagnostics-tree root — discover, don't assume); `FEATURES_DIR` (`SCENARIO_SOURCE` itself if a folder, else its containing folder); `RUN_STARTED_AT` (timestamp now, `yyyyMMdd_HHmmss_fff`).
+
+```bash
+dotnet test [TEST_PROJECT_PATH] --logger "trx;LogFileName=e2e-[RUN_STARTED_AT].trx" --results-directory ".reports/testresults" 2>&1 | tee ".reports/e2e-stdout-[RUN_STARTED_AT].log"
+```
+
+`TRX_PATH = .reports/testresults/e2e-[RUN_STARTED_AT].trx`, `STDOUT_LOG = .reports/e2e-stdout-[RUN_STARTED_AT].log` — named by the timestamp captured once above, so every Gate C re-run in this session overwrites the same pair (still "last attempt"), but a separate future invocation gets its own files instead of clobbering this session's.
+
+Collect: exit code, `STDOUT_LOG`, `TRX_PATH`. Confirm `DIAG_RESULTS_ROOT` gained fresh run folders — empty means a test base class is missing the mandatory diagnostics setup (`wsbaser:union-testing`), fix that now rather than shipping an empty report. Print totals (total/passed/failed/skipped). All pass → Phase 9; failures → Phase 8.
 
 Run **offline** — no live backend, no real credentials. Green only against a real backend = a missing mock → Gate C, not a pass. A selector timeout on a page that should have loaded is often an unmocked authed GET crashing the app — check the inventory before blaming the selector.
 
 ## Phase 8 — Gate C: Failures
 
-DA analyzes the run: per failure → root cause (selector/timing/assertion/env/cross-track/framework/scenario-vs-app), owning agent, fix instructions. Dispatch fixes; re-run full suite; repeat from here. **Max 3 cycles**, then proceed with remaining failures noted. A failure tracing to scenario-vs-app mismatch → surface to user, don't force green.
+DA analyzes the run: per failure → root cause (selector/timing/assertion/env/cross-track/framework/scenario-vs-app), owning agent, fix instructions. Dispatch fixes; re-run full suite (same command as Phase 7 — overwrites `TRX_PATH`/`STDOUT_LOG`); repeat from here. **Max 3 cycles**, then proceed with remaining failures noted. A failure tracing to scenario-vs-app mismatch → surface to user, don't force green.
 
 ## Phase 9 — Report + cleanup
 
-1. `wsbaser:generate-test-report` (scenario → report scenario, step → step, pass/fail + screenshots).
+1. `wsbaser:generate-e2e-test-report` (Skill tool): `--results DIAG_RESULTS_ROOT --features FEATURES_DIR --trx TRX_PATH --stdout STDOUT_LOG --since RUN_STARTED_AT --title "<scenario source>"`. Confirm parsed test count matches Phase 7/8's totals — mismatch (usually 0 tests) means `DIAG_RESULTS_ROOT`/`--since` is wrong; fix before handing over the report.
 2. Print summary: scenarios · passed · failed · fix cycles · report path.
 3. Shutdown every spawned agent (`devils-advocate`, `union-testing-reviewer`, `scaffold-*`, `track-N`) via `shutdown_request`; `TeamDelete` if the harness has it.
 
-**Checklist:** summary printed · report generated · shutdowns sent · team cleaned · scaffold + test files left uncommitted for review.
+**Checklist:** summary printed · report generated via generate-e2e-test-report with non-zero parsed tests · shutdowns sent · team cleaned · scaffold + test files left uncommitted for review.
