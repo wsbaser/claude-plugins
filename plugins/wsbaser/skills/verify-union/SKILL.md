@@ -181,6 +181,10 @@ Wait for the user's response:
 
 Do not continue until an explicit confirmation is received.
 
+### Step 4 — Persist scenarios as .feature files
+
+Write the confirmed Gherkin to disk — needed for the e2e report's BDD-matching (Phase 9). Discover existing convention (`Glob **/*.feature`); default `tests/BddScenarios/` if none. One file per Feature block. Store the directory as `FEATURES_DIR`.
+
 ---
 
 ## Phase 3: Team Setup
@@ -371,19 +375,25 @@ Send findings to team lead via SendMessage.
 
 Run the complete test suite (unfiltered) to detect cross-track integration issues.
 
+### Resolve report inputs
+
+Once, before the first run: `DIAG_RESULTS_ROOT` (explore `Infrastructure/Diagnostics/` in the test project to find where the Union framework writes `{TestName}/{ts}/` folders — discover, don't assume); `RUN_STARTED_AT` (timestamp now, `yyyyMMdd_HHmmss_fff`).
+
 ### Execute
 
 ```bash
-dotnet test [TEST_PROJECT_PATH]
+dotnet test [TEST_PROJECT_PATH] --logger "trx;LogFileName=e2e-[RUN_STARTED_AT].trx" --results-directory ".reports/testresults" 2>&1 | tee ".reports/e2e-stdout-[RUN_STARTED_AT].log"
 ```
+
+`TRX_PATH = .reports/testresults/e2e-[RUN_STARTED_AT].trx`, `STDOUT_LOG = .reports/e2e-stdout-[RUN_STARTED_AT].log` — named by the timestamp captured once above, so every Gate C re-run in this session overwrites the same pair (still "last attempt"), but a separate future invocation gets its own files instead of clobbering this session's.
 
 ### Collect Diagnostics
 
 Gather all test output:
 - **Exit code** — 0 = all pass, non-zero = failures
-- **Console output** — full test run log
-- **TRX files** — look in `TestResults/` directory under the test project
-- **Failure screenshots** — explore `Infrastructure/Diagnostics/` in the test project to discover where the Union framework writes them
+- **`STDOUT_LOG`** — full test run log
+- **`TRX_PATH`** — durations, assertions, stack traces
+- **`DIAG_RESULTS_ROOT`** — confirm fresh `{TestName}/{ts}/` folders landed for this run; empty means a test base class is missing the mandatory diagnostics setup (`wsbaser:union-testing`) — fix before Phase 9, don't hand over an empty report.
 
 ### Display Results
 
@@ -439,7 +449,7 @@ Send a summary to team lead.
 
 1. DA sends fix instructions to relevant union-dev agents.
 2. Union-dev agents apply fixes and re-run their filtered tests.
-3. After all agents complete fixes, run full `dotnet test [TEST_PROJECT_PATH]` again.
+3. After all agents complete fixes, run full suite again (same command as Phase 7 — overwrites `TRX_PATH`/`STDOUT_LOG`).
 4. If failures remain, repeat from DA Gate C activation.
 5. **Maximum 3 fix cycles total.** After 3 cycles, proceed to Phase 9 with remaining failures noted.
 
@@ -449,10 +459,7 @@ Send a summary to team lead.
 
 ### Step 1 — Generate Report
 
-Invoke `wsbaser:generate-test-report` via the `Skill` tool with test results mapped from Gherkin scenarios:
-- Each Gherkin scenario = one report scenario
-- Each Given/When/Then step = one report step
-- Include pass/fail status, failure details, screenshot paths
+Invoke `wsbaser:generate-e2e-test-report` via the `Skill` tool: `--results DIAG_RESULTS_ROOT --features FEATURES_DIR --trx TRX_PATH --stdout STDOUT_LOG --since RUN_STARTED_AT --title "<mode> — <target area>"`. Confirm parsed test count matches Phase 7/8's totals — mismatch (usually 0 tests) means `DIAG_RESULTS_ROOT`/`--since` is wrong; fix before handing over the report.
 
 ### Step 2 — Console Summary
 
@@ -483,7 +490,7 @@ Invoke `wsbaser:generate-test-report` via the `Skill` tool with test results map
 
 Before ending this workflow, verify all of these are done:
 - [ ] Console summary printed with scenario count, pass/fail counts, fix cycle count
-- [ ] `wsbaser:generate-test-report` skill invoked and HTML report generated
+- [ ] `wsbaser:generate-e2e-test-report` invoked, parsed non-zero tests, HTML report generated
 - [ ] Shutdown requests sent to all teammates
 - [ ] TeamDelete executed
 - [ ] Test files left as uncommitted changes for user review
