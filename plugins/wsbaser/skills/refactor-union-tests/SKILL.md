@@ -1,6 +1,7 @@
 ---
 name: wsbaser:refactor-union-tests
-description: Refactors EXISTING Union.Playwright.NUnit E2E tests, page objects, components, and mocks into compliance with wsbaser:union-testing rules and the project's own mocking system. Takes an AREA (path/folder/glob naming which tests to fix) and an optional FOCUS (what to prioritize — e.g. mocking, selectors, raw Playwright, test naming). No FOCUS → runs two parallel read-only auditors (framework compliance + mocking system compliance) and merges their findings; FOCUS given → runs one scoped auditor. Fixes are compliance-only: no new coverage, no changed assertions, no altered test intent — a violation whose fix would change what a test verifies is surfaced to the user, not silently applied. Captures a baseline test run before touching files and re-runs after, so any newly broken test is caught as a regression. ONLY invoke explicitly as /wsbaser:refactor-union-tests — it spawns an agent team and runs dotnet test, so never start it on its own; do NOT trigger on phrases like "clean up these tests" or "these tests look messy". Counterpart to wsbaser:implement-union-scenarios (which builds NEW tests from .feature files); this one repairs tests that already exist.
+description: Refactors EXISTING Union.Playwright.NUnit E2E tests, page objects, components, and mocks into compliance with wsbaser:union-testing and the project's mocking system. Takes AREA (path/folder/glob of tests to fix) and optional FOCUS (e.g. mocking, selectors, raw Playwright, naming). Fixes are compliance-only — no new coverage, no changed assertions, no altered test intent; a fix that would change what a test verifies is surfaced to the user, not applied silently. Captures a baseline test run before touching files and re-runs after, catching regressions. ONLY invoke explicitly as /wsbaser:refactor-union-tests — it spawns an agent team and runs dotnet test; do NOT trigger on "clean up these tests" or similar casual phrasing. Counterpart to wsbaser:implement-union-scenarios, which builds new tests; this one repairs existing ones.
+disable-model-invocation: true
 ---
 
 # Refactor Existing Union E2E Tests Into Compliance
@@ -19,7 +20,7 @@ Existing test classes/page objects/mocks → the same files, framework-compliant
 2. **Focus (optional).** Arg 2 = free text naming what to prioritize (`FOCUS`) — e.g. "mocking", "raw Playwright in page objects", "selectors", "test naming". Absent → full sweep (Phase 1 runs two auditors). Present → Phase 1 runs one scoped auditor.
 3. **Project.** Resolve test `.csproj` → `TEST_PROJECT_PATH`: CLAUDE.md first; else glob `*.E2E*.csproj` / `*.AutoTests.csproj` / `*.Tests.csproj`; multiple or none → ask.
 4. **Mock system.** Same discovery as `implement-union-scenarios`: the mocking guide, the reference mock implementation, per-domain mock classes, how a guarded route authenticates offline. Capture → `MOCK_SYSTEM`. Needed regardless of `FOCUS` — every fix must conform to it, not only a dedicated mocking pass. No mocking system at all → say so, confirm approach with the user before fixing anything mock-related.
-5. **Baseline run.** Before touching any file:
+5. **Baseline run.** Resolve once: `RUN_STARTED_AT` (timestamp now, `yyyyMMdd_HHmmss_fff`) and `DIAG_RESULTS_ROOT` (this project's diagnostics-tree root — discover, don't assume) — both reused by every regression run in Phase 5, including retries, and by the report in Phase 6. Before touching any file:
    ```bash
    dotnet test [TEST_PROJECT_PATH] --filter "<TARGET_FILES test classes, FQN~ORed>"
    ```
@@ -41,6 +42,8 @@ Merge the subagent finding list(s) into one deduped **Violation Manifest** (dedu
 
 Any finding flagged "fix changes test intent" gets called out by name — `AskUserQuestion` whether to apply it, skip it, or have the user resolve it manually. Don't proceed past this phase with an unresolved intent-changing finding.
 
+No dedicated devils-advocate completeness gate here (unlike `implement-union-scenarios`'s Gate A/B): the manifest's own completeness is covered by the two auditors sweeping every file in `TARGET_FILES`, and each fix is re-checked by two specialist reviewers in Phase 3–4. A DA pass would duplicate that coverage rather than add a distinct angle, since this skill's scope (compliance repair, not new-scenario authorship) has no automability/coverage judgment call for a DA to make.
+
 ## Phase 3 — Team + partition
 
 - `TaskCreate` per track once the manifest is grouped into **disjoint-file** fix tracks (max 7, prefer small — a track never spans a file another track owns; a shared file used by two tracks' findings becomes one track).
@@ -59,11 +62,13 @@ One `wsbaser:union-dev` per track (`name: fix-<n>`), activation template `refere
 ## Phase 5 — Regression run + fix cycles
 
 ```bash
-dotnet test [TEST_PROJECT_PATH] --filter "<same filter as baseline>" --logger "trx;LogFileName=refactor-[RUN_STARTED_AT].trx" --results-directory ".reports/testresults"
+dotnet test [TEST_PROJECT_PATH] --filter "<same filter as baseline>" --logger "trx;LogFileName=refactor-[RUN_STARTED_AT].trx" --results-directory ".reports/testresults" 2>&1 | tee ".reports/refactor-stdout-[RUN_STARTED_AT].log"
 ```
 
+`TRX_PATH = .reports/testresults/refactor-[RUN_STARTED_AT].trx`, `STDOUT_LOG = .reports/refactor-stdout-[RUN_STARTED_AT].log` — named by the `RUN_STARTED_AT` resolved once in Pre-flight, so every retry cycle below overwrites this same pair (still "last attempt"), consistent with `implement-union-scenarios`'s Gate C.
+
 Compare against `BASELINE_RESULTS` test-by-test:
-- **Was passing, now failing** → regression introduced by this refactor. Dispatch to the owning track's `union-dev`; re-run; max 3 cycles (same pattern as Gate C in `implement-union-scenarios`).
+- **Was passing, now failing** → regression introduced by this refactor. Dispatch to the owning track's `union-dev`; re-run (same command, same `TRX_PATH`/`STDOUT_LOG`); max 3 cycles (same pattern as Gate C in `implement-union-scenarios`).
 - **Was failing, still failing** → pre-existing, noted, not chased.
 - **Was failing, now passing** → possible, note it, but don't treat it as required — this skill doesn't hunt for coverage improvements.
 
@@ -71,8 +76,9 @@ All target tests either match baseline or are explicitly noted → proceed to Ph
 
 ## Phase 6 — Report + cleanup
 
-Print: `AREA` · `FOCUS` (or "full sweep") · violations found/fixed (by rule) · violations deferred to user (intent-changing) · build status · before/after test totals · fix cycles used · list of `FIXED_FILES`.
+1. `wsbaser:generate-e2e-test-report` (Skill tool): `--results DIAG_RESULTS_ROOT --trx TRX_PATH --stdout STDOUT_LOG --since RUN_STARTED_AT --title "<AREA>"` (no `--features` — these are existing tests, not scenario-sourced; the report falls back to agent-generated Gherkin intent from test source). Confirm parsed test count matches Phase 5's totals — mismatch means `DIAG_RESULTS_ROOT`/`--since` is wrong; fix before handing over the report.
+2. Print: `AREA` · `FOCUS` (or "full sweep") · violations found/fixed (by rule) · violations deferred to user (intent-changing) · build status · before/after test totals · fix cycles used · list of `FIXED_FILES` · report path.
 
 Shutdown spawned agents (`union-testing-reviewer`, `regression-reviewer`, `fix-*`) via `shutdown_request`; `TeamDelete` if the harness has it. Leave changed files uncommitted for user review.
 
-**Checklist:** manifest printed and confirmed · no unresolved intent-changing finding applied silently · build clean · regression comparison shows no newly-broken test (or each is explicitly noted as accepted) · summary printed · files left uncommitted.
+**Checklist:** manifest printed and confirmed · no unresolved intent-changing finding applied silently · build clean · regression comparison shows no newly-broken test (or each is explicitly noted as accepted) · report generated via generate-e2e-test-report with non-zero parsed tests · summary printed · shutdowns sent · files left uncommitted.
