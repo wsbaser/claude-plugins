@@ -56,8 +56,15 @@ Return this exact structure:
   "description": "string — the description field from frontmatter",
   "role": "SPEC | BUILD | TEST | CONVERSATIONAL",
   "naturalOutput": "string — e.g. 'spec.md file', 'code changes', 'test results', 'none'",
-  "artifactPath": "string or null — file path pattern if the skill writes a file, e.g. '.ask-jenny/features/{{featureId}}/spec.md'; null if no file is produced",
-  "expects": "string — what input this stage needs, e.g. 'feature description' or 'artifact from SPEC stage (spec.md)'",
+  "outputs": [
+    {
+      "name": "string — what the value is, not which stage made it, e.g. 'spec', 'report', 'prUrl'",
+      "type": "file | file[] | url | text | json",
+      "path": "string or null — path pattern for a file output, e.g. '.ask-jenny/features/{{featureId}}/spec.md'; null for non-file types",
+      "required": "boolean — false if the skill only sometimes produces this value"
+    }
+  ],
+  "expects": "string — what input this stage needs, e.g. 'feature description' or 'the spec output of a preceding SPEC stage'",
   "rationale": "string — one sentence explaining the role inference"
 }
 
@@ -66,6 +73,10 @@ Role inference rules:
 - BUILD: the skill modifies source files, implements code, makes code changes
 - TEST: the skill runs tests, verifies behavior, or checks assertions and reports pass/fail
 - CONVERSATIONAL: the skill produces no file by default; it is question-based or purely conversational
+
+Output inference rules:
+- List one entry per value a later stage could consume. Return an empty array when the skill produces nothing consumable (e.g. it only changes code) — do not invent an output the skill does not write.
+- A skill that classifies or routes produces a verdict: type "json".
 ```
 
 Collect all JSON responses before proceeding.
@@ -86,7 +97,7 @@ Find combinations of 2–5 skills that form coherent pipelines. Aim for 3–5 ca
 | CONVERSATIONAL → SPEC → BUILD | grill-me → interview → implement-spec | 4 |
 
 **Score adjustments:**
-- +2 if the SPEC stage's `artifactPath` is plausibly consumed by the following BUILD stage
+- +2 if one of the SPEC stage's declared `outputs` is plausibly consumed by the following BUILD stage
 - +2 if a TEST stage can loop back to a preceding BUILD stage
 - −1 per CONVERSATIONAL skill included (requires forced file output)
 
@@ -120,7 +131,7 @@ I analyzed {N} skills and found {X} workflow candidates:
 
 1. **{Workflow Name}** (score: {N})
    {Rationale}
-   {skill-a} [{ROLE}] → {artifact} → {skill-b} [{ROLE}] → {artifact} → {skill-c} [{ROLE}]
+   {skill-a} [{ROLE}] → {output} → {skill-b} [{ROLE}] → {output} → {skill-c} [{ROLE}]
 
 2. **{Workflow Name}** (score: {N})
    ...
