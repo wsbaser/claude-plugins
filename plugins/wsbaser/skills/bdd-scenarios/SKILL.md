@@ -5,6 +5,18 @@ description: Produces optimized Gherkin scenarios covering critical paths, edge 
 
 # Test Scenario Planning Rules
 
+## Workflow
+
+This skill covers two different kinds of concern: getting the scenario's *behavior* right (Coverage, Optimization, the mechanical Gherkin Rules below), and finishing it off (Titling, Severity, Naming). Applying both at once, on every scenario, while also drafting its content is how a rule quietly gets skipped. Split it into two passes instead:
+
+1. **Draft.** Write the scenarios' `Given`/`When`/`Then` bodies only, applying **Coverage**, **Optimization**, and the **Gherkin Rules** below. Do not title the scenarios and do not tag severity yet — just get the behavior right.
+2. **Finish.** Take the finished draft and, in a separate focused pass, read and apply these three reference files to it and nothing else:
+   - `references/titling.md` — capability vs. special-case shape for each scenario title
+   - `references/severity-tagging.md` — the 5-tier `@severity-*` rubric
+   - `references/naming-organization.md` — where the file goes and what it's called
+   If you have the ability to spawn a subagent (e.g. an Agent tool), hand this pass to one — point it at the draft and these three files, nothing about how you arrived at the draft. A fresh reader whose only job is "apply these 3 rubrics to this draft" is less likely to rubber-stamp a title shape or severity tier than you are on a re-read of your own work. If no subagent tool is available, do this pass yourself — but still treat it as a distinct second read of the draft, not something to decide inline while drafting.
+3. **Assemble.** Combine the finished, titled, tagged scenarios with the file decision into the final Output.
+
 ## Coverage
 
 Always cover these layers — apply judgment on depth based on feature risk and complexity:
@@ -40,14 +52,13 @@ Always cover these layers — apply judgment on depth based on feature risk and 
 
 ## Gherkin Rules
 
-- **First person, one actor.** Write every user step as `I` (`When I click Save`, `Given I have added a row`), never "the user". When a step needs a specific role, declare it in a dedicated `Given I am a <role>` step (e.g. `Given I am an accountant`); scenarios with no role-specific behavior need no such step.
+- **First person when the actor is the one doing or observing.** When a step is the actor's own action or direct observation, write it as `I` (`When I click Save`, `Given I have added a row`, `Then I see a confirmation message`), never "the user". Drop the `I` framing when a step states an objective system or data fact instead — background data, a computed value, an error code (`Given the exchange rate is 1.2`, `Then the total equals 100.00`, not `Then I should see the total equal 100.00`). When a step needs a specific role, declare it in a dedicated `Given I am a <role>` step (e.g. `Given I am an accountant`); scenarios with no role-specific behavior need no such step.
 - `Given` sets up pre-conditions (system state, authenticated user role, existing data)
 - `When` describes one user action or event
 - `Then` asserts a specific, observable outcome — use concrete values, not vague descriptions
 - Use `Background` when 2+ scenarios share identical setup steps
 - Use `Scenario Outline` + `Examples` table when the same flow runs with 3+ distinct data sets
 - Order: critical path → alternative flows → edge/boundary cases → error handling
-- **Scenario titles: `Family — distinguishing condition`.** Lead with the behavior family that sibling scenarios share (the action or subject: `Auto-deduct`, `Save`, `Delete row`, `Negative source`); after the em-dash put only what differs. The prefix groups siblings together when titles are sorted; the suffix is the part you scan. Never restate the Feature in either part. `Save — blocked when amount is zero` / `Save — blocked on wrong sign` / `Save — valid split applies rows`, not `Saving a zero line is blocked`. Single-of-a-kind scenarios still take a family prefix so they sort with their kin.
 
 ## Tables vs Prose
 
@@ -55,4 +66,6 @@ Prefer prose. When the input or outcome spans several rows, use a data table rat
 
 ## Output
 
-Gherkin block followed by a short **Coverage Notes** section (3–6 bullets) explaining what was included, what was intentionally omitted, and which scenarios combine multiple validations.
+Gherkin block, followed by:
+- **File**: the chosen relative path and filename, with a one-line reason (matches existing convention / new folder because none fits / merged into existing file `X` because scenarios overlap with it)
+- **Coverage Notes** (3–6 bullets) explaining what was included, what was intentionally omitted, and which scenarios combine multiple validations

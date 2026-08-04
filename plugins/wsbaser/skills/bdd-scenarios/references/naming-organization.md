@@ -1,0 +1,7 @@
+# Naming & File Organization
+
+A well-written scenario set is still a maintenance problem for whoever reads the suite next if it's poorly named or duplicated into the wrong file. Before finalizing:
+
+- **Look at what's already there.** Glob for existing `.feature` files in the project. Their folder structure shows the established grouping convention (by module, by domain, by screen) — match it rather than inventing a new one. Check sibling files in the target folder: a new name must be tellable apart from them at a glance. Two files that both read as "Noun + Noun + Noun" force a reader to open both just to know which does what.
+- **Name the file after the `Feature:` title**, compressed to the project's casing convention, verb-led rather than noun-piled — `RestrictInvoiceAccessByUser` reads as a sentence, `InvoiceAccessRestrictionOptions` reads as a label. Drop the folder's own name from the filename; restating it there is dead weight once the file already lives inside that folder.
+- **Before splitting one draft into two files, check whether the two halves interact.** If any scenario needs to reference both parts to prove the behavior correct — one toggle's state changing what another does, a shared validation path — they're one coupled capability and belong in one file even though the feature title needs an "and". Only split when each half could change or ship without touching the other.
