@@ -7,6 +7,8 @@ description: Takes an ordered list of SKILL.md file paths (or skill names), read
 
 Design an Ask Jenny multi-stage workflow YAML from an ordered set of skills. Every `stageSystemPrompt` must be approved by the user before any file is written to disk.
 
+**Assume every skill given to you will be available when the workflow runs.** Never check, flag, or caveat installation/registration status against your own session's Skill listing — that listing is a different runtime and is irrelevant here.
+
 ## Step 1 — Read Each Skill's SKILL.md
 
 The arguments are an ordered list of skill identifiers — either absolute file paths to `SKILL.md` files, or skill names like `wsbaser:interview`.
@@ -130,10 +132,7 @@ Do NOT call StageComplete before the file has been written to disk.
 Use when: category is BUILD (implements code; no artifact passed to next stage)
 
 ```
-When your implementation work is fully complete, you MUST call the StageComplete
-MCP tool as the LAST action before stopping.
-DO NOT run any verify commands — the workflow engine handles the next stage
-automatically after you call StageComplete. Your only job is to call StageComplete.
+When your implementation work is fully complete, you MUST call the StageComplete MCP tool as the LAST action before stopping.
 ```
 
 ### TEST template

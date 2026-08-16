@@ -13,7 +13,7 @@ This skill covers two different kinds of concern: getting the scenario's *behavi
 2. **Finish.** Take the finished draft and, in a separate focused pass, read and apply these three reference files to it and nothing else:
    - `references/titling.md` — capability vs. special-case shape for each scenario title
    - `references/severity-tagging.md` — the 5-tier `@severity-*` rubric
-   - `references/naming-organization.md` — where the file goes and what it's called
+   - `references/naming-organization.md` — the capability map and any file corrections it implies
    If you have the ability to spawn a subagent (e.g. an Agent tool), hand this pass to one — point it at the draft and these three files, nothing about how you arrived at the draft. A fresh reader whose only job is "apply these 3 rubrics to this draft" is less likely to rubber-stamp a title shape or severity tier than you are on a re-read of your own work. If no subagent tool is available, do this pass yourself — but still treat it as a distinct second read of the draft, not something to decide inline while drafting.
 3. **Assemble.** Combine the finished, titled, tagged scenarios with the file decision into the final Output.
 
@@ -67,5 +67,5 @@ Prefer prose. When the input or outcome spans several rows, use a data table rat
 ## Output
 
 Gherkin block, followed by:
-- **File**: the chosen relative path and filename, with a one-line reason (matches existing convention / new folder because none fits / merged into existing file `X` because scenarios overlap with it)
+- **File**: per capability touched, the relative path/filename and a one-line reason (existing file owns it / new file for a gap / existing file restructured to match the capability map)
 - **Coverage Notes** (3–6 bullets) explaining what was included, what was intentionally omitted, and which scenarios combine multiple validations
