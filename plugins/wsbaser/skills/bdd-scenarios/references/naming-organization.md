@@ -6,7 +6,7 @@ File placement follows a capability map, not whatever already exists on disk —
 
 2. **One file per capability.** Two capabilities share a file only when a scenario needs both to prove correctness (coupled state, a shared validation path). Otherwise they get separate files — even if one predates this task, even if the combined title would need "and".
 
-3. **Resolve per capability, not per batch.** For each one: a correctly-scoped file already exists → add to it. No file exists → create one. A file exists but its scope is wrong → fix it (split, move, or rename) rather than appending beside a known mistake.
+3. **Resolve per capability.** A correctly-scoped file already covers it → add to it. None does → create one. One exists but its scope is wrong → fix it (split, move, or rename).
 
 4. **Name the file after its `Feature:` title** — verb-led, compressed to the project's casing convention, folder name dropped. Folder + filename together must work as a lookup index: findable by capability alone, no need to open files to tell them apart.
 
@@ -16,4 +16,4 @@ File placement follows a capability map, not whatever already exists on disk —
 
 7. **The filename is a compressed label; the `Feature:` title is the complete description — let them diverge.** Compress the filename to the verb plus the one condition that distinguishes it from its siblings, mirroring the `Feature:` title's own casing style (Title Case for a noun-phrase title, sentence case for a verb-clause one) rather than trimming it verbatim — e.g. `Recompute Haukur account suggestions when purchase invoice vendor changes` becomes `Recompute after vendor change.feature`. The `Feature:` title itself always stays the full, accurate description of everything the file covers, even after the filename is compressed far past it, and even after sibling files later get carved out of it — file name plus parent folders only need to *approximate* the title for lookup purposes, never replace it or shrink to match it.
 
-8. **Number files within a leaf folder (`N. Title.feature`) by priority** — most basic/critical capability first, down to the least-used/least-critical, never alphabetical or filesystem order. Numbering restarts in every folder; skip it entirely when a folder holds a single file.
+8. **Number a folder's direct `.feature` files by priority** (`N. Title.feature`, most critical first, never alphabetical) whenever it holds 2+ — even if the folder also contains subfolders; only its direct files count and get numbered, subfolders don't exempt it and aren't counted, and there's no "unrelated capabilities" exemption. Numbering restarts per folder; skip folders with 0–1 direct files.

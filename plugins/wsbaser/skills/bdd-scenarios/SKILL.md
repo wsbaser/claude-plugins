@@ -7,9 +7,11 @@ description: Produces optimized Gherkin scenarios covering critical paths, edge 
 
 ## Workflow
 
+Before anything else, find the existing feature file(s) related to the capability you're covering — this is today's scope. Every rule below applies across that whole scope, not just to newly drafted scenarios: existing scenarios inside it get brought into compliance too, pre-existing or not.
+
 This skill covers two different kinds of concern: getting the scenario's *behavior* right (Coverage, Optimization, the mechanical Gherkin Rules below), and finishing it off (Titling, Severity, Naming). Applying both at once, on every scenario, while also drafting its content is how a rule quietly gets skipped. Split it into two passes instead:
 
-1. **Draft.** Write the scenarios' `Given`/`When`/`Then` bodies only, applying **Coverage**, **Optimization**, and the **Gherkin Rules** below. Do not title the scenarios and do not tag severity yet — just get the behavior right.
+1. **Draft.** For everything in scope, write or revise the scenarios' `Given`/`When`/`Then` bodies, applying **Coverage**, **Optimization**, and the **Gherkin Rules** below. Do not title the scenarios and do not tag severity yet — just get the behavior right.
 2. **Finish.** Take the finished draft and, in a separate focused pass, read and apply these three reference files to it and nothing else:
    - `references/titling.md` — capability vs. special-case shape for each scenario title
    - `references/severity-tagging.md` — the 5-tier `@severity-*` rubric
