@@ -12,12 +12,12 @@ Before anything else, find the existing feature file(s) related to the capabilit
 This skill covers two different kinds of concern: getting the scenario's *behavior* right (Coverage, Optimization, the mechanical Gherkin Rules below), and finishing it off (Titling, Severity, Naming). Applying both at once, on every scenario, while also drafting its content is how a rule quietly gets skipped. Split it into two passes instead:
 
 1. **Draft.** For everything in scope, write or revise the scenarios' `Given`/`When`/`Then` bodies, applying **Coverage**, **Optimization**, and the **Gherkin Rules** below. Do not title the scenarios and do not tag severity yet — just get the behavior right.
-2. **Finish.** Take the finished draft and, in a separate focused pass, read and apply these three reference files to it and nothing else:
-   - `references/titling.md` — capability vs. special-case shape for each scenario title
-   - `references/severity-tagging.md` — the 5-tier `@severity-*` rubric
-   - `references/naming-organization.md` — the capability map and any file corrections it implies
-   If you have the ability to spawn a subagent (e.g. an Agent tool), hand this pass to one — point it at the draft and these three files, nothing about how you arrived at the draft. A fresh reader whose only job is "apply these 3 rubrics to this draft" is less likely to rubber-stamp a title shape or severity tier than you are on a re-read of your own work. If no subagent tool is available, do this pass yourself — but still treat it as a distinct second read of the draft, not something to decide inline while drafting.
-3. **Assemble.** Combine the finished, titled, tagged scenarios with the file decision into the final Output.
+2. **Finish.** Take the finished draft and, in a separate focused pass, read and apply these three reference files and nothing else. The first two take the draft as input; the third takes the target folders on disk — do not let it collapse into a check of the draft:
+   - `references/titling.md` — per scenario: capability vs. special-case shape for each title
+   - `references/severity-tagging.md` — per scenario: the 5-tier `@severity-*` rubric
+   - `references/naming-organization.md` — per folder: placement (the tree indexes the app's UI; each file at the level of its subject) and priority numbering, run against a fresh directory listing of every target folder (any folder the task adds, renames, or moves a file in or out of), never against the draft. Bring each folder into compliance — pre-existing sibling renames and moves included — and record the result as the Output's Folder audit tables.
+   Hand this pass to a subagent (e.g. the Agent tool) — give it the draft, these three files, and read access to the scenarios tree (moves create new target folders mid-check, so a static listing isn't enough), nothing about how you arrived at the draft. It must return the titled, tagged scenarios plus completed Folder audit tables; execute any moves and renames it verdicts before assembling — a fresh reader is less likely to rubber-stamp a title, a tier, or a non-compliant sibling than you re-reading your own work.
+3. **Assemble.** Combine the finished, titled, tagged scenarios with the file decision and the Folder audit tables into the final Output, then verify the Checklist at the bottom of this file line by line.
 
 ## Coverage
 
@@ -70,4 +70,19 @@ Prefer prose. When the input or outcome spans several rows, use a data table rat
 
 Gherkin block, followed by:
 - **File**: per capability touched, the relative path/filename and a one-line reason (existing file owns it / new file for a gap / existing file restructured to match the capability map)
+- **Folder audit**: one table per target folder, from the Finish pass's fresh listing — every direct `.feature` file gets a row, including files this task never touched:
+
+  ```
+  Folder: Expenses/PurchaseInvoices/Dialog/ — 4 direct .feature files
+  | Final name              | Was                                     | Action    |
+  |-------------------------|-----------------------------------------|-----------|
+  | 1. Post invoice.feature | Post invoice.feature                    | renamed   |
+  | 2. Split line.feature   | —                                       | created   |
+  | 3. Attachments.feature  | 3. Attachments.feature                  | unchanged |
+  | 4. Duplicates.feature   | Expenses/Duplicate invoice logic.feature | moved     |
+  ```
+
+  `Action` is exactly one of `unchanged` / `renamed` / `moved` / `created`. `renamed` and `moved` = already applied on disk (`git mv` for tracked files), never merely proposed; a moved file rows in its destination folder with `Was` as its old path from the scenarios root. `unchanged` requires name and placement to already satisfy the naming-organization rules — an unnumbered file in a 2+ folder never qualifies, nor does a file whose subject is narrower than the folder it sits in. If every folder was already compliant, say so beneath the table.
 - **Coverage Notes** (3–6 bullets) explaining what was included, what was intentionally omitted, and which scenarios combine multiple validations
+
+**Checklist:** every target folder freshly listed during Finish · every direct `.feature` file rowed in a Folder audit · every `.feature` file placed at the level of its subject · 2+ files → numbered 1..N, no gaps · filenames read like sentences · `renamed`/`moved` rows applied on disk, not proposed · every scenario title shape-checked and severity-tagged · Coverage Notes present.
