@@ -11,11 +11,15 @@ allowed-tools: Agent,
   TaskStop,
   TaskUpdate,
   Bash,
+  BashOutput,
+  KillShell,
   Read,
   Write,
   Glob,
   Grep,
-  WebFetch
+  WebFetch,
+  Skill,
+  AskUserQuestion
 ---
 
 # End-to-End Application Testing (Playwright CLI)

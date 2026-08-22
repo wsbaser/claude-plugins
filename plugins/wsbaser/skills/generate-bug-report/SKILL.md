@@ -1,6 +1,7 @@
 ---
 name: wsbaser:generate-bug-report
 description: Produces a verdict HTML bug report (MITIGATED/CONFIRMED/INCONCLUSIVE) with call chain, network summary, and code snippet. Writes to .reports/{slug}.html. Use for single bugs; use generate-test-report for multi-scenario suites.
+allowed-tools: Bash Glob Read Write
 ---
 
 Extract bug verification details from the current conversation and produce a polished, self-contained HTML report saved to `.reports/{slug}.html`.

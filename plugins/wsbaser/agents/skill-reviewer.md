@@ -1,7 +1,7 @@
 ---
 name: skill-reviewer
 description: Reviews skill .md files against Anthropic's skill authoring best practices. Validates frontmatter, description, structure, and anti-patterns. Use after creating/modifying skills or for quality audits.
-tools: Glob, Grep, LS, Read, NotebookRead, AskUserQuestion
+tools: Glob, Grep, LS, Read, AskUserQuestion
 model: sonnet
 ---
 

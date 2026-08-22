@@ -2,6 +2,15 @@
 name: wsbaser:refactor-union-tests
 description: Refactors EXISTING Union.Playwright.NUnit E2E tests, page objects, components, and mocks into compliance with wsbaser:union-testing and the project's mocking system. Takes AREA (path/folder/glob of tests to fix) and optional FOCUS (e.g. mocking, selectors, raw Playwright, naming). Fixes are compliance-only — no new coverage, no changed assertions, no altered test intent; a fix that would change what a test verifies is surfaced to the user, not applied silently. Captures a baseline test run before touching files and re-runs after, catching regressions. Counterpart to wsbaser:implement-union-scenarios, which builds new tests; this one repairs existing ones.
 disable-model-invocation: true
+allowed-tools: Agent,
+  SendMessage,
+  TaskCreate,
+  Bash,
+  Read,
+  Glob,
+  Grep,
+  Skill,
+  AskUserQuestion
 ---
 
 # Refactor Existing Union E2E Tests Into Compliance

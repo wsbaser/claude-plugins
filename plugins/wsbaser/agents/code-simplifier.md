@@ -1,6 +1,7 @@
 ---
 name: code-simplifier
 description: Simplifies code for clarity and maintainability without changing behavior. Focuses on a single component's files (.razor, .razor.cs, .razor.scss, .razor.js/.ts).
+tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 model: sonnet
 ---
 

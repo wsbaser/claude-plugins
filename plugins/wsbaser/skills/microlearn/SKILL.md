@@ -2,6 +2,7 @@
 name: wsbaser:microlearn
 description: Appends short contextual lessons to responses. Supports any language or custom topic. Trigger: user asks for recurring lessons, mentions /microlearn, or wants to learn a topic during coding.
 disable-model-invocation: true
+allowed-tools: Bash Read Write AskUserQuestion
 ---
 
 # Microlearn Setup

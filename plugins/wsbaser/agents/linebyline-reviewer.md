@@ -1,7 +1,7 @@
 ---
 name: linebyline-reviewer
 description: Block-by-block analysis of uncommitted changes against spec requirements. Verifies every decision is correct, justified, and optimal; finds reuse opportunities and spec gaps.
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
+tools: Glob, Grep, LS, Read, Write, Bash, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 model: opus
 color: cyan
 ---

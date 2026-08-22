@@ -1,6 +1,7 @@
 ---
 name: wsbaser:generate-test-report
 description: Produces an Allure-style multi-scenario HTML report at .reports/{slug}.html with sidebar, step drill-down, issue cards, and a copy-fix-prompt button. Invoke after browser testing or on "generate test report". Use generate-bug-report for single-bug reports.
+allowed-tools: Bash Glob Read Write
 ---
 
 Extract test execution results from the current conversation and produce a polished, self-contained HTML report saved to `.reports/{slug}.html`.
