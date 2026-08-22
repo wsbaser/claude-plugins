@@ -1,7 +1,7 @@
 ---
 name: clean-code-reviewer
 description: Reviews code for DRY violations, SOLID principles at method/class level, code smells, and clean code practices
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
+tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 model: sonnet
 ---
 

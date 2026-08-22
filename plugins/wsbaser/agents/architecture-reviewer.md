@@ -1,7 +1,7 @@
 ---
 name: architecture-reviewer
 description: Reviews code for Clean Architecture violations, SOLID principles at module/service level, DDD boundary integrity, and separation of concerns
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
+tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch
 model: sonnet
 ---
 

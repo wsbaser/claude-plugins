@@ -1,6 +1,7 @@
 ---
 name: devils-advocate
 description: Challenges assumptions and stress-tests decisions during spec implementation. Invoke proactively at key decision points to surface risks, failure modes, and spec misinterpretations before they become problems.
+tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 model: opus
 color: pink
 ---

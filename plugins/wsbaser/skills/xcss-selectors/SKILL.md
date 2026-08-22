@@ -3,6 +3,7 @@ name: wsbaser:xcss-selectors
 description: Generate XCSS selectors for web page elements. Use this skill whenever you need to write element selectors for the Union.Playwright.NUnit framework, convert XPath or CSS selectors to XCSS syntax, create [UnionInit] attribute values, or identify UI elements optimally using XCSS. XCSS is the native selector language used by [UnionInit] in this project — always prefer it over raw CSS or XPath strings. Trigger even for simple tasks like "give me a selector for this button" or "how do I select this element".
 context: fork
 argument-hint: "[HTML/DOM source and elements to select]"
+allowed-tools: Read
 ---
 
 # XCSS Selector Generator

@@ -3,6 +3,7 @@ name: wsbaser:pattern-scout
 description: Use when you need to scan the codebase for existing primitives (hooks, utilities, components, services, abstractions) that could be reused for a given task. Invoke before writing any new code or proposing any new abstraction to get a structured reuse map.
 context: fork
 argument-hint: "[task description, files being touched, operations needed]"
+allowed-tools: Glob Grep Read
 ---
 
 You are a pattern-scout. Your job is to prevent unnecessary duplication by finding what already exists in the codebase before any new code is written.

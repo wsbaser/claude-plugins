@@ -1,6 +1,7 @@
 ---
 name: wsbaser:workflow-design
 description: Takes an ordered list of SKILL.md file paths (or skill names), reads each skill to infer its stage category and its named typed outputs, drafts stageSystemPrompt instructions using GATE/SPEC/BUILD/TEST templates, shows each draft to the user for approval, then generates a workflow YAML into the current project's existing workflows folder. Use this skill whenever the user wants to create a new Ask Jenny workflow from a set of known ordered skills, says "design a workflow from these skills", or to convert an existing skill pipeline into a workflow YAML. Also automatically invoked by wsbaser:workflow-discover after the user selects a candidate.
+allowed-tools: Read Glob Write AskUserQuestion
 ---
 
 # Workflow Design

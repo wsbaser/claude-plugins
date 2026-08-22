@@ -1,6 +1,7 @@
 ---
 name: wsbaser:architecture-fit
 description: Architecture fit checker — evaluates a proposed implementation against SOLID, DRY, and Clean Architecture principles (Robert C. Martin; also known as Hexagonal / Onion / Ports & Adapters).
+allowed-tools: Glob Grep Read
 ---
 
 # Architecture Fit Check
