@@ -6,7 +6,7 @@ allowed-tools: Read Glob Write AskUserQuestion
 
 # Workflow Design
 
-Design an Ask Jenny multi-stage workflow YAML from an ordered set of skills. Every `stageSystemPrompt` must be approved by the user before any file is written to disk.
+Design an Ask Jenny multi-stage workflow YAML from an ordered set of skills. Every `stageSystemPrompt`, the workflow `description`, and every stage `description` must be approved by the user before any file is written to disk.
 
 **Assume every skill given to you will be available when the workflow runs.** Never check, flag, or caveat installation/registration status against your own session's Skill listing — that listing is a different runtime and is irrelevant here.
 
@@ -237,9 +237,125 @@ Substitute all placeholders with skill-specific values from Step 2:
 - `{file output name}` → the GATE stage's `file` output, **only if it declares one** — most gates do not
 - `{preceding BUILD stage label}` → the `label` field of the most recent BUILD stage in the pipeline
 
+### Linkable file outputs
+
+Use when: a stage already declares a `file` output — from the SPEC, BUILD, or TEST template, category doesn't matter — and that file should be reachable by URL — for a human reading the PR, or for a later stage to surface as a link — not just as a worktree-relative path.
+
+Layer this on top of whichever template already produces the file output. Before the stage's `StageComplete` call, insert a call to the `GetArtifactLink` MCP tool with the file's path, worktree-relative (the same string the stage passes to `StageComplete` — absolute paths are rejected), then declare a companion output of `type: url` alongside the existing `file` output. This is the same shape already used for `prUrl` in the BUILD template above: a URL is just another output a stage can hand forward. `GetArtifactLink` is how that URL gets minted specifically when the thing being linked is a file this run itself wrote, rather than an external resource like a PR.
+
+Minting can fail (the file isn't `.html`, or resolves outside the worktree), so the companion output is always `required: false`, and the `stageSystemPrompt` must instruct the agent: if `GetArtifactLink` succeeds, include the URL in the `StageComplete` outputs; if it fails, note it in one line of `summary` and omit the output — never block or retry on it.
+
+**Concrete example**: `bugfix-systematic-debugging.yaml`'s `fix-and-verify` stage (BUILD category) writes a `report` file output and adds a companion `reportUrl`:
+
+```yaml
+outputs:
+  report: { type: file, required: true, description: HTML verification report }
+  reportUrl: { type: url, required: false, description: Public link to the verify-report.html artifact }
+stageSystemPrompt: |
+  ...after writing the report to .reports/{{featureId}}/verify-report.html,
+  call the GetArtifactLink MCP tool with that path before calling StageComplete.
+
+  If it succeeds, include reportUrl in the outputs of your StageComplete call.
+  If it fails, log a one-line warning in summary and omit reportUrl — do not
+  block or retry on this failure.
+```
+
+The consuming stage (`commit-push-pr`) declares the matching input and surfaces it only when present:
+
+```yaml
+inputs:
+  - as: reportUrl
+    from: fix-and-verify.reportUrl
+    required: false
+stageSystemPrompt: |
+  ...if reportUrl is present, put it as a bold line near the top of the PR
+  description, e.g. **Verification report:** <reportUrl>
+```
+
+## Authoring the descriptions
+
+The root `description` is the workflow's **selection contract**. The `/please` skill reads it — together with the stage descriptions — from the `ListWorkflows` catalog to pick a workflow without loading full definitions, so it is the most selection-critical text in the file. Draft it here, before the approval loop, from facts already gathered in Steps 1–3 — never from imagination.
+
+### Locate the destination folder now
+
+Step 7 writes into the project's existing workflows folder, and the "Not for" clause below needs that folder's workflow ids. Find it here — do not hardcode a path:
+
+- Search for `*.yaml` files whose path contains a `workflows` segment (e.g. via Glob `**/workflows/*.yaml`), excluding `node_modules` and `.worktrees`.
+- If matches are found, the folder that contains the most existing workflow YAMLs is the destination.
+- If no workflows folder exists, the destination is `.ask-jenny/workflows/` (Step 7 creates it).
+- Read the `id:` and `description:` lines of every YAML in the destination — these are the siblings the new workflow could be confused with.
+
+Step 7 reuses this result; do not glob again there.
+
+### Workflow `description` — six clauses, fixed order
+
+One free-text sentence-run, ≤ ~500 characters, containing all six clauses in this order. Each is mandatory:
+
+| # | Clause | Form |
+|---|---|---|
+| 1 | What it produces | one clause, plain words |
+| 2 | Entry precondition | `Use when {what the task hands it: Jira story, Figma URL, PR id, known root cause, in-progress merge, …}` |
+| 3 | Gates | `stops for a human at {stage(s) / what for}` **or** the literal `Runs unattended` |
+| 4 | External deps | `Requires {Azure DevOps, Jira, Confluence, Figma, browser/running app, Storybook, Union, Chrome DevTools MCP, …}` **or** `Requires nothing external` |
+| 5 | Delivery | `Ships {opens a PR \| posts a comment and vote \| posts a comment (no vote) \| report only \| code on the branch}` — one of these, or several joined with `and` (composition rule below) |
+| 6 | Disambiguation | `Not for {sibling workflow id} ({the one fact that separates them})` — several siblings as `Not for {id-a} ({fact}), {id-b} ({fact})`, or `Not for {id-a}, {id-b} ({shared fact})` |
+
+No slash-command names, no plugin provenance ("from the 7c-work-DEV plugin"), no implementation detail. The literal markers `Use when`, `Requires`, `Ships`, `Not for`, and `stops for a human` / `Runs unattended` must appear verbatim — Step 6 validates on them.
+
+**Where each clause comes from:**
+
+- **Produces / Use when** — the constituent skills' frontmatter `description` lines (Step 1), read as a pipeline: the first stage's precondition is the workflow's entry condition, the last stage's product is what the workflow produces.
+- **Gates** — the Step 2/3 categories. An interview, approval, or CONVERSATIONAL stage, or any stage whose `stageSystemPrompt` asks the user something, is a human stop — name the stage and what it stops for. No such stage → `Runs unattended`. A GATE stage that can abort is not a human stop, but say so next to this clause (`Runs unattended, aborting when the ticket routes to Manual`).
+- **Requires** — skills whose SKILL.md calls Azure DevOps, Jira, Confluence, Figma, a browser or running app, Storybook, Union, or Chrome DevTools MCP. Nothing of the kind → `Requires nothing external`.
+- **Ships** — a stage declaring a `prUrl` output → `opens a PR`; a stage that posts a review comment and sets a vote → `posts a comment and vote`; a comment without a vote → `posts a comment (no vote)`; only a `report` file output → `report only`; code changes and no PR → `code on the branch`. **Composition rule:** a workflow often makes more than one delivery — list every one it makes, in the fixed order PR → comment/vote → report → code, joined with `and` (`opens a PR and posts a comment and vote`, `code on the branch and posts a comment (no vote)`). Append `, uncommitted` to `code on the branch` when nothing is committed, and name optional downstream stages after a semicolon (`code on the branch, uncommitted; optional PR and audit stages`).
+- **Not for** — the sibling in the destination folder with the most overlapping purpose; put the single fact that decides between them in parentheses right after the id (where the spec comes from, known vs unknown root cause, PR opened vs not, output medium, …). When two or more siblings are confusable, list each with its own parenthetical fact, or share one parenthetical when the same fact separates them all.
+
+**Worked example** — a hypothetical `bugfix-known-cause` pipeline (plan and implement a diagnosed fix with in-browser verification → re-run the reproduction → commit/push/PR), landing next to an existing `bugfix-systematic-debugging` workflow:
+
+```yaml
+description: >-
+  Fixes a bug whose root cause is already known and delivers the fix as a pull request with
+  a before/after verification report. Use when the task hands you a diagnosed defect plus a
+  reproduction — not a symptom still to be investigated. Runs unattended. Requires a running
+  app and Chrome DevTools MCP for the screenshots. Ships opens a PR. Not for
+  bugfix-systematic-debugging (unknown root cause).
+```
+
+**Multi-sibling "Not for"** — a PR-audit workflow that is confusable with three siblings lists each with its own separating fact; two siblings separated by the same fact share one parenthetical:
+
+```yaml
+# per-sibling facts
+description: … Ships opens a PR and posts a comment and vote. Not for review-pr (posts nothing), collect-test-evidence (no vote), fix-pr-comment (changes code).
+# one shared fact
+description: … Ships opens a PR. Not for bugfix-plan-implement-auto, mp-triage-implement-ship (they build first).
+```
+
+### Stage `description` — one sentence each
+
+Every stage carries a `description` (one sentence, ≤ ~200 characters) that states, in this order:
+
+1. what the stage does;
+2. whether it **stops for a human** (interview, approval, `AskUserQuestion`) or is **unattended**;
+3. for a stage carrying `retryTarget`: `loops back to {retryTarget} when {condition}`.
+
+Draft each from the skill's frontmatter description plus its Step 2 category and Step 4 template — a TEST stage that returns `loop` always gets clause 3. A stage that interviews the user reads, e.g., `…; stops for a human to approve the scenarios`.
+
+**Worked example** — the same pipeline:
+
+```yaml
+- id: plan-implement-and-verify
+  description: Plans and implements the known fix, confirms it in-browser with before/after screenshots, and writes the verification report; unattended.
+- id: verify-fix
+  description: Re-runs the reproduction against the fix and loops back to plan-implement-and-verify when the defect still reproduces; unattended.
+- id: commit-push-pr
+  description: Commits, pushes, opens the PR, and attaches the verification report as a PR comment; unattended.
+```
+
+Keep the drafted workflow `description` and every stage `description`; Step 5b puts them in front of the user.
+
 ## Step 5 — User Approval Loop
 
-Present each stageSystemPrompt to the user for review and approval, **one at a time**, using `AskUserQuestion`. Do not proceed to Step 6 until every stage has been resolved.
+Present each stageSystemPrompt to the user for review and approval, **one at a time**, using `AskUserQuestion`. Do not proceed to Step 5b until every stage has been resolved.
 
 ```
 Stage {N}/{Total} — {skill-name} ({SPEC|BUILD|TEST})
@@ -262,9 +378,35 @@ Options per stage:
 
 Store each approved or edited text; it will be used verbatim in the YAML.
 
+## Step 5b — Approve the Descriptions
+
+Once every `stageSystemPrompt` is resolved, present the drafted workflow `description` and **every** stage `description` from "Authoring the descriptions" in one `AskUserQuestion`, next to the clause checklist. Mark a clause `[x]` when its literal marker is present in the draft and `[ ]` when it is not — a `[ ]` means the draft is not approvable yet, so fix it before asking:
+
+```
+Workflow description
+────────────────────────────────────────
+{drafted description}
+
+  [x] produces        [x] Use when        [x] stops for a human / Runs unattended
+  [x] Requires        [x] Ships           [x] Not for {sibling id} ({separating fact})
+  length: {N} chars (target ≤ 500)
+
+Stage descriptions
+────────────────────────────────────────
+{stage-id}   {drafted stage description}
+             [x] what it does   [x] stops for a human / unattended   [x] loops back to … (retryTarget stages only)
+{stage-id}   …
+```
+
+Options:
+- **Approve** — accept the workflow description and all stage descriptions as drafted
+- **Edit** — the user supplies replacement text for one or more entries (ask which, then the text); re-render the whole block with the changes applied and ask again
+
+Loop until the user picks **Approve**. Do not proceed to Step 6 — and do not write any file — until then. The approved texts are used verbatim in the YAML.
+
 ## Step 6 — Generate Workflow YAML
 
-Once all stageSystemPrompts are approved, assemble the `WorkflowDefinition` YAML.
+Once all stageSystemPrompts and descriptions are approved, assemble the `WorkflowDefinition` YAML.
 
 **Derive fields for each stage:**
 - `id`: kebab-case slug from the skill name (e.g., `interview` from `wsbaser:interview`)
@@ -273,6 +415,7 @@ Once all stageSystemPrompts are approved, assemble the `WorkflowDefinition` YAML
 - `position`: 0-based integer, incremented by 1 for each sequential stage
 - `category`: the inferred category from Step 2 (a GATE stage emits `SPEC`)
 - `required`: `true` for all stages unless the user requested otherwise
+- `description`: the stage description approved in Step 5b, verbatim
 - `outputs`: the outputs inferred in Step 2, as `{name}: { type, required, description }`. **Always emit the key** — a stage that produces nothing gets `outputs: {}`, which is a declaration, not an omission. A GATE stage emits its verdict as `{ type: json, required: true, schema: { enum: [...] } }`.
 - `inputs`: the input slots inferred in Step 2, as a list of `{ as, from, fallback, required }`. Omit the key on the first stage, and on any stage that simply consumes everything the immediately preceding stage produced — that is the default resolution. Emit `inputs: []` for a stage that should receive nothing, so it does not silently inherit whatever its predecessor later starts producing.
 - `retryTarget`: for TEST stages, set to the `id` of the preceding BUILD stage
@@ -280,12 +423,14 @@ Once all stageSystemPrompts are approved, assemble the `WorkflowDefinition` YAML
 
   > **This one fails silently.** The engine reads `maxRetries` off the stage that returned `loop`. Put it on the BUILD stage instead — the retry target — and the rejecting stage's budget resolves to `0`, so the loop is refused on the first rejection and the run ends looking like a clean failure. Nothing warns you. Equally, `maxRetries` on a stage with no `retryTarget` is unreachable configuration that reads to every future maintainer as a working retry loop.
 
+**Root fields:** `id`, `name`, and `description` are all required. `description` is the six-clause selection contract approved in Step 5b, verbatim — the loader skips a workflow whose `description` is missing or blank, exactly as it skips one without an `id`.
+
 **YAML structure:**
 
 ```yaml
 id: {kebab-case slug derived from the workflow purpose, e.g. "spec-build-verify"}
 name: {human-readable name, e.g. "Spec → Build → Verify"}
-description: {one-liner summary of the pipeline}
+description: {REQUIRED — the approved six-clause selection contract: produces · Use when · stops for a human at / Runs unattended · Requires · Ships · Not for}
 
 stages:
   - id: {spec-stage-id}
@@ -293,7 +438,7 @@ stages:
     category: SPEC
     position: 0
     required: true
-    description: {what this stage does}
+    description: {approved Step 5b text — what it does; unattended or stops for a human}
     stagePrompt: /{full-skill-command}
     outputs:
       {output-name}: { type: file, required: true, description: {what it is} }
@@ -305,7 +450,7 @@ stages:
     category: BUILD
     position: 1
     required: true
-    description: {what this stage does}
+    description: {approved Step 5b text — what it does; unattended or stops for a human}
     stagePrompt: /{full-skill-command}
     inputs:
       - as: {slot-name}
@@ -321,7 +466,7 @@ stages:
     category: TEST
     position: 2
     required: true
-    description: {what this stage does}
+    description: {approved Step 5b text — what it does; unattended or stops for a human; loops back to {build-stage-id} when …}
     retryTarget: {build-stage-id}
     maxRetries: 2
     stagePrompt: /{full-skill-command}
@@ -339,8 +484,10 @@ stages:
 Note the TEST stage's `inputs:`. Default resolution would give it the outputs of the stage immediately before it — which is a BUILD stage declaring `outputs: {}`, so it would arrive with nothing to verify against and would declare victory on whatever it found. Reach past the BUILD stage to the SPEC output that defines what "correct" means. Any stage separated from the thing it needs by a stage that produces nothing has the same problem.
 
 **Validate before writing:**
-- `id` and `name` are present at root
-- Each stage has: `id`, `label`, `category`, `position`, `stagePrompt`, `stageSystemPrompt`, `outputs`
+- `id`, `name`, and `description` are present at root, and `description` is non-blank — the loader skips the whole workflow otherwise
+- The root `description` contains the six clauses from "Authoring the descriptions": at minimum the literal markers `Use when`, then either `stops for a human` or `Runs unattended`, then `Requires`, then `Ships`, then `Not for`, in that order. A missing marker fails validation — go back to Step 5b. Length ≤ ~500 characters (the bundled-workflow conformance test rejects over 600)
+- Every stage has a non-empty `description` that says what it does and whether it stops for a human; a stage with `retryTarget` also says `loops back to`
+- Each stage has: `id`, `label`, `category`, `position`, `description`, `stagePrompt`, `stageSystemPrompt`, `outputs`
 - Every stage declares `outputs:` — `{}` is valid, a missing key is not
 - Every output has a `type` from: `file`, `file[]`, `url`, `text`, `json`; a `json` verdict also has `schema: { enum: [...] }`
 - Every `inputs[].from` reads `{stageId}.{outputName}` where `stageId` is a stage at an **earlier** position and `outputName` is declared in that stage's `outputs:`. A forward reference or an undeclared output name is rejected by the loader and drops the whole workflow. Where `from:` is a list, **every element** must satisfy this rule on its own — one bad entry fails the workflow even if the others resolve.
@@ -355,12 +502,9 @@ Note the TEST stage's `inputs:`. Default resolution would give it the outputs of
 
 ## Step 7 — Write YAML
 
-### Locate the existing workflows folder
+### Destination folder
 
-Find where the current project already stores its workflow YAMLs — do not hardcode a path. Search the project for existing workflow definitions:
-- Search for `*.yaml` files whose path contains a `workflows` segment (e.g. via Glob `**/workflows/*.yaml`), excluding `node_modules` and `.worktrees`.
-- If matches are found, use the folder that contains the most existing workflow YAMLs as the destination.
-- If no workflows folder exists, fall back to `.ask-jenny/workflows/` (create it).
+Use the workflows folder located in "Authoring the descriptions" — do not glob again and do not hardcode a path. If no folder existed then, create `.ask-jenny/workflows/` now.
 
 Write the workflow YAML to:
 ```
