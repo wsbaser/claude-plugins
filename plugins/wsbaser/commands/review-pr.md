@@ -557,9 +557,9 @@ After all bugs have been verified, use the `Edit` tool to append the following s
 
 | # | Bug | Verdict | Report |
 |---|-----|---------|--------|
-| 1 | {bug description} | CONFIRMED | [Report](.reports/{slug}.html) |
-| 2 | {bug description} | MITIGATED | [Report](.reports/{slug}.html) |
-| 3 | {bug description} | INCONCLUSIVE | [Report](.reports/{slug}.html) |
+| 1 | {bug description} | CONFIRMED | [Report]({report_path}) |
+| 2 | {bug description} | MITIGATED | [Report]({report_path}) |
+| 3 | {bug description} | INCONCLUSIVE | [Report]({report_path}) |
 
 **Verified:** {count} bugs | **Confirmed:** {N} | **Mitigated:** {N} | **Inconclusive:** {N}
 ```

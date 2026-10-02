@@ -1,12 +1,12 @@
 ---
 name: wsbaser:workflow-design
-description: Takes an ordered list of SKILL.md file paths (or skill names), reads each skill to infer its stage category and its named typed outputs, drafts stageSystemPrompt instructions using GATE/SPEC/BUILD/TEST templates, shows each draft to the user for approval, then generates a workflow YAML into the current project's existing workflows folder. Use this skill whenever the user wants to create a new Ask Jenny workflow from a set of known ordered skills, says "design a workflow from these skills", or to convert an existing skill pipeline into a workflow YAML. Also automatically invoked by wsbaser:workflow-discover after the user selects a candidate.
+description: Takes an ordered list of SKILL.md file paths (or skill names), reads each skill to infer its stage category and its named typed outputs, drafts stageSystemPrompt instructions using GATE/SPEC/BUILD/TEST templates, shows each draft to the user for approval, then generates a workflow YAML into the current project's existing workflows folder. Use this skill whenever the user wants to create a new multi-stage workflow from a set of known ordered skills, says "design a workflow from these skills", or to convert an existing skill pipeline into a workflow YAML. Also automatically invoked by wsbaser:workflow-discover after the user selects a candidate.
 allowed-tools: Read Glob Write AskUserQuestion
 ---
 
 # Workflow Design
 
-Design an Ask Jenny multi-stage workflow YAML from an ordered set of skills. Every `stageSystemPrompt`, the workflow `description`, and every stage `description` must be approved by the user before any file is written to disk.
+Design a multi-stage workflow YAML from an ordered set of skills. Every `stageSystemPrompt`, the workflow `description`, and every stage `description` must be approved by the user before any file is written to disk.
 
 **Assume every skill given to you will be available when the workflow runs.** Never check, flag, or caveat installation/registration status against your own session's Skill listing — that listing is a different runtime and is irrelevant here.
 
@@ -85,9 +85,9 @@ For each CONVERSATIONAL skill:
 
 1. Read its SKILL.md to identify what the skill's final output is (answers, recommendations, decisions, critique, etc.).
 2. Propose a file path to capture that output:
-   - Interview or Q&A style → `.ask-jenny/features/{{featureId}}/decisions.md`
-   - Critique or review style → `.ask-jenny/features/{{featureId}}/critique.md`
-   - Analysis style → `.ask-jenny/features/{{featureId}}/analysis.md`
+   - Interview or Q&A style → `.reports/{{artifactHandle}}/decisions.md`
+   - Critique or review style → `.reports/{{artifactHandle}}/critique.md`
+   - Analysis style → `.reports/{{artifactHandle}}/analysis.md`
 3. Present the proposal to the user via `AskUserQuestion`:
 
 ```
@@ -143,6 +143,17 @@ Reason: {the rejecting stage's reason, verbatim}
 **`stageSystemPrompt`** → **system prompt.** StageComplete instructions only: which `status` to use and when, what belongs in `summary`, the exact output names to return, and — where the stage can loop or abort — what belongs in `reason`. Never mention the skill name. Do not tell the agent where to find its input; the context block already did.
 
 `summary` is required on every call and is capped at 500 characters. It is what every later stage reads under `## Prior stages`, so instruct the agent to write it for the next agent, not for a human reading a log.
+
+### Artifact paths and tokens
+
+Several features can run in the same worktree at once, so a stage must never write to a fixed shared path (`.reports/verify-report.html`, `specs/spec.md`) — two runs would overwrite each other. The engine substitutes exactly two tokens in both `stagePrompt` and `stageSystemPrompt`:
+
+| Token | Value |
+|---|---|
+| `{{artifactHandle}}` | a readable per-feature handle, e.g. `MP-1234-k3j9x2` |
+| `{{featureId}}` | the raw feature id — rarely needed in paths |
+
+Rule: put every artifact in a `{{artifactHandle}}/` subfolder of its usual root folder (`.reports/{{artifactHandle}}/verify-report.html`, `.code-reviews/{{artifactHandle}}/review.md`), or — where the path is a single tracked file — name it by the handle (`specs/{{artifactHandle}}.md`, `docs/rfcs/{{artifactHandle}}.md`). Never a fixed shared path. Never invent another `{{token}}` — unknown tokens are not substituted, reach the agent verbatim, and fail the bundled-workflow guard test.
 
 ## Step 4 — Draft stageSystemPrompts
 
@@ -209,21 +220,21 @@ Use when: category is TEST (verifies, can loop back to the preceding BUILD stage
 ```
 When your verification work is fully complete, you MUST do both of these in order:
   1. Write a detailed findings report to:
-        .ask-jenny/features/{{featureId}}/verify-report.md
+        .reports/{{artifactHandle}}/verify-report.md
      Include every issue found, its severity, and suggested fixes.
   2. Call the StageComplete MCP tool as the LAST action before stopping:
 
        If no issues found:
          status:  'success'
          summary: what you exercised and the result
-         outputs: { report: .ask-jenny/features/{{featureId}}/verify-report.md }
+         outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
 
        If issues found:
          status:  'loop'
          summary: what you exercised and what failed
          reason:  the specific defect {preceding BUILD stage label} must fix — name the
                   file and the behavior, not "see the report"
-         outputs: { report: .ask-jenny/features/{{featureId}}/verify-report.md }
+         outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
 ```
 
 `reason` is mandatory on `loop`. It is reproduced verbatim in the retried stage's `## Retry` section and is the only routing signal that stage acts on, so a vague reason wastes a whole retry.
@@ -232,7 +243,7 @@ Substitute all placeholders with skill-specific values from Step 2:
 - `{brief task description}` → what the skill does (from its frontmatter description)
 - `{output name}` → the name of the output from Step 2 (e.g. `spec`, `rfc`, `report`)
 - `{output description}` → what that output is in words (e.g. "feature specification")
-- `{output path}` → the path the skill writes it to
+- `{output path}` → the path the skill writes it to, rewritten per "Artifact paths and tokens" (`.reports/{{artifactHandle}}/…`, or `{{artifactHandle}}` as the name of a single tracked file)
 - `{verdict output name}` → the GATE stage's `json` verdict output
 - `{file output name}` → the GATE stage's `file` output, **only if it declares one** — most gates do not
 - `{preceding BUILD stage label}` → the `label` field of the most recent BUILD stage in the pipeline
@@ -252,7 +263,7 @@ outputs:
   report: { type: file, required: true, description: HTML verification report }
   reportUrl: { type: url, required: false, description: Public link to the verify-report.html artifact }
 stageSystemPrompt: |
-  ...after writing the report to .reports/{{featureId}}/verify-report.html,
+  ...after writing the report to .reports/{{artifactHandle}}/verify-report.html,
   call the GetArtifactLink MCP tool with that path before calling StageComplete.
 
   If it succeeds, include reportUrl in the outputs of your StageComplete call.
@@ -282,7 +293,7 @@ Step 7 writes into the project's existing workflows folder, and the "Not for" cl
 
 - Search for `*.yaml` files whose path contains a `workflows` segment (e.g. via Glob `**/workflows/*.yaml`), excluding `node_modules` and `.worktrees`.
 - If matches are found, the folder that contains the most existing workflow YAMLs is the destination.
-- If no workflows folder exists, the destination is `.ask-jenny/workflows/` (Step 7 creates it).
+- If no workflows folder exists, the destination is `.workflows/` (Step 7 creates it).
 - Read the `id:` and `description:` lines of every YAML in the destination — these are the siblings the new workflow could be confused with.
 
 Step 7 reuses this result; do not glob again there.
@@ -498,13 +509,14 @@ Note the TEST stage's `inputs:`. Default resolution would give it the outputs of
 - Every `stageSystemPrompt` instructs the agent to pass `summary`, and to pass `reason` wherever it may return `loop` or `abort`
 - Every output name used in a `stageSystemPrompt` matches a name declared in that stage's `outputs:` — a mismatch is rejected at runtime as an undeclared output
 - All stage `id` values are unique within the workflow
+- Every file path in a `stagePrompt`/`stageSystemPrompt` sits in a `{{artifactHandle}}/` subfolder of its root folder (e.g. `.reports/{{artifactHandle}}/…`) or is named by `{{artifactHandle}}` — no fixed shared paths — and every `{{…}}` is `{{artifactHandle}}` or `{{featureId}}`
 - Each sequential stage has a unique `position` value (same position = mutually exclusive alternatives)
 
 ## Step 7 — Write YAML
 
 ### Destination folder
 
-Use the workflows folder located in "Authoring the descriptions" — do not glob again and do not hardcode a path. If no folder existed then, create `.ask-jenny/workflows/` now.
+Use the workflows folder located in "Authoring the descriptions" — do not glob again and do not hardcode a path. If no folder existed then, create `.workflows/` now.
 
 Write the workflow YAML to:
 ```
@@ -520,6 +532,6 @@ After the YAML is written, confirm to the user:
 ```
 ✓ Workflow written to {discovered-workflows-folder}/{workflow-id}.yaml
 
-To use this workflow, select "{Workflow Name}" in the Ask Jenny workflow selector
+To use this workflow, select "{Workflow Name}" in the workflow selector
 when creating or editing a feature.
 ```

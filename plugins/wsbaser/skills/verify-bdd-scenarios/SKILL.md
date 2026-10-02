@@ -101,6 +101,6 @@ Run this even if a scenario failed, even if Step 4 never got the server up, even
 
 Read `references/report-generation.md` for what the report must contain and guarantee, then write the HTML directly — no bundled template, no bundled script, no other skill invoked.
 
-After the report writes successfully, delete `.reports/screenshots/` (everything is embedded as base64 now), and open the report file.
+After the report writes successfully, delete only the `.reports/screenshots/<scenario-slug>/` directories this run created (everything is embedded as base64 now) — never the whole screenshots folder, which other concurrent runs may share — and open the report file.
 
 Print a short console summary: scenarios run, pass/issue/fail counts, screenshot count, and the report path.

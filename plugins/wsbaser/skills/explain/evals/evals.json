@@ -1,0 +1,25 @@
+{
+  "skill_name": "wsbaser:explain",
+  "evals": [
+    {
+      "id": 0,
+      "name": "purchase-invoice-amount-drift-cross-repo",
+      "prompt": "our purchase invoice totals keep drifting when someone changes the ledger account on a line — the invoice ends up worth less than the supplier actually billed. i genuinely don't understand where these amounts even get calculated. is it in the blazor frontend or in the api? it's a black box to me. can you explain the whole flow, from the AI reading the PDF through to the journal posting, and tell me where the problem actually is?",
+      "expected_output": "A published artifact explaining that the arithmetic lives in a shared library both sides call, that the caller chooses the split direction, and that splitting from net makes the gross an output — traced through the header total to the journal's supplier row, with diagrams and real file paths.",
+      "notes": "Requires three repos on disk: a Blazor frontend, a .NET backend, and an AI extraction service. The point of this case is that the answer spans all three and the naive answer picks one side.",
+      "assertions": [
+        "Published a Claude artifact and returned its URL",
+        "Answered the user's literal question: the arithmetic is neither frontend nor backend, it is a shared library both sides call",
+        "Reached all three repositories, not only the frontend",
+        "Stated where code executes, distinguishing the browser from the server",
+        "Separated the code that computes from the code that chooses the direction of the split",
+        "Identified the mechanism: splitting from net makes the gross an output",
+        "Traced the consequence through the header total to the journal's supplier row",
+        "Included at least one diagram",
+        "Cited concrete file paths that exist in the repositories",
+        "Told the user the artifact is private and needs sharing"
+      ],
+      "files": []
+    }
+  ]
+}

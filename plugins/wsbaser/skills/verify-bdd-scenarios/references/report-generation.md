@@ -26,7 +26,7 @@ A reader opens this to avoid doing the verification themselves. Every rule here 
 
 ## Hard constraints
 
-- **Single self-contained `.html` file** — no external resources, no CDN, no `file://` references. It has to be viewable standalone after `.reports/screenshots/` is deleted.
+- **Single self-contained `.html` file** — no external resources, no CDN, no `file://` references. It has to be viewable standalone after the run's screenshot directories are deleted.
 - **Screenshots embedded as `data:` URIs, clickable to view full-size** — a thumbnail that can't be enlarged isn't evidence, it's decoration.
 - **Overwrite protection**: if `.reports/{slug}.html` already exists, don't silently clobber it — try `{slug}-2.html`, `{slug}-3.html`, etc.
 - **A run where every scenario ends up blocked/issue still produces a report.** "Nothing could be verified, here's exactly why" is a valid, honest result — it is not a reason to skip writing the file.

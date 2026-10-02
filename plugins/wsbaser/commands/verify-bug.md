@@ -196,8 +196,10 @@ Invoke the `wsbaser:generate-bug-report` skill. The skill reads all context from
 After the report is generated (all screenshots are now embedded as base64 in the HTML):
 
 ```bash
-rm -rf .reports/screenshots/
+rm -rf ".reports/screenshots/{slug}/"
 ```
+
+Delete only this run's `{slug}` folder, never the whole screenshots folder — other concurrent runs may share it.
 
 ### Final output
 

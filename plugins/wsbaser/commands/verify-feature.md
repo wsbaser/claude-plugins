@@ -571,4 +571,4 @@ All results saved to: `.reports/[REPORT_FILENAME]`
 
 Invoke the `wsbaser:generate-test-report` skill to generate the HTML report from all collected test data.
 
-After the report is successfully generated, delete the `.reports/screenshots/` directory — all screenshots are embedded in the report as base64 data URIs and the folder is no longer needed.
+After the report is successfully generated, delete only the `.reports/screenshots/[journey-slug]/` directories this run created — all screenshots are embedded in the report as base64 data URIs. Never delete the whole screenshots folder; other concurrent runs may share it.

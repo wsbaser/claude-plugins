@@ -1,6 +1,6 @@
 ---
 name: wsbaser:workflow-discover
-description: Analyzes a GitHub repo URL or local directory for Claude Code skills, assesses each skill in parallel, ranks viable Ask Jenny multi-stage workflow candidates by pipeline coherence, and launches wsbaser:workflow-design on the user's selection. Use this skill whenever the user wants to explore what Ask Jenny workflows are possible from a skill library, says "what workflows can I build from these skills", provides a GitHub URL or local skill directory to discover from, or wants to combine skills into a workflow without knowing which ones to pick.
+description: Analyzes a GitHub repo URL or local directory for Claude Code skills, assesses each skill in parallel, ranks viable multi-stage workflow candidates by pipeline coherence, and launches wsbaser:workflow-design on the user's selection. Use this skill whenever the user wants to explore what workflows are possible from a skill library, says "what workflows can I build from these skills", provides a GitHub URL or local skill directory to discover from, or wants to combine skills into a workflow without knowing which ones to pick.
 ---
 
 # Workflow Discover
@@ -60,7 +60,7 @@ Return this exact structure:
     {
       "name": "string — what the value is, not which stage made it, e.g. 'spec', 'report', 'prUrl'",
       "type": "file | file[] | url | text | json",
-      "path": "string or null — path pattern for a file output, e.g. '.ask-jenny/features/{{featureId}}/spec.md'; null for non-file types",
+      "path": "string or null — path pattern for a file output, e.g. '.reports/{{artifactHandle}}/report.html' or 'specs/{{artifactHandle}}.md'; null for non-file types",
       "required": "boolean — false if the skill only sometimes produces this value"
     }
   ],
