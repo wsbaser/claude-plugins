@@ -9,8 +9,7 @@ Provide a code review for the given pull request and save the results to a local
 **Usage:**
 - `review-pr {PR_ID}` — review a specific PR
 - `review-pr --next` — find the oldest active PR assigned to you as reviewer and review it
-- `review-pr {PR_ID} --verify` — review a PR and then browser-verify any high-confidence runtime bugs
-- `review-pr --next --verify` — same as `--next`, with browser verification after review
+- `review-pr {PR_ID} --no-design` / `review-pr --next --no-design` — same, but skip the interface design review (Part 3)
 
 To do this, follow these steps precisely:
 
@@ -19,9 +18,9 @@ To do this, follow these steps precisely:
 Parse all flags and arguments from the command invocation:
 - `{PR_ID}` — the numeric PR identifier (if provided)
 - `--next` — discover the next PR to review (mutually exclusive with `{PR_ID}`)
-- `--verify` — after the review completes (Parts 0–2), run browser verification on qualifying bugs
+- `--no-design` — skip the interface design review (Part 3)
 
-Store the `--verify` flag as `{VERIFY}` (true/false) for use in Part 3.
+Store `{DESIGN}` = false if `--no-design` was passed, otherwise `{DESIGN}` = true.
 
 ## Part 0: Azure CLI Authentication Check (MUST DO FIRST)
 
@@ -81,7 +80,7 @@ g. Display the selected PR and proceed immediately (no confirmation needed):
    Created: {creationDate}
    ```
 
-h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5, 0.6, 1, 2) use this value unchanged.
+h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5, 0.6, 1, 2, 3) use this value unchanged.
 
 ## Part 0.5: PR Metadata Extraction (MANDATORY)
 
@@ -106,6 +105,7 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
    e. **If an explicit PR ID was provided** (i.e., `--next` was NOT used) and `./code-reviews/PR-{PR_ID}-review.md` already exists locally:
       - Delete `./code-reviews/PR-{PR_ID}-review.md`
       - Delete `./code-reviews/PR-{PR_ID}-changes-analysis.md` (if it exists)
+      - Delete `./code-reviews/PR-{PR_ID}-interface-review.md` (if it exists)
       - Display: `Removed existing review files for PR #{PR_ID}. Starting fresh review.`
 
 ## Part 0.6: PR Diff Scope Resolution (MANDATORY)
@@ -137,7 +137,7 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
 
 1. Use a Haiku agent to check if the pull request (a) is closed, (b) is a draft, or (c) does not need a code review (eg. because it is an automated pull request, or is very simple and obviously ok). If so, do not proceed. **Pass the PR metadata from Part 0.5 (source branch, target branch, PR title) to the agent.**
 
-**After the gatekeeper check passes, launch Part 1 (steps 2-7) and Part 2 (steps 8-12) in parallel as independent tracks.** They share no data dependencies — both use only the PR metadata from Part 0 (`{DIFF_BASE}`, `{DIFF_HEAD}`, PR description). Do not wait for Part 1 to complete before starting Part 2.
+**After the gatekeeper check passes, launch Part 1 (steps 2-7), Part 2 (steps 8-12) and — if `{DESIGN}` is true — Part 3 (steps 13-17) in parallel as independent tracks.** They share no data dependencies — all use only the PR metadata from Part 0 (`{DIFF_BASE}`, `{DIFF_HEAD}`, PR description). Do not wait for one track to complete before starting another. The only join point is step 7, which writes the review file after Part 3 has finished.
 
 2. Use another Haiku agent to give you a list of file paths to (but not the contents of) any relevant CLAUDE.md files from the codebase: the root CLAUDE.md file (if one exists), as well as any CLAUDE.md files in the directories whose files the pull request modified. **Use `git diff {DIFF_BASE}...{DIFF_HEAD} --name-only` to determine which files the PR modified.**
 3. Use a Haiku agent to view the pull request, and ask the agent to return a summary of the change. **Pass the PR metadata from Part 0.5 (source branch, target branch, PR title) to the agent.**
@@ -159,6 +159,7 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
    - File path: `./code-reviews/PR-{PR_NUMBER}-review.md`
    - Include PR metadata at the top (number, title, URL, branch info)
    - List all issues found (or state "No issues found" if none)
+   - If `{DESIGN}` is true, wait for Part 3 first. List each BLOCKING refactor as a regular issue with `**Source:** Interface design — blocking refactor`, so it blocks the merge like any other issue, and each FOLLOW-UP refactor with its ticket description under "Follow-up Refactoring"
    - Keep the output brief and avoid emojis
    - Link and cite relevant code, files, and URLs
 
@@ -229,6 +230,22 @@ Perform a detailed code changes analysis (runs in parallel with Part 1):
        - Detailed analysis for each logical block
        - Summary statistics
 
+## Part 3: Interface Design Review (Steps 13-17) — skip if `{DESIGN}` is false
+
+Find interface design debt this PR introduces and propose fixes only for issues worth it. Propose only — never edit source files.
+
+13. Use a Haiku agent to check whether the PR adds or changes any interface (anything other code depends on). If not, skip to step 17 and note "No interface changes".
+
+14. Use a Sonnet agent to find interface design issues the PR **introduces or worsens**, judged by the evaluation criteria of the `wsbaser:design-an-interface` skill. Pre-existing design is out of scope.
+
+15. Score each issue with the step 5 rubric. An issue must name a concrete cost to callers or maintainers — taste alone scores 50 or lower. Keep at most the 3 highest-scoring issues at 80+.
+
+16. For each surviving issue, run the `wsbaser:design-an-interface` skill **unattended**: derive its requirements from the diff, the callers and the PR description instead of asking, and pick one proposal instead of its interactive synthesis. Then classify it — a PR must not introduce technical debt, so the default is BLOCKING:
+    - **BLOCKING** — the fix fits this PR's scope; the author applies it before merge.
+    - **FOLLOW-UP** — the fix would blow up the PR's scope. Write a ticket description ready to paste into a PR comment (title, problem, proposed design, affected areas, acceptance criteria).
+
+17. Write `./code-reviews/PR-{PR_NUMBER}-interface-review.md` so someone who has not seen the PR can follow it: each issue with its score, verdict and reason, the alternatives considered, and the proposal. Hand the BLOCKING and FOLLOW-UP items to step 7.
+
 ---
 
 ## Examples of false positives, for steps 4 and 5:
@@ -260,6 +277,7 @@ Perform a detailed code changes analysis (runs in parallel with Part 1):
 - Make a todo list first
 - You must cite and link each bug (eg. if referring to a CLAUDE.md, you must link it)
 - IMPORTANT: Do NOT post any comments to the PR. Only write to the local files.
+- Part 3 proposes designs only. Never edit source files, and never propose redesigns for interfaces the PR did not add or change.
 
 ---
 
@@ -301,12 +319,30 @@ Explanation of the issue.
 
 Explanation of the issue.
 
+### 3. `ResolveInvoice` takes four boolean flags
+
+**Source:** Interface design — blocking refactor
+**Confidence:** 85
+**Location:** [path/to/InvoiceService.cs#L30-L34](https://github.com/owner/repo/blob/full-sha/path/to/InvoiceService.cs#L30-L34)
+
+Problem and proposed design in a few sentences. Details: [PR-123-interface-review.md](./PR-123-interface-review.md)
+
+---
+
+## Follow-up Refactoring
+
+### 1. Brief description of refactor
+
+> Ticket description ready to paste.
+
 ---
 
 ## Summary Statistics
 
-- Total issues found: 2
+- Total issues found: 3
 - Confidence threshold: 80+
+- Blocking refactors: 1
+- Follow-up refactors: 1
 
 Generated with Claude Code
 
@@ -329,7 +365,7 @@ Or, if you found no issues:
 
 ## Issues Found
 
-No issues found. Checked for bugs and CLAUDE.md compliance.
+No issues found. Checked for bugs, CLAUDE.md compliance and interface design.
 
 ---
 
@@ -462,128 +498,3 @@ When linking to code, follow the following format precisely, otherwise the Markd
   - # sign after the file name
   - Line range format is L[start]-L[end]
   - Provide at least 1 line of context before and after, centered on the line you are commenting about (eg. if you are commenting about lines 5-6, you should link to `L4-7`)
-
----
-
-## Part 3: Browser Verification (only if `--verify` was passed)
-
-**If `{VERIFY}` is false (parsed in the Argument Parsing section above), stop after Parts 1 and 2 have both completed — the review is complete.**
-
-If `{VERIFY}` is true, execute the following steps after both Part 1 and Part 2 have completed successfully.
-
-### Step 3.1 — Classify Bugs for Browser Verification
-
-Review all issues found in Part 1 (step 6, after filtering) and classify each for browser verification eligibility:
-
-- **Qualifies** if: confidence score >= 80 AND the bug is runtime-observable (UI rendering, API behavior, state management, network requests, user interaction behavior). Use LLM judgment to classify.
-- **Does NOT qualify** if: the bug is static-only (naming conventions, code style, formatting, CLAUDE.md structural violations, missing documentation, type annotations).
-
-For each bug that does NOT qualify, print:
-```
-⊘ Skipping (static-only): {brief bug description}
-```
-
-If **no bugs qualify**, print:
-```
-No runtime bugs to verify.
-```
-And stop — the review is complete. Do not proceed to Step 3.2.
-
-### Step 3.2 — Worktree Setup
-
-Set up a git worktree to run the PR's source branch code:
-
-1. **Create worktree:**
-   ```bash
-   git worktree add .worktrees/pr-{PR_NUMBER} origin/{SOURCE_BRANCH}
-   ```
-   Where `{SOURCE_BRANCH}` is from Part 0.5 and `{PR_NUMBER}` is the PR ID.
-
-2. **Read startup configuration from the project root** (NOT the worktree):
-   - Read `CLAUDE.md` from the project root to find the dev server startup command (e.g., `npm run pb web:watch`).
-   - Find `Properties/launchSettings.json` in the project root and read the `applicationUrl` for the profile that the startup command uses. This is the `APP_URL`.
-   - **Note:** Startup config is intentionally read from the project root, not the worktree (per spec). If the dev server fails to start due to a config mismatch, check whether the PR modifies `launchSettings.json` or `CLAUDE.md` — in that case the worktree copies may differ from root and manual adjustment may be needed.
-
-3. **Install dependencies from the worktree directory:**
-   - Read `CLAUDE.md` for the install command, then run it with the worktree as the working directory.
-
-4. **Start the dev server from the worktree directory:**
-   - Run the dev server startup command in the background, with the worktree (`.worktrees/pr-{PR_NUMBER}`) as the working directory.
-   - Save the process ID: `SERVER_PID=$!`
-
-5. **Wait for the app to be healthy:**
-   - Poll `APP_URL` using `curl -s -o /dev/null -w "%{http_code}" {APP_URL}` until it returns `200` (120-second timeout, poll every 3 seconds). Note: .NET/Blazor dev servers commonly take 30–90 seconds to start.
-   - If curl fails with a non-zero exit code (network error, bad URL), treat it the same as a non-200 response and continue polling. Do not abort polling on a single curl failure.
-   - If the app never responds, print:
-     ```
-     ERROR: Dev server failed to start from worktree. Skipping browser verification.
-     ```
-     Then jump directly to Step 3.5 (Cleanup). Do NOT touch the existing review file.
-
-### Step 3.3 — Sequential Bug Verification
-
-For each qualifying bug (from Step 3.1), verify it one at a time:
-
-1. Print:
-   ```
-   ▶ [N/total] Verifying: {bug description}
-   ```
-
-2. Invoke the `wsbaser:verify-bug` skill, passing:
-   - The bug description (from the review issue)
-   - The file path and line numbers where the bug was found
-   - The confidence score
-   - `APP_URL` from Step 3.2
-   - The `--no-start` flag (the app is already running from Step 3.2)
-
-3. After the skill completes, print:
-   ```
-   ✓ [N/total] Verdict: {CONFIRMED|MITIGATED|INCONCLUSIVE}
-   ```
-
-4. Capture the report path returned by `verify-bug` (e.g., `.reports/{slug}.html`) and store it for this bug. Do NOT re-derive the slug — use the path as returned by the skill.
-
-If `verify-bug` fails for a given bug (crashes, returns no verdict), record it as `INCONCLUSIVE` in the results table and continue to the next bug. Do not abort the verification loop on a single failure.
-
-### Step 3.4 — Update Review File
-
-After all bugs have been verified, use the `Edit` tool to append the following section to `./code-reviews/PR-{PR_NUMBER}-review.md` (do NOT overwrite the file). Use the report paths captured in Step 3.3 item 4:
-
-```markdown
-
----
-
-## Browser Verification
-
-| # | Bug | Verdict | Report |
-|---|-----|---------|--------|
-| 1 | {bug description} | CONFIRMED | [Report]({report_path}) |
-| 2 | {bug description} | MITIGATED | [Report]({report_path}) |
-| 3 | {bug description} | INCONCLUSIVE | [Report]({report_path}) |
-
-**Verified:** {count} bugs | **Confirmed:** {N} | **Mitigated:** {N} | **Inconclusive:** {N}
-```
-
-### Step 3.5 — Cleanup (ALWAYS execute, even if verification failed)
-
-This step MUST run regardless of whether Step 3.3 completed successfully, partially, or not at all.
-
-1. **Stop the dev server** — `kill $SERVER_PID 2>/dev/null`. Kill ONLY `$SERVER_PID` captured in Step 3.2 — do not kill other processes.
-
-2. **Remove the worktree** — remove ONLY `.worktrees/pr-{PR_NUMBER}`:
-   ```bash
-   git worktree remove .worktrees/pr-{PR_NUMBER} --force
-   ```
-
-3. Print:
-   ```
-   ════════════════════════════════════════════════════════
-    Browser Verification Complete
-   ════════════════════════════════════════════════════════
-    Bugs verified:  {total}
-    Confirmed:      {N}
-    Mitigated:      {N}
-    Inconclusive:   {N}
-    Review updated: ./code-reviews/PR-{PR_NUMBER}-review.md
-   ════════════════════════════════════════════════════════
-   ```
