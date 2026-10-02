@@ -159,7 +159,7 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
    - File path: `./code-reviews/PR-{PR_NUMBER}-review.md`
    - Include PR metadata at the top (number, title, URL, branch info)
    - List all issues found (or state "No issues found" if none)
-   - If `{DESIGN}` is true, wait for Part 3 first. List each BLOCKING refactor as a regular issue with `**Source:** Interface design — blocking refactor`, so it blocks the merge like any other issue, and each FOLLOW-UP refactor with its ticket description under "Follow-up Refactoring"
+   - If `{DESIGN}` is true, wait for Part 3 first, then list every ADDRESS issue under "Design Improvements" (not under "Issues Found") with its severity, BLOCKING / FOLLOW-UP verdict, location, the problem and proposed design, and — for FOLLOW-UP — the ticket description. Omit the section if there are none
    - Keep the output brief and avoid emojis
    - Link and cite relevant code, files, and URLs
 
@@ -232,19 +232,21 @@ Perform a detailed code changes analysis (runs in parallel with Part 1):
 
 ## Part 3: Interface Design Review (Steps 13-17) — skip if `{DESIGN}` is false
 
-Find interface design debt this PR introduces and propose fixes only for issues worth it. Propose only — never edit source files.
+Find interface design debt this PR introduces and propose a better design for each issue worth addressing. Propose only — never edit source files.
 
 13. Use a Haiku agent to check whether the PR adds or changes any interface (anything other code depends on). If not, skip to step 17 and note "No interface changes".
 
-14. Use a Sonnet agent to find interface design issues the PR **introduces or worsens**, judged by the evaluation criteria of the `wsbaser:design-an-interface` skill. Pre-existing design is out of scope.
+14. Use a Sonnet agent to inventory every interface the PR adds or changes (with `file:line`) and find the design issues the PR **introduces or worsens**, judged by the evaluation criteria of the `wsbaser:design-an-interface` skill. Pre-existing design is out of scope.
 
-15. Score each issue with the step 5 rubric. An issue must name a concrete cost to callers or maintainers — taste alone scores 50 or lower. Keep at most the 3 highest-scoring issues at 80+.
+15. Triage each issue — do not score or cap them:
+    - **ADDRESS** or **ACCEPT**, with the reason. Only ADDRESS issues go to design.
+    - **Severity** — High (likely misuse or bugs, or a cost spread across many callers), Medium, or Low (local or cosmetic cost).
 
-16. For each surviving issue, run the `wsbaser:design-an-interface` skill **unattended**: derive its requirements from the diff, the callers and the PR description instead of asking, and pick one proposal instead of its interactive synthesis. Then classify it — a PR must not introduce technical debt, so the default is BLOCKING:
+16. For each ADDRESS issue, run the `wsbaser:design-an-interface` skill **unattended**: derive its requirements from the diff, the callers and the PR description instead of asking, and pick one proposal instead of its interactive synthesis. Then classify it — a PR must not introduce technical debt, so the default is BLOCKING:
     - **BLOCKING** — the fix fits this PR's scope; the author applies it before merge.
     - **FOLLOW-UP** — the fix would blow up the PR's scope. Write a ticket description ready to paste into a PR comment (title, problem, proposed design, affected areas, acceptance criteria).
 
-17. Write `./code-reviews/PR-{PR_NUMBER}-interface-review.md` so someone who has not seen the PR can follow it: each issue with its score, verdict and reason, the alternatives considered, and the proposal. Hand the BLOCKING and FOLLOW-UP items to step 7.
+17. Write `./code-reviews/PR-{PR_NUMBER}-interface-review.md` so someone who has not seen the PR can follow it: the inventory, every issue with its severity, triage verdict and reason, and for each ADDRESS issue the alternatives considered, the proposal and its BLOCKING / FOLLOW-UP verdict. Hand all ADDRESS issues to step 7.
 
 ---
 
@@ -319,19 +321,25 @@ Explanation of the issue.
 
 Explanation of the issue.
 
-### 3. `ResolveInvoice` takes four boolean flags
+---
 
-**Source:** Interface design — blocking refactor
-**Confidence:** 85
+## Design Improvements
+
+### 1. `ResolveInvoice` takes four boolean flags
+
+**Severity:** High
+**Verdict:** BLOCKING
 **Location:** [path/to/InvoiceService.cs#L30-L34](https://github.com/owner/repo/blob/full-sha/path/to/InvoiceService.cs#L30-L34)
 
 Problem and proposed design in a few sentences. Details: [PR-123-interface-review.md](./PR-123-interface-review.md)
 
----
+### 2. Brief description of improvement
 
-## Follow-up Refactoring
+**Severity:** Medium
+**Verdict:** FOLLOW-UP
+**Location:** ...
 
-### 1. Brief description of refactor
+Problem and proposed design in a few sentences.
 
 > Ticket description ready to paste.
 
@@ -339,10 +347,9 @@ Problem and proposed design in a few sentences. Details: [PR-123-interface-revie
 
 ## Summary Statistics
 
-- Total issues found: 3
+- Total issues found: 2
 - Confidence threshold: 80+
-- Blocking refactors: 1
-- Follow-up refactors: 1
+- Design improvements: 2 (blocking: 1)
 
 Generated with Claude Code
 
