@@ -159,7 +159,7 @@ h. Set `{PR_ID}` = the selected PR's `pullRequestId`. All subsequent parts (0.5,
    - File path: `./code-reviews/PR-{PR_NUMBER}-review.md`
    - Include PR metadata at the top (number, title, URL, branch info)
    - List all issues found (or state "No issues found" if none)
-   - If `{DESIGN}` is true, wait for Part 3 first, then add three sections (omit any that would be empty): "Design Improvements" — every ADDRESS issue with its severity, BLOCKING / SUGGESTED / FOLLOW-UP verdict, location, the problem and proposed design, and for FOLLOW-UP the ticket description; "Defects Found in Design Review" — every BUG issue with its severity, location and what goes wrong, kept apart from design debt so a reader does not mistake a defect fix for technical debt removal; and "Interface Triage" — the full triage table from step 17, including ACCEPT issues
+   - If `{DESIGN}` is true, wait for Part 3 first, then add three sections (omit any that would be empty): "Design Improvements" — every ADDRESS issue with its severity, BLOCKING / SUGGESTED / FOLLOW-UP verdict, location, the problem, the full proposed design from step 16 (signature and a caller usage example in a code block, the alternatives considered one line each, and the trade-offs), and for FOLLOW-UP the ticket description. Each item is posted to the PR as its own thread, so it must read on its own without the interface review file; "Defects Found in Design Review" — every BUG issue with its severity, location and what goes wrong, kept apart from design debt so a reader does not mistake a defect fix for technical debt removal; and "Interface Triage" — the full triage table from step 17, including ACCEPT issues
    - Keep the output brief and avoid emojis
    - Link and cite relevant code, files, and URLs
 
@@ -337,7 +337,20 @@ Explanation of the issue.
 **Verdict:** BLOCKING
 **Location:** [path/to/InvoiceService.cs#L30-L34](https://github.com/owner/repo/blob/full-sha/path/to/InvoiceService.cs#L30-L34)
 
-Problem and proposed design in a few sentences. Details: [PR-123-interface-review.md](./PR-123-interface-review.md)
+**Problem:** Callers must know which flag combinations are valid, and two callers already pass the same set.
+
+**Proposed design:**
+```csharp
+Invoice ResolveInvoice(Guid id, InvoiceView view = InvoiceView.Full);
+// caller
+var invoice = service.ResolveInvoice(id, InvoiceView.Summary);
+```
+
+**Alternatives considered:**
+- Options object with a builder — more flexible, more surface than the callers need
+- Separate `ResolveInvoice(id)` and `ResolveDraft(id)` — simplest common case, does not cover the summary view
+
+**Trade-offs:** a new view needs a new enum member; invalid flag combinations become impossible.
 
 ### 2. Brief description of improvement
 
@@ -345,7 +358,7 @@ Problem and proposed design in a few sentences. Details: [PR-123-interface-revie
 **Verdict:** FOLLOW-UP
 **Location:** ...
 
-Problem and proposed design in a few sentences.
+**Problem:**, **Proposed design:**, **Alternatives considered:** and **Trade-offs:** as above.
 
 > Ticket description ready to paste.
 
