@@ -17,6 +17,28 @@
       "source": "./plugins/wsbaser",
       "category": "development",
       "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/wsbaser"
+    },
+    {
+      "name": "quality-bootstrap",
+      "description": "Make any repo safe and high-quality for AI coding agents: vetted, pinned, enforced toolchain of best-in-industry skills plus deterministic gates (lint, typecheck, import boundaries, test-tamper guard).",
+      "author": {
+        "name": "wsbaser",
+        "url": "https://github.com/wsbaser"
+      },
+      "source": "./plugins/quality-bootstrap",
+      "category": "development",
+      "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/quality-bootstrap"
+    },
+    {
+      "name": "ask-jenny",
+      "description": "Ask Jenny harness setup: worktree init script, gated plan-execution workflow, and toolchain checks for Jenny workflow stages. Run after quality-bootstrap.",
+      "author": {
+        "name": "wsbaser",
+        "url": "https://github.com/wsbaser"
+      },
+      "source": "./plugins/ask-jenny",
+      "category": "development",
+      "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/ask-jenny"
     }
   ]
 }

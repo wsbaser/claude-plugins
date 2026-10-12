@@ -1,0 +1,11 @@
+{
+  "skill_name": "jenny-workflow-setup",
+  "evals": [
+    {
+      "id": 3,
+      "prompt": "We're onboarding this repo to Ask Jenny. Configure it so Jenny's workflows build and verify it properly with our quality gates.",
+      "expected_output": ".ask-jenny/worktree-init.sh installing deps with npm ci and building packages; .ask-jenny/workflows/quality-execute-plan.yaml with the gate commands from docs/quality/toolchain.md, e2e excluded, known-failures referenced, valid structure, {{artifactHandle}} kept; no SDK-path settings (autoLoadClaudeMd, .ask-jenny/context); port 3005 warning; toolchain.md gets an Ask Jenny section.",
+      "files": ["fixtures/jenny-repo"]
+    }
+  ]
+}

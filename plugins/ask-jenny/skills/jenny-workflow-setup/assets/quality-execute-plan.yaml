@@ -1,0 +1,237 @@
+id: quality-execute-plan
+name: 'Quality: Plan & Execute'
+description: >-
+  Plans one phase of a committed spec (or reuses its plan file), executes it task by task with a
+  review and a diff check after each, proves the project's quality gates and every requirement of
+  this phase (looping back on gaps), and commits in the feature's worktree.
+  Use when the task names a spec phase or plan file to implement.
+  Runs unattended, aborting when planning needs a product decision.
+  Requires the project's quality toolchain (docs/quality/toolchain.md).
+  Ships code on the branch; does not merge or push.
+
+stages:
+  - id: write-plan
+    label: /writing-plans
+    category: SPEC
+    position: 0
+    required: true
+    timeoutMs: 3600000
+    description: Writes and commits the plan for the spec phase named in the task, or reuses the existing plan file; unattended, aborts on an open product decision.
+    stagePrompt: |
+      /superpowers:writing-plans Produce the implementation plan for the work in the task
+      description below — usually one delivery phase of a committed spec.
+      Plan path: the plan file the task names. If the task names none, abort: plans need a
+      stable, reviewable name.
+      If that file already exists on this branch, REUSE it: do not rewrite it; change it only if
+      the task explicitly lists changes.
+      Otherwise read the spec the task names, docs/quality/toolchain.md and every document the
+      task says to follow, and plan against the code on this branch now. Ground the plan in the
+      existing code (closest existing implementation and its wiring) before writing tasks. Every
+      task names its files and an automated verify command. If code the phase depends on is not
+      in the tree, abort.
+      Run unattended — never ask the user a question (no AskUserQuestion). Skip the Execution
+      Handoff and skip superpowers:using-git-worktrees (this worktree is the workspace). Decide
+      technical questions yourself; an open product or business decision is an abort.
+      Commit the plan file alone: git add -- <plan path> && git commit -m "<message>" -- <plan path>.
+      If git commit runs for more than 2 minutes, a pre-commit hook is hanging: find the hung
+      child process the hook started and stop only that process; never use --no-verify.
+    outputs:
+      plan:
+        {
+          type: file,
+          required: false,
+          description: Committed implementation plan (new or reused); absent only on abort,
+        }
+    stageSystemPrompt: |
+      After the plan is written (or reused) and committed, call the StageComplete MCP tool as the
+      LAST action before stopping:
+
+        status:  'success'
+        summary: one to three sentences — new or reused plan, the spec and phase it covers, task count
+        outputs: { plan: <worktree-relative plan path> }
+
+        If planning needs a human (an open product decision, no plan path named, the spec or phase
+        does not exist, or code the phase depends on is missing on this branch):
+          status:  'abort'
+          summary: one to three sentences — what is missing
+          reason:  'cannot plan: <short reason>'
+          outputs: {}
+
+      Do NOT call StageComplete before the plan file is committed.
+
+  - id: implement-plan
+    label: /subagent-driven-development
+    category: BUILD
+    position: 1
+    required: true
+    timeoutMs: 14400000
+    description: Executes the plan with a fresh subagent, a review and a diff check per task, plus a final branch review; commits in the current worktree; unattended.
+    stagePrompt: >-
+      /superpowers:subagent-driven-development Execute the implementation plan given as `plan` under
+      Your input (if absent, the plan file named in the task description below).
+      Before the first task: if this worktree has no installed dependencies (e.g. no node_modules
+      at its root), run `bash {{INIT_SCRIPT}}` and stop with an abort if it fails — building
+      against another checkout's packages gives false results. Then record `git rev-parse HEAD`
+      as the base commit.
+      Work only in the current worktree on the current branch — do not create worktrees or
+      branches, do not merge, do not push. Commit each task's work on the current branch.
+      After each task's review, run `node scripts/quality/task-diff-check.mjs --base <commit before
+      that task> --files <the task's declared files>`; treat every finding as a review finding the
+      task must fix or justify in its commit message.
+      Tests are the specification: if a test or the test infrastructure looks wrong, write
+      BLOCKED.md (what, why, evidence) instead of editing it, unless the task explicitly changes
+      that test.
+      If git commit runs for more than 2 minutes, a pre-commit hook is hanging: stop only the hung
+      child process the hook started; never use --no-verify. Pass this rule to every subagent.
+      Stop after the final whole-branch review — do NOT run finishing-a-development-branch; a later
+      stage does that. On a retry, fix exactly the defect named in the Retry section (read the
+      report it names), commit the fix, and do not re-run plan tasks already marked complete.
+      Run unattended — never ask the user a question (no AskUserQuestion). Skip
+      superpowers:using-git-worktrees: the current worktree and branch are the workspace, and you
+      have consent to implement here. Run no baseline test suite — pre-existing failures are the
+      verify stage's concern. Anything the skills say to stop and ask about (irreversible or
+      security-sensitive action, side effect outside this worktree, a plan where every path is a
+      guess) is an abort, not a question. Never kill processes you did not start.
+    inputs:
+      - as: plan
+        from: write-plan.plan
+        fallback: brief.description
+        required: true
+    outputs:
+      baseCommit:
+        {
+          type: text,
+          required: true,
+          description: Commit SHA that was HEAD before the first plan task,
+        }
+    stageSystemPrompt: |
+      When your implementation work is fully complete, you MUST call the StageComplete MCP tool
+      as the LAST action before stopping:
+
+        If every plan task is complete and the final review is clean or its residuals adjudicated:
+          status:  'success'
+          summary: one to three sentences — tasks completed, final review outcome, anything parked
+          outputs: { baseCommit: '<sha recorded before the first task>' }
+
+        If a task stays BLOCKED after re-dispatching and splitting it, or BLOCKED.md was written:
+          status:  'abort'
+          summary: one to three sentences — how far the plan got and what blocks it
+          reason:  'plan execution blocked: <task N — short reason>'
+          outputs: { baseCommit: '<sha recorded before the first task>' }
+
+        If a skill would stop and ask a human:
+          status:  'abort'
+          summary: one to three sentences — how far the plan got and the decision needed
+          reason:  'needs human decision: <what must be decided>'
+          outputs: { baseCommit: '<sha recorded before the first task>' }
+
+      On a retry, return the same baseCommit as the first attempt if it is listed under Prior
+      stages; otherwise the commit before your first fix.
+
+  - id: verify
+    label: /verification-before-completion
+    category: TEST
+    position: 2
+    required: true
+    timeoutMs: 7200000
+    description: Runs the project's quality gates and the diff check, and checks every requirement of this phase for evidence; unattended; loops back to implement-plan on a new failure or unmet requirement.
+    retryTarget: implement-plan
+    maxRetries: 2
+    stagePrompt: |
+      /superpowers:verification-before-completion Prove two things about this branch with fresh
+      evidence from the current tree — never rely on results reported by earlier stages.
+
+      (A) Nothing is broken. Run exactly these commands, in order, from the worktree root:
+      {{GATE_COMMANDS}}
+      Then run `node scripts/quality/task-diff-check.mjs --base <baseCommit>`.
+      Never run: {{EXCLUDED_COMMANDS}} — and never start servers or kill processes you did not
+      start.
+      A failure is NEW when its test file or the code it exercises appears in
+      `git diff --name-only <baseCommit>..HEAD`, or it is plausibly caused by that diff. Before
+      counting a NEW test failure, re-run that test once on its own; if it passes alone, list it
+      as flaky and do not count it. Failures listed in {{KNOWN_FAILURES}} are pre-existing. Every
+      diff-check finding is NEW unless the commit that introduced it justifies it.
+
+      (B) This phase is delivered. Build a checklist with one row per task in the plan (`plan`
+      under Your input, else the one named in the task description below) and per requirement or
+      acceptance criterion of the spec that this plan's phase covers — requirements of other
+      phases are out of scope. A row passes only with evidence: a test that asserts the behaviour
+      and passed in (A), command output, or the code path in `git diff <baseCommit>..HEAD`. A row
+      FAILS when it is missing, partial, stubbed or faked (TODO, hardcoded return, mock in
+      production code), or covered only by a test that never asserts the behaviour.
+
+      Do not change source code in this stage.
+    inputs:
+      - as: plan
+        from: write-plan.plan
+        fallback: brief.description
+        required: true
+      - as: baseCommit
+        from: implement-plan.baseCommit
+        required: true
+    outputs:
+      report:
+        { type: file, required: true, description: Gate results, diff check and phase requirement checklist }
+    stageSystemPrompt: |
+      When your verification work is fully complete, you MUST do both of these in order:
+        1. Write a findings report to:
+              .reports/{{artifactHandle}}/verify-report.md
+           Section A: every command run with exit code and pass/fail counts; NEW failures (test,
+           error excerpt, suspected cause in the diff, suggested fix); flaky tests; pre-existing
+           failures one line each; diff-check findings.
+           Section B: the requirement checklist — one row each with PASS/FAIL and the evidence;
+           for every FAIL, what is missing or wrong, the file, and a suggested fix.
+        2. Call the StageComplete MCP tool as the LAST action before stopping:
+
+             If there are no NEW failures, no unjustified diff-check findings and every row passes:
+               status:  'success'
+               summary: one to three sentences — commands run, requirements verified, pre-existing failure count
+               outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
+
+             Otherwise:
+               status:  'loop'
+               summary: one to three sentences — what you checked and what failed
+               reason:  each specific defect implement-plan must fix — the failing test, the
+                        diff-check finding or the unmet requirement, the file, and the wrong or
+                        missing behaviour, not "see the report"
+               outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
+
+  - id: finish-branch
+    label: /finishing-a-development-branch
+    category: BUILD
+    position: 3
+    required: true
+    timeoutMs: 1800000
+    description: Commits leftover plan changes and keeps the branch as-is (no merge, push, new branch or worktree cleanup); unattended.
+    stagePrompt: >-
+      /superpowers:finishing-a-development-branch Run unattended — there is no human to answer the
+      menu, so never ask the user a question (no AskUserQuestion); option 3 needs no base branch,
+      so do not ask for one. Skip Step 1's test run: the verify stage just ran the gates on this
+      exact tree and its report is your input. Commit any uncommitted changes that belong to this
+      plan on the current branch, adding files by explicit path — never commit anything under
+      .reports/ and never use `git add -A` or `git add .`. If git commit runs for more than 2
+      minutes, stop only the hung child process the pre-commit hook started; never use
+      --no-verify. Then take option 3, "Keep the branch as-is": do not merge, do not push, do not
+      create or switch branches, and do not remove or clean up the worktree.
+    inputs:
+      - as: report
+        from: verify.report
+        required: true
+      - as: baseCommit
+        from: implement-plan.baseCommit
+        required: false
+    outputs: {}
+    stageSystemPrompt: |
+      When your work is fully complete, you MUST call the StageComplete MCP tool as the LAST
+      action before stopping:
+
+        status:  'success'
+        summary: one to three sentences — the branch name, the commit range this plan added
+                 (baseCommit..HEAD as short SHAs), and whether anything had to be committed here
+        outputs: {}
+
+        If the working tree cannot be left clean:
+          status:  'abort'
+          summary: one to three sentences — what is left uncommitted and why
+          reason:  'finish failed: <short reason>'
+          outputs: {}

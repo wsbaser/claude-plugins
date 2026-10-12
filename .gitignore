@@ -2,3 +2,6 @@
 *.local
 specs/
 .claude-teams/
+
+# skill-creator eval workspaces
+plugins/*/skills/*-workspace/

@@ -1,0 +1,17 @@
+{
+  "skill_name": "quality-bootstrap",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Set up the AI agent toolchain and quality gates for this repo so Claude Code sessions here use the right skills and can't quietly weaken our tests.",
+      "expected_output": "Project-scoped .claude/settings.json with approved plugins declared and pinned; lint/typecheck/dependency-cruiser/knip gates passing on current code with the failing legacy test baselined, not deleted; test-guard + diff-check installed and self-tested; CI workflow; docs/quality/toolchain.md; nothing written outside the repo.",
+      "files": ["fixtures/ts-monorepo"]
+    },
+    {
+      "id": 2,
+      "prompt": "Our devs have a bunch of personal Claude plugins and skills installed. Make sure only approved tools can be used in this project, and tell me what I need to clean up myself.",
+      "expected_output": "Blocks 7c, 7c-work-DEV, wsbaser, comprehensive-review and the code-review plugin via enabledPlugins false; user skills tdd/grill-me/design-an-interface/frontend-design off via skillOverrides; Skill() deny rules as second layer; keeps neutral caveman/context7; reports the random-scraper user MCP server for manual removal; does not edit the user config.",
+      "files": ["fixtures/ts-monorepo-unapproved"]
+    }
+  ]
+}
