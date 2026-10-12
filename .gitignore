@@ -5,3 +5,6 @@ specs/
 
 # skill-creator eval workspaces
 plugins/*/skills/*-workspace/
+
+# Eval workspaces live outside plugin folders: a local plugin install copies the whole folder
+eval-workspaces/
