@@ -1,13 +1,17 @@
 id: quality-execute-plan
 name: 'Quality: Plan & Execute'
 description: >-
-  Plans one phase of a committed spec (or reuses its plan file), executes it task by task with a
-  review and a diff check after each, proves the project's quality gates and every requirement of
+  Plans one phase of a committed spec (or reuses its plan file), gates the plan with
+  plan-readiness, executes it task by task with a review and a diff check after each, runs the
+  specialist branch review, proves the project's quality gates and every acceptance criterion of
   this phase (looping back on gaps), and commits in the feature's worktree.
   Use when the task names a spec phase or plan file to implement.
-  Runs unattended, aborting when planning needs a product decision.
-  Requires the project's quality toolchain (docs/quality/toolchain.md).
+  Runs unattended; stops for a human when planning needs a product decision or plan-readiness
+  returns CONCERNS.
+  Requires the project's quality toolchain (docs/quality/toolchain.md, set up by quality-bootstrap).
   Ships code on the branch; does not merge or push.
+  Not for superpowers-execute-plan (the same flow without the readiness gate, the specialist
+  review and the project's gates).
 
 stages:
   - id: write-plan
@@ -16,19 +20,27 @@ stages:
     position: 0
     required: true
     timeoutMs: 3600000
-    description: Writes and commits the plan for the spec phase named in the task, or reuses the existing plan file; unattended, aborts on an open product decision.
+    description: Writes and commits the plan for the spec phase named in the task (designing new cross-module interfaces first), or reuses the existing plan file; revises it on a readiness FAIL; unattended, aborts on an open product decision.
     stagePrompt: |
       /superpowers:writing-plans Produce the implementation plan for the work in the task
       description below — usually one delivery phase of a committed spec.
       Plan path: the plan file the task names. If the task names none, abort: plans need a
       stable, reviewable name.
       If that file already exists on this branch, REUSE it: do not rewrite it; change it only if
-      the task explicitly lists changes.
-      Otherwise read the spec the task names, docs/quality/toolchain.md and every document the
-      task says to follow, and plan against the code on this branch now. Ground the plan in the
-      existing code (closest existing implementation and its wiring) before writing tasks. Every
-      task names its files and an automated verify command. If code the phase depends on is not
-      in the tree, abort.
+      the task explicitly lists changes or this is a retry.
+      Otherwise read the spec the task names, docs/quality/toolchain.md, the planning rules in
+      CLAUDE.md and every document the task says to follow, and plan against the code on this
+      branch now. Ground the plan in the existing code first: dispatch the feature-dev
+      code-explorer agent for the closest existing implementation, its wiring and the
+      conventions. If the phase introduces a new interface between modules, follow
+      docs/quality/interface-design.md before writing tasks (commit the ADR alone; if one of its
+      open business questions changes the interface and its default is not reversible, abort).
+      Every task names its files, the AC ids it satisfies and an automated verify command. At
+      most ~10 tasks: if the phase needs more, plan its first vertical slice and say so at the top
+      of the plan. If code the phase depends on is not in the tree, abort.
+      On a retry, the Retry section carries the readiness review's FAIL items: revise the
+      existing plan to fix exactly those, without reopening decisions logged in the DECISIONS.md
+      next to it, and commit the revision alone.
       Run unattended — never ask the user a question (no AskUserQuestion). Skip the Execution
       Handoff and skip superpowers:using-git-worktrees (this worktree is the workspace). Decide
       technical questions yourself; an open product or business decision is an abort.
@@ -40,14 +52,15 @@ stages:
         {
           type: file,
           required: false,
-          description: Committed implementation plan (new or reused); absent only on abort,
+          description: Committed implementation plan (new, reused or revised); absent only on abort,
         }
     stageSystemPrompt: |
-      After the plan is written (or reused) and committed, call the StageComplete MCP tool as the
-      LAST action before stopping:
+      After the plan is written (or reused, or revised) and committed, call the StageComplete MCP
+      tool as the LAST action before stopping:
 
         status:  'success'
-        summary: one to three sentences — new or reused plan, the spec and phase it covers, task count
+        summary: one to three sentences — new, reused or revised plan, the spec and phase it
+                 covers, task count, ADRs written
         outputs: { plan: <worktree-relative plan path> }
 
         If planning needs a human (an open product decision, no plan path named, the spec or phase
@@ -59,13 +72,68 @@ stages:
 
       Do NOT call StageComplete before the plan file is committed.
 
+  - id: readiness
+    label: /plan-readiness
+    category: SPEC
+    position: 1
+    required: true
+    timeoutMs: 3600000
+    retryTarget: write-plan
+    maxRetries: 1
+    description: Checks the plan against the spec in a fresh context (traceability, verify commands, blockers, size); a FAIL loops to write-plan once, CONCERNS stop for a human.
+    stagePrompt: |
+      /plan-readiness Review the implementation plan given as `plan` under Your input (if absent,
+      the plan file named in the task description below) against the spec it implements. Run
+      unattended — never ask the user a question (no AskUserQuestion); the report is your only
+      output. Commit the spec (only when you added AC ids), DECISIONS.md and the readiness report,
+      each by explicit path; never commit anything under .reports/.
+      If git commit runs for more than 2 minutes, stop only the hung child process the pre-commit
+      hook started; never use --no-verify.
+    inputs:
+      - as: plan
+        from: write-plan.plan
+        fallback: brief.description
+        required: true
+    outputs:
+      report:
+        { type: file, required: true, description: Committed readiness report next to the plan }
+      verdict:
+        {
+          type: json,
+          required: true,
+          schema: { enum: [PASS, CONCERNS, FAIL] },
+          description: Readiness verdict,
+        }
+    stageSystemPrompt: |
+      When the readiness report is committed, call the StageComplete MCP tool as the LAST action
+      before stopping:
+
+        Verdict PASS:
+          status:  'success'
+          summary: one to three sentences — ACs traced, task count, decisions logged
+          outputs: { report: <worktree-relative report path>, verdict: 'PASS' }
+
+        Verdict FAIL (the planner can fix it):
+          status:  'loop'
+          summary: one to three sentences — how many FAIL items, of which kinds
+          reason:  every FAIL item write-plan must fix — each BLOCKER with its failure scenario,
+                   each AC with no task or no test, each task with no automated verify command —
+                   not "see the report"
+          outputs: { report: <worktree-relative report path>, verdict: 'FAIL' }
+
+        Verdict CONCERNS (a human must decide), including the round limit:
+          status:  'abort'
+          summary: one to three sentences — the questions the human must answer
+          reason:  'plan needs a human: <the concerns, one line each>'
+          outputs: { report: <worktree-relative report path>, verdict: 'CONCERNS' }
+
   - id: implement-plan
     label: /subagent-driven-development
     category: BUILD
-    position: 1
+    position: 2
     required: true
     timeoutMs: 14400000
-    description: Executes the plan with a fresh subagent, a review and a diff check per task, plus a final branch review; commits in the current worktree; unattended.
+    description: Executes the plan with a fresh subagent, a review and a diff check per task, plus a final branch review; commits in the current worktree; fixes review and verify findings on a retry; unattended.
     stagePrompt: >-
       /superpowers:subagent-driven-development Execute the implementation plan given as `plan` under
       Your input (if absent, the plan file named in the task description below).
@@ -84,8 +152,9 @@ stages:
       If git commit runs for more than 2 minutes, a pre-commit hook is hanging: stop only the hung
       child process the hook started; never use --no-verify. Pass this rule to every subagent.
       Stop after the final whole-branch review — do NOT run finishing-a-development-branch; a later
-      stage does that. On a retry, fix exactly the defect named in the Retry section (read the
-      report it names), commit the fix, and do not re-run plan tasks already marked complete.
+      stage does that. On a retry, fix exactly the defects named in the Retry section (read the
+      report it names — the review or verify report), commit the fixes, and do not re-run plan
+      tasks already marked complete.
       Run unattended — never ask the user a question (no AskUserQuestion). Skip
       superpowers:using-git-worktrees: the current worktree and branch are the workspace, and you
       have consent to implement here. Run no baseline test suite — pre-existing failures are the
@@ -128,13 +197,84 @@ stages:
       On a retry, return the same baseCommit as the first attempt if it is listed under Prior
       stages; otherwise the commit before your first fix.
 
+  - id: review
+    label: Specialist review
+    category: TEST
+    position: 3
+    required: true
+    timeoutMs: 7200000
+    retryTarget: implement-plan
+    maxRetries: 2
+    description: Runs the specialist reviewers on the branch diff (error handling, types, tests, code review, differential review; security and UI reviewers when the diff needs them; spec compliance last); loops back to implement-plan on real findings; unattended.
+    stagePrompt: |
+      Review this branch's changes — `git diff <baseCommit>..HEAD` — with the project's
+      specialist reviewers and report only real defects. Read docs/quality/toolchain.md first:
+      its "Repo facts" name the security-sensitive paths and the UI themes, and its tool table
+      says which reviewers are installed here; use only those. Run unattended — never ask the
+      user a question (no AskUserQuestion). Do not change source code in this stage.
+
+      Always, in parallel where possible:
+        1. pr-review-toolkit agents silent-failure-hunter, type-design-analyzer (when the diff adds
+           or changes types) and pr-test-analyzer, each given the diff range and the plan.
+        2. The built-in code-review skill on the diff range; keep only findings with confidence
+           of at least 80.
+        3. Trail of Bits differential-review on the diff range.
+      When a changed file matches a security-sensitive path in the repo facts — or the facts list
+      none or are unconfirmed and the diff touches authentication, secrets or credentials,
+      tenancy, process spawning or payments:
+        4. The built-in security-review skill, then Trail of Bits insecure-defaults and sharp-edges.
+      When UI files change and the toolchain lists the UI reviewers:
+        5. impeccable critique and audit on the changed screens, once for every UI theme in the
+           repo facts, and emilkowalski break-ui on the changed components.
+      Last:
+        6. Trail of Bits spec-to-code-compliance: the acceptance criteria of this phase (the plan
+           names its spec and AC ids) against the code in the diff.
+      A reviewer that is not installed is skipped and named in the report — never improvise its job.
+
+      Triage before reporting. Keep a finding only if it is a correctness, security, data-loss or
+      stated-requirement defect that this diff introduces or exposes, with file, line and a
+      concrete failure scenario. Merge duplicates across reviewers. Problems in code the diff does
+      not touch, style, naming and suggestions go in a separate "Not looped" list. On a retry,
+      first check the previous report's findings and say which are fixed.
+    inputs:
+      - as: plan
+        from: write-plan.plan
+        fallback: brief.description
+        required: true
+      - as: baseCommit
+        from: implement-plan.baseCommit
+        required: true
+    outputs:
+      report:
+        { type: file, required: true, description: Specialist review findings after triage }
+    stageSystemPrompt: |
+      When your review is fully complete, you MUST do both of these in order:
+        1. Write the report to:
+              .reports/{{artifactHandle}}/review-report.md
+           Reviewers run (and skipped, with why); kept findings (reviewer, file:line, defect,
+           failure scenario, suggested fix); the "Not looped" list; on a retry, which earlier
+           findings are fixed.
+        2. Call the StageComplete MCP tool as the LAST action before stopping:
+
+             If no kept findings remain:
+               status:  'success'
+               summary: one to three sentences — reviewers run, findings fixed or not looped
+               outputs: { report: .reports/{{artifactHandle}}/review-report.md }
+
+             Otherwise:
+               status:  'loop'
+               summary: one to three sentences — reviewers run and how many findings were kept
+               reason:  each kept finding implement-plan must fix — file:line, the defect and its
+                        failure scenario — not "see the report"
+               outputs: { report: .reports/{{artifactHandle}}/review-report.md }
+
   - id: verify
     label: /verification-before-completion
     category: TEST
-    position: 2
+    position: 4
     required: true
     timeoutMs: 7200000
-    description: Runs the project's quality gates and the diff check, and checks every requirement of this phase for evidence; unattended; loops back to implement-plan on a new failure or unmet requirement.
+    description: Runs the project's quality gates and the diff check, and checks every acceptance criterion of this phase for evidence; unattended; loops back to implement-plan on a new failure or unmet criterion.
     retryTarget: implement-plan
     maxRetries: 2
     stagePrompt: |
@@ -144,8 +284,10 @@ stages:
       (A) Nothing is broken. Run exactly these commands, in order, from the worktree root:
       {{GATE_COMMANDS}}
       Then run `node scripts/quality/task-diff-check.mjs --base <baseCommit>`.
-      Never run: {{EXCLUDED_COMMANDS}} — and never start servers or kill processes you did not
-      start.
+      If the diff touches the UI, also run: {{UI_GATE_COMMANDS}} — they start their own test
+      server on a port outside the reserved ones; that is the only server you may start.
+      Never run: {{EXCLUDED_COMMANDS}} — and never start other servers or kill processes you did
+      not start.
       A failure is NEW when its test file or the code it exercises appears in
       `git diff --name-only <baseCommit>..HEAD`, or it is plausibly caused by that diff. Before
       counting a NEW test failure, re-run that test once on its own; if it passes alone, list it
@@ -153,12 +295,12 @@ stages:
       diff-check finding is NEW unless the commit that introduced it justifies it.
 
       (B) This phase is delivered. Build a checklist with one row per task in the plan (`plan`
-      under Your input, else the one named in the task description below) and per requirement or
-      acceptance criterion of the spec that this plan's phase covers — requirements of other
-      phases are out of scope. A row passes only with evidence: a test that asserts the behaviour
-      and passed in (A), command output, or the code path in `git diff <baseCommit>..HEAD`. A row
-      FAILS when it is missing, partial, stubbed or faked (TODO, hardcoded return, mock in
-      production code), or covered only by a test that never asserts the behaviour.
+      under Your input, else the one named in the task description below) and per acceptance
+      criterion (AC id) of the spec that this plan's phase covers — criteria of other phases are
+      out of scope. A row passes only with evidence: a test that asserts the behaviour and passed
+      in (A), command output, or the code path in `git diff <baseCommit>..HEAD`. A row FAILS when
+      it is missing, partial, stubbed or faked (TODO, hardcoded return, mock in production code),
+      or covered only by a test that never asserts the behaviour.
 
       Do not change source code in this stage.
     inputs:
@@ -171,7 +313,7 @@ stages:
         required: true
     outputs:
       report:
-        { type: file, required: true, description: Gate results, diff check and phase requirement checklist }
+        { type: file, required: true, description: Gate results, diff check and phase acceptance checklist }
     stageSystemPrompt: |
       When your verification work is fully complete, you MUST do both of these in order:
         1. Write a findings report to:
@@ -179,27 +321,27 @@ stages:
            Section A: every command run with exit code and pass/fail counts; NEW failures (test,
            error excerpt, suspected cause in the diff, suggested fix); flaky tests; pre-existing
            failures one line each; diff-check findings.
-           Section B: the requirement checklist — one row each with PASS/FAIL and the evidence;
-           for every FAIL, what is missing or wrong, the file, and a suggested fix.
+           Section B: the checklist — one row each with PASS/FAIL and the evidence; for every
+           FAIL, what is missing or wrong, the file, and a suggested fix.
         2. Call the StageComplete MCP tool as the LAST action before stopping:
 
              If there are no NEW failures, no unjustified diff-check findings and every row passes:
                status:  'success'
-               summary: one to three sentences — commands run, requirements verified, pre-existing failure count
+               summary: one to three sentences — commands run, criteria verified, pre-existing failure count
                outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
 
              Otherwise:
                status:  'loop'
                summary: one to three sentences — what you checked and what failed
                reason:  each specific defect implement-plan must fix — the failing test, the
-                        diff-check finding or the unmet requirement, the file, and the wrong or
+                        diff-check finding or the unmet criterion, the file, and the wrong or
                         missing behaviour, not "see the report"
                outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
 
   - id: finish-branch
     label: /finishing-a-development-branch
     category: BUILD
-    position: 3
+    position: 5
     required: true
     timeoutMs: 1800000
     description: Commits leftover plan changes and keeps the branch as-is (no merge, push, new branch or worktree cleanup); unattended.

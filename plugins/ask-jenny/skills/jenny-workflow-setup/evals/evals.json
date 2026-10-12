@@ -1,11 +1,13 @@
 {
   "skill_name": "jenny-workflow-setup",
+  "fixtures_root": "eval-workspaces/quality-bootstrap/fixtures (outside the plugin folder; graded by grade-v4.mjs)",
   "evals": [
     {
       "id": 3,
       "prompt": "We're onboarding this repo to Ask Jenny. Configure it so Jenny's workflows build and verify it properly with our quality gates.",
-      "expected_output": ".ask-jenny/worktree-init.sh installing deps with npm ci and building packages; .ask-jenny/workflows/quality-execute-plan.yaml with the gate commands from docs/quality/toolchain.md, e2e excluded, known-failures referenced, valid structure, {{artifactHandle}} kept; no SDK-path settings (autoLoadClaudeMd, .ask-jenny/context); port 3005 warning; toolchain.md gets an Ask Jenny section.",
-      "files": ["fixtures/jenny-repo"]
+      "expected_output": ".ask-jenny/worktree-init.sh installing deps and building packages; .ask-jenny/workflows/quality-execute-plan.yaml that Jenny's real loader accepts (no graph errors, no unknown tokens), with write-plan running the interface-design recipe, a readiness stage (FAIL loops to write-plan once, CONCERNS aborts) and a review stage after implement-plan (pr-review-toolkit agents, /code-review >= 80, Trail of Bits differential-review, security reviewers for the security-sensitive paths read from docs/quality/toolchain.md, spec-to-code-compliance last; loops to implement-plan max 2); no developer-specific ports or repo paths hardcoded; Reserved ports in Repo facts include Jenny's 3001-3099 pool; port 3005 warning; restart note; toolchain.md Ask Jenny section.",
+      "files": ["fixtures/jenny-repo-v3"],
+      "notes": "Jenny source checkout passed read-only for --jenny validation and the bundled workflows."
     }
   ]
 }
