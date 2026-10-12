@@ -21,8 +21,23 @@ const SUPPRESS = /@ts-(ignore|expect-error|nocheck)|eslint-disable|istanbul igno
 const THRESHOLD = /threshold|thresholds|\bbreak\b|\bbranches\b|\bfunctions\b|\bstatements\b|\bstrict\w*\b|noImplicit|skipLibCheck|"rules"/;
 // Files that run as code on every session or define the gates. Agents must not change them, and
 // permission deny rules may be bypassed (shell edits, --dangerously-skip-permissions), so any
-// change is reported here for human review.
-const PROTECTED = /^(scripts\/quality\/|\.claude\/settings\.json$|\.claude\/skills\/|\.claude\/hooks\/|\.mcp\.json$|docs\/quality\/(approved\.json|policy\.md|known-failures\.md)$|\.github\/workflows\/|\.azure-pipelines\/|azure-pipelines[^/]*\.ya?ml$|\.husky\/|\.ask-jenny\/(worktree-init\.sh|workflows\/))/;
+// change is reported here for human review. Repo- or harness-specific paths (a harness's init script
+// or workflow files) are listed one glob per line in docs/quality/protected-paths.txt.
+const PROTECTED = /^(scripts\/quality\/|\.claude\/settings\.json$|\.claude\/skills\/|\.claude\/hooks\/|\.mcp\.json$|docs\/quality\/(approved\.json|policy\.md|known-failures\.md|protected-paths\.txt)$|\.github\/workflows\/|\.azure-pipelines\/|azure-pipelines[^/]*\.ya?ml$|\.husky\/)/;
+function protectedMatcher(cwd) {
+  let extra = [];
+  try {
+    extra = fs
+      .readFileSync(path.join(cwd, 'docs/quality/protected-paths.txt'), 'utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'))
+      .map((g) => globToRe(g.endsWith('/') ? `${g}**` : g));
+  } catch {
+    /* none */
+  }
+  return (f) => PROTECTED.test(f) || extra.some((re) => re.test(f));
+}
 
 function parseArgs(argv) {
   const a = { base: null, files: null, json: false, selftest: false, cwd: process.cwd() };
@@ -60,6 +75,7 @@ function globToRe(g) {
 
 export function analyse({ base, files, cwd }) {
   const findings = [];
+  const isProtected = protectedMatcher(cwd);
   const status = git(['diff', '--name-status', '-M', base], cwd).trim().split('\n').filter(Boolean);
   const untracked = git(['ls-files', '-o', '--exclude-standard'], cwd).trim().split('\n').filter(Boolean);
   const changed = new Set(untracked);
@@ -69,7 +85,7 @@ export function analyse({ base, files, cwd }) {
     const file = b ?? a;
     changed.add(file);
     if (code.startsWith('D') && TEST_FILE.test(a)) findings.push({ rule: 'test-deleted', file: a });
-    if (code.startsWith('D') && PROTECTED.test(a)) findings.push({ rule: 'protected-file-changed', file: a, detail: 'deleted' });
+    if (code.startsWith('D') && isProtected(a)) findings.push({ rule: 'protected-file-changed', file: a, detail: 'deleted' });
   }
 
   const diff = git(['diff', '-U0', '--no-color', base], cwd);
@@ -93,7 +109,7 @@ export function analyse({ base, files, cwd }) {
   }
 
   for (const [file, { added, removed }] of perFile) {
-    if (PROTECTED.test(file)) findings.push({ rule: 'protected-file-changed', file, detail: 'runs as code or defines a gate — needs human review' });
+    if (isProtected(file)) findings.push({ rule: 'protected-file-changed', file, detail: 'runs as code or defines a gate — needs human review' });
     // The guard scripts contain the very patterns they look for; skip their content scan.
     if (file.startsWith('scripts/quality/')) continue;
     const isTest = TEST_FILE.test(file);
@@ -124,14 +140,21 @@ function selftest() {
   run(['config', 'user.name', 't']);
   fs.writeFileSync(path.join(dir, 'a.test.ts'), "it('x', () => {\n  expect(1).toBe(1);\n  expect(2).toBe(2);\n});\n");
   fs.writeFileSync(path.join(dir, 'b.test.ts'), "it('y', () => { expect(3).toBe(3); });\n");
+  fs.mkdirSync(path.join(dir, 'docs', 'quality'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'docs', 'quality', 'protected-paths.txt'), '# repo-specific\ntools/init.sh\n');
+  fs.mkdirSync(path.join(dir, 'tools'));
+  fs.writeFileSync(path.join(dir, 'tools', 'init.sh'), 'echo a\n');
   run(['add', '.']);
   run(['commit', '-qm', 'base']);
+  fs.writeFileSync(path.join(dir, 'tools', 'init.sh'), 'echo b\n');
   fs.writeFileSync(path.join(dir, 'a.test.ts'), "it.skip('x', () => {\n  expect(1).toBe(1);\n});\n");
   fs.rmSync(path.join(dir, 'b.test.ts'));
   fs.writeFileSync(path.join(dir, 'src.ts'), '// @ts-ignore\nexport const z = 1;\n');
   fs.mkdirSync(path.join(dir, 'scripts', 'quality'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'scripts', 'quality', 'test-guard.mjs'), 'process.exit(0);\n');
-  const rules = new Set(analyse({ base: 'HEAD', files: ['a.test.ts'], cwd: dir }).map((f) => f.rule));
+  const found = analyse({ base: 'HEAD', files: ['a.test.ts'], cwd: dir });
+  const rules = new Set(found.map((f) => f.rule));
+  if (!found.some((f) => f.rule === 'protected-file-changed' && f.file === 'tools/init.sh')) rules.add('MISSING:protected-paths.txt');
   fs.rmSync(dir, { recursive: true, force: true });
   const need = ['test-deleted', 'assertions-removed', 'skip-or-only-added', 'suppression-added', 'outside-declared-files', 'protected-file-changed'];
   const missing = need.filter((r) => !rules.has(r));

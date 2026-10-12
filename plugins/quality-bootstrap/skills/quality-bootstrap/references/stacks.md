@@ -7,3 +7,5 @@
 | Python, Go, Java, others | yes | not supported — report only |
 
 Mixed repos (e.g. TS frontend + .NET backend): apply TS gates to the TS workspaces only and say which parts are uncovered.
+
+Stack-independent: the planning toolchain (SKILL.md step 6b) applies to every repo, and `web-ui-gates.md` to every web UI whatever renders it (React, Blazor, server-rendered HTML). A repo without a root `package.json` keeps the UI test tooling in its own folder (`tests/ui/package.json` with exact versions and a lockfile).

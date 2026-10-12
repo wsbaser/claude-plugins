@@ -1,7 +1,7 @@
 {
   "name": "quality-bootstrap",
-  "description": "Make any repo safe and high-quality for AI coding agents: vetted, pinned, enforced toolchain of best-in-industry skills plus deterministic gates (lint, typecheck, import boundaries, test-tamper guard).",
-  "version": "0.3.0",
+  "description": "Make any repo safe and high-quality for AI coding agents: vetted, pinned, enforced toolchain of best-in-industry skills, deterministic gates (lint, typecheck, import boundaries, test-tamper guard, web-UI gates), a plan-readiness gate and an interface-design recipe.",
+  "version": "0.4.0",
   "author": {
     "name": "wsbaser",
     "url": "https://github.com/wsbaser"

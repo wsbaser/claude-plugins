@@ -26,7 +26,7 @@ Use the repo's package manager (npm / pnpm / yarn / bun) for every command below
   - `not-to-unresolvable`
   - for each workspace: may import only workspaces it declares as dependencies (the documented layer order, e.g. in CLAUDE.md, wins if stricter)
   - no deep imports into another workspace's `src/` — only its package entry
-  - edition / feature isolation rules the repo documents (e.g. "nothing in the free edition may import hosted-only modules")
+  - edition / feature isolation rules the repo documents (e.g. "the open-source build may not import enterprise-only modules")
 - Config `.dependency-cruiser.cjs`; root script `deps:check`. Existing violations → `--ignore-known` baseline file, listed in the report.
 - Workspace imports often resolve to a package's built `dist/`; if `dist` is excluded, dependency-cruiser silently drops those edges and the layer rules check nothing. Point `options.tsConfig` at a `tsconfig.depcruise.json` whose `paths` map each workspace package name to its `src/` entry, and prove the rules bite: temporarily add a forbidden import and confirm `deps:check` fails, then revert.
 
@@ -76,4 +76,4 @@ Use the repo's package manager (npm / pnpm / yarn / bun) for every command below
 
 ## 9. CLAUDE.md quality section
 
-Add (or update) a short section: the gate commands, "run them before claiming done", the BLOCKED.md rule, the approved toolchain pointer (`docs/quality/toolchain.md`), and "do not add tools outside the catalog without updating the policy". Keep it under 20 lines — CLAUDE.md is loaded into every session.
+Written in step 6b of the skill from `assets/claude-md-quality.md` (gates and planning rules together, under 20 lines). Use the root `quality` script as its gate command.

@@ -1,0 +1,24 @@
+{
+  "skill_name": "plan-readiness",
+  "fixtures_root": "eval-workspaces/quality-bootstrap/fixtures (outside the plugin folder; graded by grade-v4.mjs)",
+  "evals": [
+    {
+      "id": 5,
+      "prompt": "Before we execute it: is the plan docs/work/plans/invoice-csv-export.md ready to execute, judged against the spec docs/specs/invoice-csv-export.md? Run unattended — nobody will answer questions. Leave your review in the repo and commit it.",
+      "expected_output": "Verdict FAIL. AC ids added to the spec. Report and DECISIONS.md in docs/work/plans (the plans directory recorded in docs/quality/toolchain.md). BLOCKERs with failure scenarios: Math.Round banker's rounding (2.345 -> 2.34 vs 2.35), ordering by IssuedOn instead of invoice number; AC-5 (366 days) has no task; Task 4 verify is manual; header-only and tenant isolation untested; closed decision D-1 (InvariantCulture) not reopened.",
+      "files": ["fixtures/readiness-dotnet-flawed"]
+    },
+    {
+      "id": 6,
+      "prompt": "Before we execute it: is the plan docs/superpowers/plans/slugify.md ready to execute, judged against the spec docs/specs/slugify.md? Run unattended — nobody will answer questions. Leave your review in the repo and commit it.",
+      "expected_output": "Verdict CONCERNS: 13 tasks exceed the ~10 limit (suggested split); no invented BLOCKERs on an otherwise correct plan; traceability covers AC-1..AC-5.",
+      "files": ["fixtures/readiness-ts-oversized"]
+    },
+    {
+      "id": 7,
+      "prompt": "Before we execute it: is the plan docs/superpowers/plans/2026-10-10-executor-seam-phase-1.md ready to execute, judged against the spec docs/superpowers/specs/2026-10-10-executor-seam-design.md? Run unattended — nobody will answer questions. Leave your review in the repo and commit it.",
+      "expected_output": "Explicit verdict, traceability table with AC ids, size check (11 tasks; plan length vs spec), every BLOCKER with a failure scenario, report committed next to the plan.",
+      "files": ["fixtures/readiness-real-executor"]
+    }
+  ]
+}

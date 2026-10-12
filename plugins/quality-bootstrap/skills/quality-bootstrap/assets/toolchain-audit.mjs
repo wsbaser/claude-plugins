@@ -57,23 +57,60 @@ const list = (k) => new Set(approved[k] ?? []);
 const okPlugins = new Set([...list('plugins'), ...list('neutralPlugins')]);
 const okSkills = new Set([...list('skills'), ...list('neutralSkills')]);
 const okMcp = new Set([...list('mcpServers'), ...list('neutralMcpServers')]);
+// The bootstrap's own plugin family is approved by plugin name, from any marketplace.
+const setupPlugins = list('setupPlugins');
+const pluginOk = (id) => okPlugins.has(id) || setupPlugins.has(id.split('@')[0]);
 
 const findings = [];
 
 for (const [id, on] of Object.entries(plugins)) {
-  if (on === true && !okPlugins.has(id))
+  if (on === true && !pluginOk(id))
     findings.push({ kind: 'plugin', id, fix: `"enabledPlugins": { "${id}": false } in .claude/settings.json` });
 }
 
 let userSkills = [];
 try {
-  userSkills = fs.readdirSync(path.join(home, 'skills')).filter((d) => !d.startsWith('.') && isDir(path.join(home, 'skills', d)));
+  userSkills = fs.readdirSync(path.join(home, 'skills')).filter((d) => !d.startsWith('.') && fs.existsSync(path.join(home, 'skills', d, 'SKILL.md')));
 } catch {
   /* none */
 }
+const vendored = new Set(
+  (() => {
+    try {
+      return fs.readdirSync(path.join(repo, '.claude/skills')).filter((d) => isDir(path.join(repo, '.claude/skills', d)));
+    } catch {
+      return [];
+    }
+  })(),
+);
 for (const s of userSkills) {
+  // A personal skill named like a vendored one shadows it; skillOverrides would switch off both.
+  if (vendored.has(s)) {
+    findings.push({ kind: 'user skill', id: s, fix: `remove or rename ~/.claude/skills/${s} — it shadows the vendored .claude/skills/${s}` });
+    continue;
+  }
   if (okSkills.has(s) || skillOverrides[s] === 'off') continue;
   findings.push({ kind: 'user skill', id: s, fix: `"skillOverrides": { "${s}": "off" } in .claude/settings.json` });
+}
+
+// Personal slash commands (~/.claude/commands/**.md, namespaced by folder) are invoked like skills.
+const userCommands = [];
+const walkCommands = (dir, ns) => {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    if (e.isDirectory()) walkCommands(path.join(dir, e.name), ns ? `${ns}:${e.name}` : e.name);
+    else if (e.name.endsWith('.md')) userCommands.push(ns ? `${ns}:${e.name.slice(0, -3)}` : e.name.slice(0, -3));
+  }
+};
+walkCommands(path.join(home, 'commands'), '');
+for (const c of userCommands) {
+  if (okSkills.has(c) || skillOverrides[c] === 'off') continue;
+  findings.push({ kind: 'user command', id: c, fix: `"skillOverrides": { "${c}": "off" } in .claude/settings.json` });
 }
 
 for (const server of Object.keys(claudeJson.mcpServers ?? {})) {

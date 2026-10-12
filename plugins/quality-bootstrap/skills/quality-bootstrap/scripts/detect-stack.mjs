@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Detect the stack, workspaces, gates and agent config of a repository.
 // Usage: node detect-stack.mjs [repoRoot]  → prints JSON to stdout. Read-only.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -144,8 +145,59 @@ const result = {
     policy: exists('docs/quality/policy.md'),
   },
   harness: {
-    askJenny: exists('.ask-jenny'),
+    // Root folders that agent harnesses keep their per-project config in; their adapter plugins act on them.
+    configDirs: ['.ask-jenny', '.cursor', '.windsurf', '.continue', '.aider'].filter(exists),
   },
+  repoFacts: repoFacts(),
 };
+
+// Candidates only: the skill confirms them with the owner and records them in docs/quality/toolchain.md.
+function repoFacts() {
+  const glossary =
+    ['GLOSSARY.md', 'UBIQUITOUS_LANGUAGE.md', 'CONTEXT.md', 'docs/GLOSSARY.md', 'docs/UBIQUITOUS_LANGUAGE.md', 'docs/CONTEXT.md'].find(exists) ?? null;
+  const dirsOf = (re) => [...new Set(files.filter((f) => re.test(f)).map((f) => f.slice(0, f.lastIndexOf('/'))))];
+  const plansDirs = dirsOf(/(^|\/)plans\/[^/]+\.md$/);
+  const adrDirs = dirsOf(/(^|\/)(adr|adrs|decisions)\/\d{3,4}-[^/]+\.md$/);
+  const sensitive =
+    /(^|[\/._-])(auth\w*|login|sessions?|oauth|jwt|tokens?|secrets?|credentials?|crypto|tenan\w*|rbac|acl|permissions?|billing|payments?|stripe|checkout|spawn\w*|exec\w*|pty|shell|process\w*|terminals?|sandbox\w*)([\/._-]|$)/i;
+  const dirOf = (f) => (f.includes('/') ? f.slice(0, f.lastIndexOf('/')) : '');
+  // Tracked files only (all depths) when this is a git repo: runtime data and build output are not code to review.
+  let tracked = files;
+  try {
+    tracked = execFileSync('git', ['-C', root, 'ls-files'], { encoding: 'utf8', maxBuffer: 64 << 20 }).split('\n').filter(Boolean);
+  } catch {
+    /* not a git repo */
+  }
+  const securityCandidates = [
+    ...new Set(
+      tracked
+        .filter((f) => !/(^|\/)(docs?|tests?|__tests__|fixtures?|\.[^/]+)\//i.test(f) && !/\.(md|json|lock|ya?ml|txt)$/i.test(f))
+        .filter((f) => sensitive.test(f))
+        .map((f) => (sensitive.test(dirOf(f)) ? `${dirOf(f)}/**` : f)),
+    ),
+  ].slice(0, 40);
+  const ports = new Set();
+  const portFiles = files.filter((x) =>
+    /(vite|playwright|vitest|webpack|next|nuxt|astro)\.config\.[cm]?[jt]s$|launchSettings\.json$|docker-compose[^/]*\.ya?ml$|(^|\/)package\.json$|(^|\/)\.env(\.[a-z]+)?$/.test(x),
+  );
+  for (const f of portFiles) {
+    let text = '';
+    try {
+      text = fs.readFileSync(path.join(root, f), 'utf8');
+    } catch {
+      continue;
+    }
+    for (const m of text.matchAll(/(?:\bport["']?\s*[:=]\s*["']?|--port[ =]|localhost:|127\.0\.0\.1:|\bPORT=)(\d{2,5})/gi)) ports.add(`${m[1]} (${f})`);
+  }
+  const designMd = ['DESIGN.md', 'docs/DESIGN.md'].find(exists) ?? null;
+  let themes = null;
+  if (designMd) {
+    // DESIGN.md has no standard theme key; report theme names mentioned next to theme/mode/scheme for the owner to confirm.
+    const text = fs.readFileSync(path.join(root, designMd), 'utf8');
+    const lines = text.split('\n').filter((l) => /\b(theme|mode|scheme)s?\b/i.test(l));
+    themes = [...new Set(lines.flatMap((l) => [...l.matchAll(/\b(light|dark|high[- ]contrast|dim)\b/gi)].map((m) => m[1].toLowerCase())))];
+  }
+  return { glossary, plansDirs, adrDirs, securityCandidates, portsBound: [...ports].slice(0, 30), designMd, themes };
+}
 
 process.stdout.write(JSON.stringify(result, null, 2) + '\n');

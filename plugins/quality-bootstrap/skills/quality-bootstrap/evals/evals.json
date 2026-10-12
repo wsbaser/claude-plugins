@@ -1,17 +1,24 @@
 {
   "skill_name": "quality-bootstrap",
+  "fixtures_root": "eval-workspaces/quality-bootstrap/fixtures (outside the plugin folder; built by make-fixtures*.mjs, graded by grade-v4.mjs)",
   "evals": [
     {
       "id": 1,
       "prompt": "Set up the AI agent toolchain and quality gates for this repo so Claude Code sessions here use the right skills and can't quietly weaken our tests.",
-      "expected_output": "Project-scoped .claude/settings.json with approved plugins declared and pinned; lint/typecheck/dependency-cruiser/knip gates passing on current code with the failing legacy test baselined, not deleted; test-guard + diff-check installed and self-tested; CI workflow; docs/quality/toolchain.md; nothing written outside the repo.",
+      "expected_output": "Project-scoped .claude/settings.json with approved plugins declared and pinned; lint/typecheck/dependency-cruiser/knip gates passing on current code with the failing legacy test baselined, not deleted; test-guard + diff-check installed and self-tested; CI workflow; docs/quality/toolchain.md with Repo facts; plan-readiness vendored, docs/quality/interface-design.md copied, CLAUDE.md quality section (<20 lines) with the planning rules; Socket gate through the wrapper; security-guidance not enabled; nothing written outside the repo.",
       "files": ["fixtures/ts-monorepo"]
     },
     {
       "id": 2,
       "prompt": "Our devs have a bunch of personal Claude plugins and skills installed. Make sure only approved tools can be used in this project, and tell me what I need to clean up myself.",
-      "expected_output": "Blocks 7c, 7c-work-DEV, wsbaser, comprehensive-review and the code-review plugin via enabledPlugins false; user skills tdd/grill-me/design-an-interface/frontend-design off via skillOverrides; Skill() deny rules as second layer; keeps neutral caveman/context7; reports the random-scraper user MCP server for manual removal; does not edit the user config.",
-      "files": ["fixtures/ts-monorepo-unapproved"]
+      "expected_output": "Blocks 7c, 7c-work-DEV, wsbaser, comprehensive-review and the code-review plugin via enabledPlugins false; user skills off via skillOverrides; keeps neutral caveman/context7; keeps quality-bootstrap@wsbaser-plugins and ask-jenny@wsbaser-plugins approved (setupPlugins) although wsbaser@wsbaser-plugins is blocked; toolchain audit does not flag them; reports the random-scraper user MCP server; does not edit the user config.",
+      "files": ["fixtures/ts-monorepo-unapproved-v4"]
+    },
+    {
+      "id": 4,
+      "prompt": "Set up the AI agent toolchain and quality gates for this repo so Claude Code sessions here use the right skills and can't quietly weaken our tests.",
+      "expected_output": "Web UI detected: impeccable pinned with a report-only baseline then ratchet gate; designmd lint; Playwright project with axe and toHaveScreenshot for light and dark (theme applied through data-theme/localStorage); UI test server on a port outside the reserved 5173 and 3000-3099 from the policy; quality:ui separate from the fast quality script; Repo facts record CONTEXT.md, themes and src/auth as security-sensitive.",
+      "files": ["fixtures/web-ui-repo"]
     }
   ]
 }
