@@ -16,6 +16,20 @@ You are a TEAM LEAD orchestrating an Agent Team to implement a feature from spec
 - **Devils-advocate at decision points** — challenge architectural choices during implementation, not as a reviewer
 - **Team lead dynamically selects agents** — based on spec content analysis
 
+## Team Mechanics (two Claude Code APIs)
+
+Claude Code has shipped two ways to run a team. Check your tool list once, before Phase 2, and use the matching mode everywhere below:
+
+- **Explicit mode** — `TeamCreate` is available. Create the team, spawn teammates with the `team_name` parameter and `mode: "bypassPermissions"`, track work with `TaskCreate` / `TaskUpdate`, and end with `shutdown_request` + `TeamDelete`.
+- **Implicit mode** — no `TeamCreate` (current builds: every session has one implicit team; the Agent tool ignores `team_name` and `mode`). Then:
+  - Pick `TEAM_NAME = impl-spec-{timestamp}` yourself and create `./.claude-teams/{TEAM_NAME}/`.
+  - Spawn each teammate with the Agent tool as a **background** agent and **without the `name` parameter** (on some platforms `name` switches to tmux swarm mode and fails). Record the agent id it returns next to the role name in `./.claude-teams/{TEAM_NAME}/roster.md`.
+  - Address every teammate with `SendMessage` to that agent id. Once everyone is spawned, send each teammate the roster (role → agent id) so peers can message each other.
+  - Keep the task list in your todo list and in `./.claude-teams/{TEAM_NAME}/tasks.md`; teammates report "task done" by message instead of `TaskUpdate`.
+  - Shutdown: tell every teammate that is still running to stop, wait until it does, then delete `./.claude-teams/{TEAM_NAME}/`.
+
+Wherever the steps below say `TeamCreate`, `TaskCreate`, `TaskUpdate`, `team_name`, `shutdown_request` or `TeamDelete`, apply the implicit-mode equivalent when you are in implicit mode. A teammate's `{YOUR_NAME}` is its role name (e.g. `impl-track-1`, `code-simplifier`); always put `TEAM_NAME` and `YOUR_NAME` into its spawn prompt.
+
 ---
 
 ## Phase 1: Spec Analysis (No Team Yet)
@@ -106,7 +120,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 
 ### Steps
 
-1. **Create team** via `TeamCreate`:
+1. **Create team** via `TeamCreate` (implicit mode: choose `TEAM_NAME` and create its folder — see Team Mechanics):
    - `team_name`: `"impl-spec-{timestamp}"` (use current timestamp)
    - `description`: Brief description from spec title
 
@@ -114,7 +128,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
    - One task per implementation track (with descriptions including file ownership lists)
    - Review cycle placeholder tasks (mark as blocked by implementation tasks using `addBlockedBy`)
 
-3. **Spawn ALL teammates in parallel** — use a SINGLE message with MULTIPLE `Task` tool calls, all with `team_name` parameter and `mode: "bypassPermissions"`. This applies to ALL agents — impl-track, reviewer, DA, and code-simplifier.
+3. **Spawn ALL teammates in parallel** — use a SINGLE message with MULTIPLE `Task` tool calls, all with `team_name` parameter and `mode: "bypassPermissions"` (implicit mode: background agents without `name`, then send everyone the roster). This applies to ALL agents — impl-track, reviewer, DA, and code-simplifier.
 
 #### Always Mandatory (Spawned in Phase 2 regardless of review mode)
 
@@ -393,9 +407,9 @@ Omit any section that has no content.
 
 ### Team Shutdown
 
-1. Send `shutdown_request` to ALL teammates via `SendMessage` (one per teammate)
+1. Send `shutdown_request` to ALL teammates via `SendMessage` (one per teammate; implicit mode: a plain "stop now" message to every teammate still running)
 2. Wait for confirmations
-3. Call `TeamDelete` to clean up team and task directories
+3. Call `TeamDelete` to clean up team and task directories (implicit mode: delete `./.claude-teams/{TEAM_NAME}/`)
 
 After `TeamDelete` completes, check `VERIFY`:
 - If `VERIFY = true`: proceed to Phase 6 (Verification).
@@ -505,7 +519,7 @@ You are a REVIEW AGENT on a team. Your expertise: {expertise description}.
 
 After completing your review:
 1. Write your FULL findings to `./.claude-teams/{TEAM_NAME}/findings-{YOUR_NAME}.md`
-   (Read your team config at `./.claude-teams/{TEAM_NAME}/config.json` to get TEAM_NAME and YOUR_NAME)
+   (TEAM_NAME and YOUR_NAME are given at the end of this prompt; in explicit mode they are also in `./.claude-teams/{TEAM_NAME}/config.json`)
 2. Send a BRIEF summary message to the team lead via `SendMessage`:
    - List only Critical and High severity issues (one line each)
    - State total issue counts: "Found N issues (X Critical, Y High, Z Medium, W Low)"
@@ -667,7 +681,7 @@ Respond with:
 - If 3 cycles reached with remaining issues, document and exit
 
 ### Team Lifecycle
-- TeamCreate at start of Phase 2
+- TeamCreate at start of Phase 2 (or the implicit-mode setup — see Team Mechanics)
 - Teammates spawned with team_name parameter
 - Shared task list for coordination
 - TeamDelete after all work complete and summary delivered
