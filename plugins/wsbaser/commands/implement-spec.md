@@ -1,6 +1,6 @@
 ---
 description: Coordinate a team of coding and review agents to implement features from spec files
-argument-hint: Path to specification directory (e.g., Spec/my-feature/)
+argument-hint: Path to specification directory (e.g., Spec/my-feature/) [--full | --no-review] [--verify]
 ---
 
 # Team-Based Multi-Agent Implementation
@@ -42,12 +42,13 @@ Specification path: $ARGUMENTS
 ### Flag Parsing
 
 Before analysis, parse the command arguments:
-- If `$ARGUMENTS` contains `--full`, set **REVIEW_MODE = full** and strip `--full` from the spec path
+- If `$ARGUMENTS` contains `--no-review`, set **REVIEW_MODE = none** and strip `--no-review` from the spec path (it wins over `--full`)
+- Else if `$ARGUMENTS` contains `--full`, set **REVIEW_MODE = full** and strip `--full` from the spec path
 - Otherwise, set **REVIEW_MODE = adaptive** (default)
 - If `$ARGUMENTS` contains `--verify`, set **VERIFY = true** and strip `--verify` from the spec path
 - Otherwise, set **VERIFY = false**
 
-In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory reviewers — others are selected dynamically based on the implementation. In **full** mode, ALL reviewers are spawned upfront (original behavior).
+In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory reviewers — others are selected dynamically based on the implementation. In **full** mode, ALL reviewers are spawned upfront (original behavior). In **none** mode (`--no-review`) there is no review at all: no code-simplifier, no reviewers, no Phase 3.5 and no Phase 4 — use it when a later step reviews the change. The devils-advocate still challenges decisions during implementation (Phase 3), because that is not review.
 
 ### Steps
 
@@ -127,7 +128,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 
 2. **Create tasks** in shared task list via `TaskCreate`:
    - One task per implementation track (with descriptions including file ownership lists)
-   - Review cycle placeholder tasks (mark as blocked by implementation tasks using `addBlockedBy`)
+   - Review cycle placeholder tasks (mark as blocked by implementation tasks using `addBlockedBy`) — not in **none** mode
 
 3. **Spawn ALL teammates in parallel** — use a SINGLE message with MULTIPLE `Task` tool calls, all with `team_name` parameter and `mode: "bypassPermissions"` (implicit mode: background agents without `name`, then send everyone the roster). This applies to ALL agents — impl-track, reviewer, DA, and code-simplifier.
 
@@ -136,7 +137,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 | Name | subagent_type | Role |
 |------|---------------|------|
 | `impl-track-1` ... `impl-track-N` | `general-purpose` | Code implementation (1 per parallel track) |
-| `code-simplifier` | `wsbaser:code-simplifier` | Code complexity, simplification |
+| `code-simplifier` | `wsbaser:code-simplifier` | Code complexity, simplification *(not spawned in none mode)* |
 | `devils-advocate` | `wsbaser:devils-advocate` | Challenge decisions + recommend reviewers (adaptive mode) |
 
 > **Note**: All agents (`impl-track-N`, `code-simplifier`, `devils-advocate`, and all agents in the tables below) are spawned with `mode: "bypassPermissions"`.
@@ -167,6 +168,10 @@ If none of these plugins are installed, proceed without dynamic extras.
 #### Adaptive Mode
 
 In **adaptive** mode, only the "Always Mandatory" agents are spawned in Phase 2. Optional reviewers (core + external) are spawned **on-demand in Phase 4** based on the devils-advocate's recommendation from Phase 3.5.
+
+#### No-Review Mode
+
+In **none** mode, spawn only the implementation agents and `devils-advocate`. Tell the devils-advocate its job is decision points only (Template 5) — it will not be asked to recommend reviewers. Implementation agents still build and run the verification commands for their own tracks.
 
 #### Spawn Prompts
 
@@ -272,7 +277,7 @@ After parallel tracks complete, assign the next wave (tracks that depended on co
 
 ## Phase 3.5: Adaptive Reviewer Selection
 
-> **This phase only runs when REVIEW_MODE = adaptive.** If REVIEW_MODE = full, skip to Phase 4.
+> **This phase only runs when REVIEW_MODE = adaptive.** If REVIEW_MODE = full, skip to Phase 4. If REVIEW_MODE = none, skip to Phase 5.
 
 **Goal**: Use devils-advocate's analysis to select which optional reviewers should run, based on the actual implementation.
 
@@ -315,6 +320,8 @@ After parallel tracks complete, assign the next wave (tracks that depended on co
 ---
 
 ## Phase 4: Review Cycles (Max 3 Iterations)
+
+> **Skipped when REVIEW_MODE = none** — go straight to Phase 5 once every track is complete and builds.
 
 **Goal**: Iterative review and fix until quality is acceptable.
 
@@ -394,7 +401,7 @@ No automatic thresholds — each issue judged in context of the spec and codebas
 
 Output a concise, scannable implementation summary to the conversation (NOT a file). Include the following information:
 
-- Top-level stats: cycles completed, build status, issues found/fixed/dismissed/deferred, files touched, review mode, verification status (`enabled (Phase 6 will run after shutdown)` OR `disabled (--verify not passed)`)
+- Top-level stats: cycles completed, build status, issues found/fixed/dismissed/deferred, files touched, review mode (`none` when `--no-review` was passed — say plainly that no review ran), verification status (`enabled (Phase 6 will run after shutdown)` OR `disabled (--verify not passed)`)
 - Review summary per cycle: reviewer count, issues found/accepted/fixed/dismissed
 - Fixed issues: severity, category, cycle, reviewer(s), file(s), what was wrong, what was done
 - Dismissed issues: severity, reviewer, file, description, reason for dismissal
