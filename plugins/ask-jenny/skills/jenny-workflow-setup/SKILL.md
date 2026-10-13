@@ -31,7 +31,7 @@ Add `*.sh text eol=lf` to `.gitattributes`: a Windows checkout with CRLF endings
 
 **Safety net.** Jenny runs the init script fire-and-forget (a stage can start before it finishes) and not on every path that creates a worktree. Copy `assets/ensure-deps.mjs` to `scripts/quality/ensure-deps.mjs` and register it as the **first** `SessionStart` hook in `.claude/settings.json` (`node scripts/quality/ensure-deps.mjs`). When dependencies are missing it runs the init script under a lock, so it never races a running init script; when they are present it exits immediately.
 
-**Worktrees live inside the repo** (`.worktrees/<branch>`). Add `.worktrees/` (and Jenny's `.reports/`) to `.gitignore`, and to the ignore lists of every gate that walks the tree (ESLint `ignores`, knip, dependency-cruiser `exclude`, test runner `exclude`) — otherwise the main checkout's gates lint and test every worktree copy.
+**Worktrees live inside the repo** (`.worktrees/<branch>`). Add `.worktrees/` (and Jenny's `.reports/`) to `.gitignore` and, one per line, to `docs/quality/ignored-paths.txt` — the shared ignore list every gate reads through quality-bootstrap's `gate-ignores.cjs` — otherwise the main checkout's gates lint and test every worktree copy. If the repo's gate configs do not use `gate-ignores.cjs` yet (bootstrap older than v0.4.1), add the two folders to each gate's ignore list instead (ESLint `ignores`, knip, dependency-cruiser `exclude`, test runner `exclude`) and recommend re-running quality-bootstrap.
 
 ### 3. Gated workflow — `.ask-jenny/workflows/quality-execute-plan.yaml`
 
@@ -90,7 +90,14 @@ Blocked items must be absent. If one is present only because a deny rule was ign
 
 ### 6. Ports
 
-Jenny allocates dev-server ports from 3001–3099 and force-kills whatever holds a candidate port, and the developer's own Jenny server and UI listen on ports of their own (read them from that Jenny's configuration — its `PORT` setting and UI port — or ask). Make sure `docs/quality/toolchain.md` → Repo facts → "Reserved ports" lists both, with "Ask Jenny" as the user; add what is missing (that table is where every skill and workflow looks). Then scan the repo's config, scripts, `.ask-jenny/run-script.json` and any UI test server port for services pinned to a reserved port or range and warn in the report; do not change them.
+Jenny allocates dev-server ports from 3001–3099 and force-kills whatever holds a candidate port, and the developer's own Jenny server and UI listen on ports of their own (read them from that Jenny's configuration — its `PORT` setting and UI port — or ask). Make sure `docs/quality/toolchain.md` → Repo facts → "Reserved ports" lists both, with "Ask Jenny" as the user; add what is missing (that table is where every skill and workflow looks). Then scan the repo's config, scripts, `.ask-jenny/run-script.json` and any UI test server port for services pinned to a reserved port or range.
+
+A dev server pinned inside Jenny's pool (`portMode: "fixed"` with a `fixedPort` in 3001–3099, or a hard-coded port in its start command) collides when two features run at once, and Jenny may kill whatever holds that port. Fix it when the server can take its port from outside:
+
+- **Reads an environment variable** (e.g. `process.env.PORT`, `ASPNETCORE_URLS`/`--urls`, Vite's `--port` from a script argument): propose `"portMode": "env", "portEnvVar": "<that variable>"` (or `"portMode": "arg"` for a port argument) in `.ask-jenny/run-script.json`, dropping `fixedPort`. Show the diff in the report. Apply it only when the run is unattended or the user asked you to fix things, and say that you did; it changes the project's own config, so otherwise leave it for the user to accept.
+- **Cannot** (port hard-coded in code): keep the warning and name the one-line code change that would let it read the port (e.g. `Number(process.env.PORT ?? 3005)`); do not edit product code.
+
+Ports outside Jenny's pool that collide with other reserved ports are only reported.
 
 ### 7. Deployed Jenny container (report only)
 

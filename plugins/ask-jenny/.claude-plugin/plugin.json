@@ -1,7 +1,7 @@
 {
   "name": "ask-jenny",
   "description": "Ask Jenny harness setup for a project: worktree init script, a gated plan-execution workflow (plan-readiness gate, specialist review stage), and checks that Jenny's workflow stages honour the project's agent toolchain. Run after quality-bootstrap.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": {
     "name": "wsbaser",
     "url": "https://github.com/wsbaser"

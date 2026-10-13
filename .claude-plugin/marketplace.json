@@ -28,7 +28,7 @@
       "source": "./plugins/quality-bootstrap",
       "category": "development",
       "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/quality-bootstrap",
-      "version": "0.4.0"
+      "version": "0.4.1"
     },
     {
       "name": "ask-jenny",
@@ -40,7 +40,7 @@
       "source": "./plugins/ask-jenny",
       "category": "development",
       "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/ask-jenny",
-      "version": "0.4.0"
+      "version": "0.4.1"
     }
   ]
 }
