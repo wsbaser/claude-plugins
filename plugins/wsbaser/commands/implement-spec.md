@@ -54,7 +54,7 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
    - Data model decisions (enums, types, state management)
    - API/interface design choices
    - Pattern selections (where multiple codebase patterns could apply)
-6. **Discover available agents** — scan the Task tool's subagent_type list for all available agent types (core 7c agents + external plugin agents)
+6. **Discover available agents** — scan the Task tool's subagent_type list for all available agent types (this plugin's `wsbaser:*` agents + external plugin agents)
 7. **Catalog available optional reviewers** — build a list of all optional reviewers that could be selected:
    - **Core optional**: `arch-reviewer`, `clean-code-reviewer`, `regression-reviewer`, `linebyline-reviewer`
    - **External optional** (only if plugin installed — check Task tool's subagent_type list):
@@ -121,8 +121,8 @@ In **adaptive** mode, only `devils-advocate` and `code-simplifier` are mandatory
 | Name | subagent_type | Role |
 |------|---------------|------|
 | `impl-track-1` ... `impl-track-N` | `general-purpose` | Code implementation (1 per parallel track) |
-| `code-simplifier` | `7c:code-simplifier` | Code complexity, simplification |
-| `devils-advocate` | `7c:devils-advocate` | Challenge decisions + recommend reviewers (adaptive mode) |
+| `code-simplifier` | `wsbaser:code-simplifier` | Code complexity, simplification |
+| `devils-advocate` | `wsbaser:devils-advocate` | Challenge decisions + recommend reviewers (adaptive mode) |
 
 > **Note**: All agents (`impl-track-N`, `code-simplifier`, `devils-advocate`, and all agents in the tables below) are spawned with `mode: "bypassPermissions"`.
 
@@ -132,10 +132,10 @@ These agents are spawned upfront in Phase 2 only when **REVIEW_MODE = full**:
 
 | Name | subagent_type | Role |
 |------|---------------|------|
-| `arch-reviewer` | `7c:architecture-reviewer` | Clean Architecture, SOLID, DDD |
-| `clean-code-reviewer` | `7c:clean-code-reviewer` | DRY, code smells, SOLID class-level |
-| `regression-reviewer` | `7c:regression-reviewer` | Behavioral regression detection |
-| `linebyline-reviewer` | `7c:linebyline-reviewer` | Block-by-block spec fidelity with verdicts |
+| `arch-reviewer` | `wsbaser:architecture-reviewer` | Clean Architecture, SOLID, DDD |
+| `clean-code-reviewer` | `wsbaser:clean-code-reviewer` | DRY, code smells, SOLID class-level |
+| `regression-reviewer` | `wsbaser:regression-reviewer` | Behavioral regression detection |
+| `linebyline-reviewer` | `wsbaser:linebyline-reviewer` | Block-by-block spec fidelity with verdicts |
 | `test-analyzer` | `pr-review-toolkit:pr-test-analyzer` | Test code quality *(skip if plugin not installed)* |
 | `code-reviewer` | `feature-dev:code-reviewer` | General bugs, logic errors *(skip if plugin not installed)* |
 
