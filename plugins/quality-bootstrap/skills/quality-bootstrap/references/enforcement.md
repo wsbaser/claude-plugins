@@ -22,7 +22,7 @@ Claude Code asks each user to install declared plugins when they trust the folde
 
 **Big packs, few skills → vendor, don't deny.** When only one or two skills of a plugin are wanted (e.g. `codebase-design` and `domain-modeling` out of ~35 in mattpocock-skills), copy those skill folders into `.claude/skills/<name>/` at the pinned SHA and do **not** enable the plugin. Dozens or hundreds of `Skill()` deny rules are noise for every reviewer and every session; a vendored skill is one folder.
 
-**Standalone skills** — vendor into `.claude/skills/<skill-name>/` at the pinned SHA. Do not edit vendored files; record provenance (repo, SHA, date) in `docs/quality/toolchain.md`. If a user-level skill with the same name exists in `~/.claude/skills`, it shadows the project copy. Do **not** put that name in `skillOverrides`: overrides match by name and would switch off the vendored copy too. List it in the report as a manual action (remove or rename the personal copy); the session audit reports it until then.
+**Standalone skills** — vendor into `.claude/skills/<skill-name>/` at the pinned SHA. Do not edit vendored files; record provenance (repo, SHA, date) in `docs/quality/toolchain.md`. If a user-level skill with the same name exists in `~/.claude/skills`, it shadows the project copy. Do **not** put that name in `skillOverrides`: overrides match by name and would switch off the vendored copy too. List it in the report as a manual action (remove or rename the personal copy); the session audit reports it until then. The same applies when a personal skill shares its name with a skill of an approved plugin (e.g. a personal `spec-to-code-compliance` next to Trail of Bits'): do not switch the name off — ask the user to remove or rename the personal copy.
 
 **MCP servers** — `.mcp.json` at the repo root:
 
@@ -51,7 +51,7 @@ Claude Code asks each user to install declared plugins when they trust the folde
    ```
 
    Paste the three results into the report.
-4. Record the gaps in `docs/quality/toolchain.md`: it checks only the first package named on an add/install command and misses commands with a flag before the package (`npm i -D x`) (npm/yarn/pnpm/bun, pip/uv/poetry/pipenv, cargo, gem, go, `dotnet add package`); bare `npm install` / `dotnet restore` from a lockfile and transitive dependencies are not checked, and it fails open when offline. The lockfile review (`supply-chain-risk-auditor`) and the package manager's own audit stay in place.
+4. Record the gaps in `docs/quality/toolchain.md`: the wrapper checks every package named on add/install commands (flags skipped, chained commands split; at most 12 per command) (npm/yarn/pnpm/bun, pip/uv/poetry/pipenv, cargo, gem, go, `dotnet add package`); bare `npm install` / `dotnet restore` from a lockfile and transitive dependencies are not checked, and it fails open when offline. The lockfile review (`supply-chain-risk-auditor`) and the package manager's own audit stay in place.
 
 Add `scripts/quality/socket-gate/**` and the hook to the protected files (layer 2). Socket Firewall (`sfw`) is a different product — a network proxy with always-on telemetry including git remote org names; adopt it only if the policy accepts that.
 
@@ -79,7 +79,7 @@ Agents must not be able to weaken the gates they are judged by. Add to `permissi
 [
   "Edit(scripts/quality/**)",
   "Edit(.claude/settings.json)",
-  "Edit(docs/quality/approved.json)", "Edit(docs/quality/protected-paths.txt)",
+  "Edit(docs/quality/approved.json)", "Edit(docs/quality/protected-paths.txt)", "Edit(docs/quality/ignored-paths.txt)",
   "Edit(docs/quality/known-failures.md)", "Edit(<each gate config: eslint/tsconfig*/dependency-cruiser/knip/vitest/jest>)",
   "Edit(.github/workflows/**)",
   "Bash(git commit --no-verify*)", "Bash(git commit -n *)", "Bash(git push --force*)", "Bash(git push -f*)"
@@ -97,6 +97,7 @@ Copy `<skill-dir>/assets/toolchain-audit.mjs` to `scripts/quality/toolchain-audi
   "plugins": ["superpowers@claude-plugins-official", "..."],
   "neutralPlugins": ["context7@claude-plugins-official", "..."],
   "setupPlugins": ["quality-bootstrap", "ask-jenny"],
+  "pluginVersions": { "superpowers@claude-plugins-official": "<version or commit sha you vetted>" },
   "skills": ["codebase-design", "domain-modeling", "api-and-interface-design", "plan-readiness"],
   "neutralSkills": ["..."],
   "mcpServers": ["socket"],
@@ -105,6 +106,8 @@ Copy `<skill-dir>/assets/toolchain-audit.mjs` to `scripts/quality/toolchain-audi
 ```
 
 `setupPlugins` lists the bootstrap's own plugin family by plugin name (catalog → "Setup tooling"): they are approved from whichever marketplace hosts them, so a repo set up from a fork or a local marketplace does not flag its own setup tools.
+
+`pluginVersions` records, for every approved plugin, the version (or commit SHA when the version is `unknown`) you read during vetting — project settings cannot pin plugin versions, so the audit compares it with the version installed on each machine and reports drift (an auto-update or a teammate's newer install) until the bootstrap is re-run to review the new version.
 
 Register the audit as a `SessionStart` hook (`node scripts/quality/toolchain-audit.mjs`). At the start of every session — any machine, any harness — it compares the active plugins, user skills and user MCP servers with `approved.json` and prints each unapproved item with the exact setting that blocks it. SessionStart output becomes context, so the agent knows not to use those items; it never blocks the session. `--strict` exits 1 for use in scripts.
 

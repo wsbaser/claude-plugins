@@ -23,7 +23,7 @@ const THRESHOLD = /threshold|thresholds|\bbreak\b|\bbranches\b|\bfunctions\b|\bs
 // permission deny rules may be bypassed (shell edits, --dangerously-skip-permissions), so any
 // change is reported here for human review. Repo- or harness-specific paths (a harness's init script
 // or workflow files) are listed one glob per line in docs/quality/protected-paths.txt.
-const PROTECTED = /^(scripts\/quality\/|\.claude\/settings\.json$|\.claude\/skills\/|\.claude\/hooks\/|\.mcp\.json$|docs\/quality\/(approved\.json|policy\.md|known-failures\.md|protected-paths\.txt)$|\.github\/workflows\/|\.azure-pipelines\/|azure-pipelines[^/]*\.ya?ml$|\.husky\/)/;
+const PROTECTED = /^(scripts\/quality\/|\.claude\/settings\.json$|\.claude\/skills\/|\.claude\/hooks\/|\.mcp\.json$|docs\/quality\/(approved\.json|policy\.md|known-failures\.md|protected-paths\.txt|ignored-paths\.txt)$|\.github\/workflows\/|\.azure-pipelines\/|azure-pipelines[^/]*\.ya?ml$|\.husky\/)/;
 function protectedMatcher(cwd) {
   let extra = [];
   try {

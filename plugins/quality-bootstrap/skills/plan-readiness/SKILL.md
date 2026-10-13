@@ -64,6 +64,13 @@ Reading is not enough — the defects that sink executions are the ones nobody t
 
 Every check you ran goes into the report's evidence column, so the planner can trust the finding without re-deriving it.
 
+**Containment — experiments must leave no trace outside the review.** A review often runs unattended (a workflow stage), on a developer's machine or a shared server, so:
+
+- Work in one temporary directory you create (a scratch copy of the repo, or a scratch project). Install dependencies only inside it, from the lockfile or already-installed tools; never globally, per-user, in WSL or another OS, or with a system package manager. Start no long-running services and bind no ports. Delete the directory at the end.
+- If a check needs a runtime, OS or service that is not already available, do not set it up: record the claim as "not verified — needs <what>" in the report. An unverified risky claim is a CONCERN at most, never a BLOCKER.
+
+**Budget — spend the time where defects are most likely.** Order checks by risk: the starting state and the verify commands first, then the steps whose correctness depends on runtime behaviour, then everything else. Stop experimenting after about 15 minutes of checks (a few dozen commands) and list what you did not get to. Once a defect class already fails the plan, note further instances briefly instead of proving each one.
+
 Every BLOCKER must name a **concrete failure scenario** — the input or state, what the plan's code does, and what the spec requires instead (e.g. "amount 2.345 → `Math.Round(x, 2)` gives 2.34 (banker's rounding); AC-4 requires 2.35"). If you cannot construct one, it is not a BLOCKER: drop it, or record it as a CONCERN only if it needs a human decision.
 
 ### 6. Review Focus coverage

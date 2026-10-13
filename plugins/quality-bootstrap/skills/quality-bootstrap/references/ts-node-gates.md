@@ -4,10 +4,20 @@ Each gate: add it, make it pass on today's code, wire it into a root script and 
 
 Use the repo's package manager (npm / pnpm / yarn / bun) for every command below.
 
+**Copy the bundled helpers, don't rewrite them.** Every gate below that needs a script has a tested one in `<skill-dir>/assets/`; copy it to `scripts/quality/` and wire it in. Writing your own version costs time, and each hand-written variant behaves differently and is untested:
+
+| Asset | Used by |
+| ----- | ------- |
+| `gate-ignores.cjs` | one ignore list for ESLint, the test runner, knip and dependency-cruiser; repo- or harness-specific folders go in `docs/quality/ignored-paths.txt`, one per line |
+| `depcruise-tsconfig.mjs` | gate 3: generates `tsconfig.depcruise.json` (workspace names → `src` entries); `--check` in CI |
+| `known-failures.mjs` | gate 5: `quarantinedFiles()` for the runner config, `--check` two-way ratchet (Vitest and Jest), `--selftest` |
+| `test-guard.mjs`, `task-diff-check.mjs` | gates 6 and 7 |
+
 ## 1. Lint
 
 - ESLint flat config (`eslint.config.js` or `.mjs`) with `typescript-eslint` recommended-type-checked where type info is cheap, plain recommended otherwise. React packages: `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`.
 - Cover every workspace that has source, not just the app that already had a config.
+- Ignores come from the shared list: `import ignores from './scripts/quality/gate-ignores.cjs'` and `{ ignores: ignores.globs() }` as the first config entry. Do the same in the test runner (`exclude: [...configDefaults.exclude, ...ignores.globs()]`) and knip (`knip.config.mjs` with `ignore: ignores.globs()`).
 - Root script `lint` runs all of them. Existing violations: auto-fix what is safe; record the rest in `docs/quality/lint-baseline.md` per rule with a count, and use per-file overrides only for listed files.
 
 ## 2. Typecheck
@@ -28,7 +38,7 @@ Use the repo's package manager (npm / pnpm / yarn / bun) for every command below
   - no deep imports into another workspace's `src/` — only its package entry
   - edition / feature isolation rules the repo documents (e.g. "the open-source build may not import enterprise-only modules")
 - Config `.dependency-cruiser.cjs`; root script `deps:check`. Existing violations → `--ignore-known` baseline file, listed in the report.
-- Workspace imports often resolve to a package's built `dist/`; if `dist` is excluded, dependency-cruiser silently drops those edges and the layer rules check nothing. Point `options.tsConfig` at a `tsconfig.depcruise.json` whose `paths` map each workspace package name to its `src/` entry, and prove the rules bite: temporarily add a forbidden import and confirm `deps:check` fails, then revert.
+- Workspace imports often resolve to a package's built `dist/`; if `dist` is excluded, dependency-cruiser silently drops those edges and the layer rules check nothing. Generate `tsconfig.depcruise.json` with `node scripts/quality/depcruise-tsconfig.mjs` (it maps each workspace package name to its `src/` entry; map by hand any it reports as unmapped that other workspaces import), point `options.tsConfig.fileName` at it, set `options.exclude.path` to `require('./scripts/quality/gate-ignores.cjs').regex()`, add `depcruise-tsconfig.mjs --check` to the `deps:check` script, and prove the rules bite: temporarily add a forbidden import and confirm `deps:check` fails, then revert.
 
 ## 4. Dead code — knip
 
@@ -36,8 +46,8 @@ Use the repo's package manager (npm / pnpm / yarn / bun) for every command below
 
 ## 5. Test baseline
 
-- Run the unit test suites. If tests already fail, do not fix product code and never edit the failing assertion: list each failing test in `docs/quality/known-failures.md` (file, test name, first error line) and quarantine them with the runner's mechanism (Vitest/Jest: a shared known-failures list consumed by the config's `exclude` or a skip wrapper that reads the list) so CI is green and meaningful. Mark load-sensitive tests as flaky with a re-run-once rule rather than skipping them.
-- The list is a two-way ratchet: it may only shrink, and a listed test that **starts passing** must fail the gate ("remove it from known-failures.md") — otherwise fixed tests stay quarantined forever. Run the listed tests in a separate step that expects each to fail.
+- Run the unit test suites. If tests already fail, do not fix product code and never edit the failing assertion: list each failing test in `docs/quality/known-failures.md` (file, test name, first error line) and quarantine them with `scripts/quality/known-failures.mjs`: the runner config excludes `quarantinedFiles()` (Vitest: `import { quarantinedFiles } from './scripts/quality/known-failures.mjs'`; Jest: `testPathIgnorePatterns`), so CI is green and meaningful. Table columns: `| File | Test | First error line |`, the test name exactly as the runner reports it. Mark load-sensitive tests as flaky with a re-run-once rule rather than skipping them.
+- The list is a two-way ratchet: it may only shrink, and a listed test that **starts passing** must fail the gate ("remove it from known-failures.md") — otherwise fixed tests stay quarantined forever. Root script `test:known-failures` = `node scripts/quality/known-failures.mjs --check`, part of `quality`: it runs only the quarantined files and fails when a listed test passes or disappears, or when an unlisted test in a quarantined file fails. Run its `--selftest` once during setup.
 - It may only shrink: The test-tamper guard flags growth in a session, the diff check flags any edit to it, and layer 2 of enforcement denies agent edits to it. Removing a fixed test from the list is a human, reviewed change.
 
 ## 6. Test-tamper guard

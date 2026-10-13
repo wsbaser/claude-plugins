@@ -68,6 +68,22 @@ for (const [id, on] of Object.entries(plugins)) {
     findings.push({ kind: 'plugin', id, fix: `"enabledPlugins": { "${id}": false } in .claude/settings.json` });
 }
 
+// Version drift: project settings cannot pin a plugin version, so compare what is installed for this
+// project (project-scoped entry for this repo, else the user-scoped one) with what was vetted.
+// approved.json → "pluginVersions": { "<plugin>@<marketplace>": "<version or commit sha>" }.
+const installed = readJson(path.join(home, 'plugins', 'installed_plugins.json'))?.plugins ?? {};
+const samePath = (a, b) => path.resolve(a ?? '').toLowerCase() === path.resolve(b ?? '').toLowerCase();
+for (const [id, vetted] of Object.entries(approved.pluginVersions ?? {})) {
+  if (plugins[id] !== true) continue;
+  const entries = Array.isArray(installed[id]) ? installed[id] : installed[id] ? [installed[id]] : [];
+  const entry = entries.find((e) => e.scope === 'project' && samePath(e.projectPath, repo)) ?? entries.find((e) => e.scope === 'user') ?? entries[0];
+  if (!entry) continue;
+  const have = [entry.version, entry.gitCommitSha].filter((v) => v && v !== 'unknown');
+  const matches = have.some((v) => v === vetted || (vetted.length >= 7 && v.startsWith(vetted)) || (v.length >= 7 && vetted.startsWith(v)));
+  if (have.length && !matches)
+    findings.push({ kind: 'plugin version', id, fix: `installed ${have[0]}, vetted ${vetted} — re-run quality-bootstrap to review the new version (or reinstall the vetted one)` });
+}
+
 let userSkills = [];
 try {
   userSkills = fs.readdirSync(path.join(home, 'skills')).filter((d) => !d.startsWith('.') && fs.existsSync(path.join(home, 'skills', d, 'SKILL.md')));
@@ -124,7 +140,9 @@ if (args.has('--json')) {
   console.log(
     [
       `Toolchain audit: ${findings.length} item(s) are active in this session but not approved for this repository (docs/quality/toolchain.md):`,
-      ...findings.map((f) => `- ${f.kind} ${f.id} — do not use it here. To block: ${f.fix}`),
+      ...findings.map((f) =>
+        f.kind === 'plugin version' ? `- plugin ${f.id} is not the vetted version: ${f.fix}` : `- ${f.kind} ${f.id} — do not use it here. To block: ${f.fix}`,
+      ),
       'Use only approved tools. Tell the user about these items once; do not change settings yourself unless asked.',
     ].join('\n')
   );
