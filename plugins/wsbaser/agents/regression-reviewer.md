@@ -1,7 +1,7 @@
 ---
 name: regression-reviewer
 description: Verifies code changes don't introduce regressions or breaking changes. Invoke after implementing changes to existing code — especially refactors, interface updates, or pattern migrations.
-tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
+tools: Glob, Grep, LS, Read, Write, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput, SendMessage
 model: sonnet
 color: green
 ---

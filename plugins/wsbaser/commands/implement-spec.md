@@ -27,6 +27,7 @@ Claude Code has shipped two ways to run a team. Check your tool list once, befor
   - Address every teammate with `SendMessage` to that agent id. Once everyone is spawned, send each teammate the roster (role → agent id) so peers can message each other.
   - Keep the task list in your todo list and in `./.claude-teams/{TEAM_NAME}/tasks.md`; teammates report "task done" by message instead of `TaskUpdate`.
   - Shutdown: tell every teammate that is still running to stop, wait until it does, then delete `./.claude-teams/{TEAM_NAME}/`.
+  - A reviewer that cannot write its findings file returns the full findings as its final result instead; read that result in place of the file. A teammate without `SendMessage` cannot take part in peer dialogue — run that exchange through yourself.
 
 Wherever the steps below say `TeamCreate`, `TaskCreate`, `TaskUpdate`, `team_name`, `shutdown_request` or `TeamDelete`, apply the implicit-mode equivalent when you are in implicit mode. A teammate's `{YOUR_NAME}` is its role name (e.g. `impl-track-1`, `code-simplifier`); always put `TEAM_NAME` and `YOUR_NAME` into its spawn prompt.
 
