@@ -28,11 +28,11 @@
       "source": "./plugins/quality-bootstrap",
       "category": "development",
       "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/quality-bootstrap",
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     {
       "name": "ask-jenny",
-      "description": "Ask Jenny harness setup: worktree init script, gated plan-execution workflow (plan-readiness gate, specialist review stage), and toolchain checks for Jenny workflow stages. Run after quality-bootstrap.",
+      "description": "Ask Jenny harness setup: worktree init script and safety net, the toolchain facts for Jenny's bundled gated workflow, and toolchain checks for Jenny workflow stages. Run after quality-bootstrap.",
       "author": {
         "name": "wsbaser",
         "url": "https://github.com/wsbaser"
@@ -40,7 +40,7 @@
       "source": "./plugins/ask-jenny",
       "category": "development",
       "homepage": "https://github.com/wsbaser/claude-plugins/tree/main/plugins/ask-jenny",
-      "version": "0.4.1"
+      "version": "0.5.0"
     }
   ]
 }

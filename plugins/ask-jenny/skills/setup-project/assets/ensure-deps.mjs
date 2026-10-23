@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Ensure a worktree has its dependencies before an agent session works in it
-// (installed by the jenny-workflow-setup skill; SessionStart hook).
+// (installed by the setup-project skill; SessionStart hook).
 //
 // Ask Jenny runs .ask-jenny/worktree-init.sh fire-and-forget and does not run it for every way a
 // worktree can be created, so a workflow stage can start in a worktree with no node_modules —

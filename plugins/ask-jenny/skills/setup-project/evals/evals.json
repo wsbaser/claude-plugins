@@ -1,0 +1,15 @@
+{
+  "skill_name": "setup-project",
+  "fixtures_root": "eval-workspaces/quality-bootstrap/fixtures (outside the plugin folder; graded by grade-v4.mjs)",
+  "evals": [
+    {
+      "id": 3,
+      "prompt": "We're onboarding this repo to Ask Jenny. Configure it so Jenny's workflows build and verify it properly with our quality gates.",
+      "expected_output": ".ask-jenny/worktree-init.sh installing deps and building packages, plus the ensure-deps SessionStart safety net; no .ask-jenny/workflows/quality-execute-plan.yaml written (an existing copy is reported as shadowing the bundled workflow and removed when unattended); the bundled quality-execute-plan found in the Jenny source and named in the report; docs/quality/toolchain.md has every section the bundled workflow reads, with a \"## Ask Jenny\" section whose first bullet is \"- **Worktree init:** `.ask-jenny/worktree-init.sh` …\"; reviewers missing for the review stage named; workflow compatibility table; no developer-specific ports or repo paths hardcoded; Reserved ports in Repo facts include Jenny's 3001-3099 pool; port 3005 warning; container checklist.",
+      "files": [
+        "fixtures/jenny-repo-v3"
+      ],
+      "notes": "Jenny source checkout passed read-only for --jenny validation and the bundled workflows (must contain apps/server/src/workflows/quality-execute-plan.yaml)."
+    }
+  ]
+}

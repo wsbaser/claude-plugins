@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ask Jenny worktree init — runs once per new feature worktree (set up by jenny-workflow-setup).
+# Ask Jenny worktree init — runs once per new feature worktree (set up by setup-project).
 # Installs dependencies inside the worktree so builds and tests use the worktree's own code,
 # not packages resolved from the main checkout.
 set -euo pipefail

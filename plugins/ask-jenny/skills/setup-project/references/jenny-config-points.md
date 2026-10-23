@@ -17,6 +17,7 @@ Behaviour worth knowing:
 - The init script is fire-and-forget: a stage can start before it finishes, and some worktree-creation paths skip it — hence the `ensure-deps` SessionStart safety net.
 - Feature worktrees live inside the repo at `.worktrees/<branch>`; anything that walks the tree must ignore that folder.
 - Project workflows are loaded when the Jenny server starts (for the project open then); restart Jenny after adding or changing one.
+- The gated workflow `quality-execute-plan` is bundled (`apps/server/src/workflows/`, `hosted` branch since 2026-10-19) and reads `docs/quality/toolchain.md` at run time; its first stage aborts when a section it reads is missing, `## Ask Jenny` → `- **Worktree init:**` included. A project copy with the same id shadows it.
 - Bundled workflows invoke skills by slash command; a repo that disables those plugins/skills breaks those workflows (see `scripts/workflow-compat.mjs`).
 
 Not configured by this skill (obsolete Agent-SDK path): `autoLoadClaudeMd`, `.ask-jenny/context/` injection, SDK `settingSources`.

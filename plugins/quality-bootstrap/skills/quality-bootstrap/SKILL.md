@@ -77,7 +77,7 @@ Plans are where most agent defects start, so the repo gets the same planning rul
 
 ### 8. Report and document
 
-Write `docs/quality/toolchain.md` from `assets/toolchain-template.md`: the repo facts; each tool with job, stage, pinned version, scope, vetting result, how to update; the gates and how to run them; what the user must do by hand (user-scoped MCP removals, personal skills that shadow vendored ones, installs prompted on first trust, accounts); the managed-settings allowlist snippet for admins. Also write `docs/quality/approved.json`. Commit only the files you created or changed, one commit per step group (toolchain, enforcement, each gate).
+Write `docs/quality/toolchain.md` from `assets/toolchain-template.md`: the repo facts; each tool with job, stage, pinned version, scope, vetting result, how to update; the gates and how to run them; what the user must do by hand (user-scoped MCP removals, personal skills that shadow vendored ones, installs prompted on first trust, accounts); the managed-settings allowlist snippet for admins; the template's `## Ask Jenny` placeholder as is (on a re-run, never touch an existing `## Ask Jenny` section — `ask-jenny:setup-project` owns it). Also write `docs/quality/approved.json`. Commit only the files you created or changed, one commit per step group (toolchain, enforcement, each gate).
 
 End with a short summary: installed, blocked, gates added, manual actions left, anything dropped in vetting and why.
 

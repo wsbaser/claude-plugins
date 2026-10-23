@@ -1,9 +1,9 @@
 ---
-name: jenny-workflow-setup
-description: Configure a project so Ask Jenny's workflow stages run on it safely and with the project's quality gates — worktree init script, a gated "Quality: Plan & Execute" workflow in .ask-jenny/workflows, coexistence with Jenny's stage hooks, and a checklist for the deployed Jenny container. Use whenever a repo has (or is getting) an .ask-jenny folder and someone wants Jenny workflows to build, test and verify it correctly, add the quality gates to Jenny runs, fix worktrees that build against stale packages, or onboard a new project to Ask Jenny — after (or together with) the quality-bootstrap skill.
+name: setup-project
+description: Configure a project so Ask Jenny's workflow stages run on it safely and with the project's quality gates — worktree init script and its safety-net hook, the toolchain facts Jenny's bundled "Quality: Plan & Execute" workflow reads, coexistence with Jenny's stage hooks, workflow compatibility, ports, and a checklist for the deployed Jenny container. Use whenever a repo has (or is getting) an .ask-jenny folder and someone wants Jenny workflows to build, test and verify it correctly, a Jenny run aborts with "toolchain.md has no section ## Ask Jenny", worktrees build against stale packages, or a new project is onboarded to Ask Jenny — after (or together with) the quality-bootstrap skill.
 ---
 
-# Ask Jenny workflow setup
+# Ask Jenny project setup
 
 Ask Jenny runs features as **workflows**: each stage is an interactive `claude` CLI session started in the feature's git worktree, with Jenny's own hooks plugin passed via `--plugin-dir` and permissions bypassed. Everything here targets that path only — Jenny's older Agent-SDK execution path (auto-mode, chat) is obsolete and must not be configured.
 
@@ -11,7 +11,7 @@ Because stages run the CLI with the worktree as working directory, the project's
 
 ## Prerequisite
 
-The agnostic toolchain and gates come first: `docs/quality/toolchain.md` must exist (created by the `quality-bootstrap` skill, v0.4 or later). If it does not, run that skill first, or stop and say so. Read it to learn the gate commands, the known-failures file, the guard scripts and the **Repo facts** (plans directory, security-sensitive paths, reserved ports, UI themes). The workflow's planning and review stages also need `.claude/skills/plan-readiness/` and `docs/quality/interface-design.md`. If the Repo facts section or either file is missing, the repo was set up by an older bootstrap: re-run `quality-bootstrap` (its re-run adds them) rather than inventing the values here — they are facts about the repo, owned by that skill.
+The agnostic toolchain and gates come first: `docs/quality/toolchain.md` must exist (created by the `quality-bootstrap` skill, v0.4 or later). If it does not, run that skill first, or stop and say so. Read it to learn the gate commands, the known-failures file, the guard scripts and the **Repo facts** (plans directory, security-sensitive paths, reserved ports, forbidden commands, UI themes). From v0.4.2 it also carries a placeholder `## Ask Jenny` section (`Worktree init:` none); this skill owns that section and replaces it. The workflow's planning and review stages also need `.claude/skills/plan-readiness/` and `docs/quality/interface-design.md`. If the Repo facts section or either file is missing, the repo was set up by an older bootstrap: re-run `quality-bootstrap` (its re-run adds them) rather than inventing the values here — they are facts about the repo, owned by that skill.
 
 ## Steps
 
@@ -33,37 +33,33 @@ Add `*.sh text eol=lf` to `.gitattributes`: a Windows checkout with CRLF endings
 
 **Worktrees live inside the repo** (`.worktrees/<branch>`). Add `.worktrees/` (and Jenny's `.reports/`) to `.gitignore` and, one per line, to `docs/quality/ignored-paths.txt` — the shared ignore list every gate reads through quality-bootstrap's `gate-ignores.cjs` — otherwise the main checkout's gates lint and test every worktree copy. If the repo's gate configs do not use `gate-ignores.cjs` yet (bootstrap older than v0.4.1), add the two folders to each gate's ignore list instead (ESLint `ignores`, knip, dependency-cruiser `exclude`, test runner `exclude`) and recommend re-running quality-bootstrap.
 
-### 3. Gated workflow — `.ask-jenny/workflows/quality-execute-plan.yaml`
+### 3. Bundled workflow — `quality-execute-plan`
 
-First run every gate command from `docs/quality/toolchain.md` once in a fresh worktree after the init script. A workflow built on gates that cannot run will loop or abort on every feature: if any gate fails for setup reasons (tool not installed, missing config, broken build), stop here, report exactly what fails, and tell the user to run or re-run `quality-bootstrap` — do not install gate tooling yourself, that skill owns it.
+Jenny bundles the gated workflow "Quality: Plan & Execute" (`quality-execute-plan`). It is repo-agnostic: it reads every command, path and rule from `docs/quality/toolchain.md` at run time and aborts naming the section it misses. This skill ships no workflow; it makes the repo satisfy what that workflow reads.
 
-Then start from `assets/quality-execute-plan.yaml` and fill the placeholders from `docs/quality/toolchain.md`:
+**Find the bundled workflows.** `$ASK_JENNY_HOME/apps/server/src/workflows`, a Jenny source checkout the user names, or the deployed server's workflow directory; if none is reachable, ask once (unattended: say the checks that need it were skipped). Confirm `quality-execute-plan.yaml` is there. If it is not, this Jenny build does not bundle it: say so in the report and name the Jenny version or branch that does — never write a project copy to make up for it.
 
-- `{{GATE_COMMANDS}}` — the root `quality` script if the repo has one (one definition of "green" for humans, hooks, CI and Jenny); otherwise the exact gate commands in run order (build of shared packages first, then typecheck, lint, import boundaries, unit tests), one per line.
-- `{{EXCLUDED_COMMANDS}}` — commands verify must never run (E2E suites, anything that starts servers on fixed ports, deploys).
-- `{{UI_GATE_COMMANDS}}` — the web-UI gate script (`quality:ui` from quality-bootstrap's web-UI gates) when the repo has one, otherwise `none`.
-- `{{KNOWN_FAILURES}}` — path of the known-failures file, or `none`.
-- `{{INIT_SCRIPT}}` — `.ask-jenny/worktree-init.sh`.
+**No shadowing copy.** A project workflow with the same `id` replaces the bundled one. Older versions of this skill wrote `.ask-jenny/workflows/quality-execute-plan.yaml`; that copy is now stale and hides every fix to the bundled workflow. If it exists, propose deleting it (show `git diff --no-index` against the bundled file in the report); delete it only when the run is unattended or the user asked you to fix things, and say that you did.
 
-Leave `{{artifactHandle}}` untouched — Jenny substitutes it per feature at run time.
+**Gates run.** Run every gate command from `docs/quality/toolchain.md` once in a fresh worktree after the init script. A workflow built on gates that cannot run loops or aborts on every feature: if any gate fails for setup reasons (tool not installed, missing config, broken build), stop here, report exactly what fails, and tell the user to run or re-run `quality-bootstrap` — do not install gate tooling yourself, that skill owns it.
 
-Use a new workflow id (`quality-execute-plan`), not an override of a bundled id: the project keeps working when Jenny updates its bundled workflows, and both remain selectable. If the user wants the gates as the default for all plan runs, tell them to pick this workflow as the project's preset in Jenny instead of overriding a bundled one.
+**Sections the workflow reads.** The Gates rows `All fast gates`, `All UI gates`, `Per-task diff check` and `Known failures ratchet`; the Repo facts rows `Reserved ports (never bind or kill)`, `Forbidden commands` and `Plans directory`; the `### Security-sensitive paths` subsection; and `## Ask Jenny` → the `- **Worktree init:**` bullet (written in step 8). A row whose value says there is none is present. If a Gates or Repo facts row is missing, re-run `quality-bootstrap`; do not invent the value here.
 
-The workflow plans (interface design first when the phase adds a cross-module interface), gates the plan with `plan-readiness` (FAIL → back to write-plan once; CONCERNS → stops for the human), executes, runs the specialist `review` stage (loops to implement-plan, at most twice), verifies and keeps the branch. The review stage reads the security-sensitive paths and UI themes from the Repo facts at run time, so changing them needs no workflow edit. Check that `docs/quality/toolchain.md` lists the reviewers the stage calls (pr-review-toolkit, the built-in `/code-review` and `/security-review`, the Trail of Bits skills, and impeccable / break-ui for UI repos); the stage skips missing ones, so name every missing one in the report.
+**Reviewers.** The review stage calls pr-review-toolkit, the built-in `/code-review` and `/security-review`, the Trail of Bits skills, and impeccable / break-ui for UI repos, and skips missing ones. Check that `docs/quality/toolchain.md` lists them and name every missing one in the report.
 
-Validate before committing:
+**Project workflows.** Validate every YAML the repo keeps in `.ask-jenny/workflows/` (a workflow pack, the project's own flows) before committing it:
 
 ```
-node <skill-dir>/scripts/validate-workflow.mjs .ask-jenny/workflows/quality-execute-plan.yaml [--jenny <jenny-source-root>]
+node <skill-dir>/scripts/validate-workflow.mjs .ask-jenny/workflows/<id>.yaml [--jenny <jenny-source-root>]
 ```
 
-It applies Jenny's loader rules (root fields and the description's selection clauses, stage shape, `outputs` on every stage, references and `retryTarget` only to earlier stages, `when:` grammar, output types, no unfilled placeholders). When Jenny's source is available (a checkout containing `libs/types/src/workflow.ts` with `StageDefinition`), pass `--jenny` so the keys, categories, output types and tokens are read from that source instead of the built-in copy; otherwise say in the report that the check used the built-in contract.
+It applies Jenny's loader rules (root fields and the description's selection clauses, stage shape, `outputs` on every stage, references and `retryTarget` only to earlier stages, `when:` grammar, output types, no unfilled placeholders). When Jenny's source is available (a checkout containing `libs/types/src/workflow.ts` with `StageDefinition`), pass `--jenny` so the keys, categories, output types and tokens are read from that source instead of the built-in copy; otherwise say in the report that the check used the built-in contract. Jenny loads project workflows when its server starts: after changing one, tell the user to restart Jenny (or reopen the project).
 
-Jenny loads project workflows when its server starts. Tell the user to restart Jenny (or reopen the project) after this change, and how to select the workflow.
+To use the gated flow, the user picks "Quality: Plan & Execute" for a feature or sets it as the project's preset; a bundled workflow needs no restart.
 
 ### 3b. Workflow compatibility
 
-The toolchain switches plugins and skills off; every Jenny workflow whose stages invoke one of them (`/plugin:skill` slash commands) breaks in this repo — the stage aborts or, worse, improvises without the skill. Find Jenny's bundled workflows: `$ASK_JENNY_HOME/apps/server/src/workflows`, a Jenny source checkout the user names, or the deployed server's workflow directory; if none is reachable, ask once (unattended: say the check was skipped). Then run:
+The toolchain switches plugins and skills off; every Jenny workflow whose stages invoke one of them (`/plugin:skill` slash commands) breaks in this repo — the stage aborts or, worse, improvises without the skill. With the bundled workflows directory from step 3, run:
 
 ```
 node <skill-dir>/scripts/workflow-compat.mjs <repo> <bundled-workflows-dir> <repo>/.ask-jenny/workflows
@@ -106,9 +102,15 @@ In a deployed Jenny, user-level plugins and skills come from the container's Cla
 ### 8. Verify and report
 
 - `bash -n .ask-jenny/worktree-init.sh`; run it once in a throwaway worktree (`git worktree add <tmp> HEAD`, then remove it) with `ASK_JENNY_WORKTREE_PATH` set, and confirm installs and builds succeed.
-- Run `validate-workflow.mjs` from step 3 (with `--jenny` when the source is available) and paste its result line.
+- For each project workflow, `validate-workflow.mjs` from step 3 (with `--jenny` when the source is available); paste its result line.
 - The bypassed-permissions check from step 5.
 - In the throwaway worktree before the init script: `node scripts/quality/ensure-deps.mjs --check` exits 1; run the hook, then `--check` exits 0.
 - `git status` in the main checkout stays clean while the throwaway worktree exists.
 
-Append an "Ask Jenny" section to `docs/quality/toolchain.md`: init script and safety-net hook, workflow id, its stages and how to select it, restart note, validation result, reviewers missing for the review stage, workflow compatibility table, hooks, port warnings, container checklist. Commit only the files you created or changed.
+Write the `## Ask Jenny` section of `docs/quality/toolchain.md`, replacing quality-bootstrap's placeholder (or appending it when absent; on a re-run, update it in place). Its first line under the heading is `Set up by \`setup-project\` (ask-jenny <version>).` and its first bullet is the one the bundled workflow reads, in exactly this form:
+
+```
+- **Worktree init:** `.ask-jenny/worktree-init.sh` — <what it does, verification result>
+```
+
+(`- **Worktree init:** none — <reason>` when the repo needs no init script.) Then: safety-net hook, ignored paths, the bundled workflow (present or not in the target Jenny, stale project copy removed or proposed, how to select it), project workflows and their validation result, reviewers missing for the review stage, hooks, bypassed-permissions result, ports, and the subsections "Workflows usable in this repo" (step 3b) and "Deployed Jenny container (operator checklist)" (step 7). Commit only the files you created or changed.

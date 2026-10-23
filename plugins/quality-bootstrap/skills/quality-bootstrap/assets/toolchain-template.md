@@ -44,3 +44,9 @@ Detected or asked once at bootstrap; the planning skills, review stages and harn
 - <user-scoped MCP servers to remove with /mcp>
 - <plugins to accept on first trust>
 - <accounts or tokens a tool needs>
+
+## Ask Jenny
+
+Placeholder: run `ask-jenny:setup-project` when Ask Jenny's workflows run on this repo; it replaces this section. Jenny's bundled gated workflow reads the bullet below and aborts when the section is missing.
+
+- **Worktree init:** none — Ask Jenny not set up for this repo.
