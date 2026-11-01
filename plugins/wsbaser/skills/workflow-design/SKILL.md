@@ -1,7 +1,7 @@
 ---
 name: wsbaser:workflow-design
 description: Takes an ordered list of SKILL.md file paths (or skill names), reads each skill to infer its stage category and its named typed outputs, drafts stageSystemPrompt instructions using GATE/SPEC/BUILD/TEST templates, shows each draft to the user for approval, then generates a workflow YAML into the current project's existing workflows folder. Use this skill whenever the user wants to create a new multi-stage workflow from a set of known ordered skills, says "design a workflow from these skills", or to convert an existing skill pipeline into a workflow YAML. Also automatically invoked by wsbaser:workflow-discover after the user selects a candidate.
-allowed-tools: Read Glob Write AskUserQuestion
+allowed-tools: Read Glob Write AskUserQuestion mcp__ask_jenny__GetWorkflow
 ---
 
 # Workflow Design
@@ -209,10 +209,15 @@ Include the `briefPatch` line only when the skill genuinely settles what "done" 
 Use when: category is BUILD (implements code; usually declares `outputs: {}`)
 
 ```
-When your implementation work is fully complete, you MUST call the StageComplete MCP tool as the LAST action before stopping.
+When your implementation work is fully complete, call the StageComplete MCP tool as the
+LAST action before stopping:
+
+  status:  'success'
+  summary: one to three sentences — what you changed and anything the next stage must know
+  outputs: {}
 ```
 
-`outputs: {}` is the honest declaration for a stage whose only product is code changes. If the BUILD skill does hand a value onward — a PR url, a PR id — declare it in Step 2 and replace the line with `outputs: { prUrl: <pr url> }`.
+`outputs: {}` is the honest declaration for a stage whose only product is code changes. If the BUILD skill does hand a value onward — a PR url, a PR id — declare it in Step 2 and replace the `outputs:` line with `outputs: { prUrl: <pr url> }`.
 
 ### TEST template
 Use when: category is TEST (verifies, can loop back to the preceding BUILD stage)
@@ -226,12 +231,12 @@ When your verification work is fully complete, you MUST do both of these in orde
 
        If no issues found:
          status:  'success'
-         summary: what you exercised and the result
+         summary: one to three sentences — what you exercised and the result
          outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
 
        If issues found:
          status:  'loop'
-         summary: what you exercised and what failed
+         summary: one to three sentences — what you exercised and what failed
          reason:  the specific defect {preceding BUILD stage label} must fix — name the
                   file and the behavior, not "see the report"
          outputs: { report: .reports/{{artifactHandle}}/verify-report.md }
@@ -283,6 +288,28 @@ stageSystemPrompt: |
   description, e.g. **Verification report:** <reportUrl>
 ```
 
+### Optional engine fields
+
+Use one only when the pipeline needs that behaviour; omitted, each takes its default.
+
+| Field | Where | Effect |
+|---|---|---|
+| `defaultEnabled` | stage with `required: false` | whether the optional stage starts switched on |
+| `when` | stage | skips the stage unless the guard holds: `<stageId>.<output>` (output present), or `… == 'literal'` / `… != 'literal'`. Reads the latest successful attempt of an earlier stage; no `and`/`or`. An absent output makes every form false, so `!=` cannot mean "was not produced". Prefer it to a GATE abort when only part of the pipeline should be skipped |
+| `pauseBefore: true` | stage | parks the run for human approval before the stage starts |
+| `model` | stage | `claude-haiku`, `claude-sonnet` or `claude-opus` for this stage instead of the run's model |
+| `timeoutMs` | stage | overrides the 12-hour stage timeout |
+| `continueOnLoopExhausted: true` | the stage carrying `retryTarget` | when `maxRetries` is spent, accept and continue instead of failing the run |
+| `escalateOnLoopExhausted: true` | the stage carrying `retryTarget` | when `maxRetries` is spent, park for a human; Resume grants one more round. Exclusive with `continueOnLoopExhausted` |
+| `skipFinalVerification: true` | the stage carrying `retryTarget`, with `continueOnLoopExhausted: true` (the loader requires it) | skips that stage after the target's last allowed attempt, since its `loop` could no longer retry |
+| `onSuccess: completed` | workflow root | a successful run marks the feature `completed`, which unblocks dependent features; the default `waiting_approval` leaves it for human review. Applies only when the last stage ran, so never put `when` on the last stage of such a workflow |
+
+### Child worktree (`runWorkDir`)
+
+`runWorkDir` is a reserved output name (`type: text`). A stage that returns it, as the absolute top level of a git worktree of the project, moves every later stage, resume and retry into that directory. No `inputs` or `when` may read it; the loader rejects that.
+
+For a workflow that should implement in its own worktree and merge back into the worktree the feature came from, copy the `isolate` (first) and `merge-back` (last) stages from a workflow that already has them (`superpowers-execute-plan` or `quality-execute-plan`, read with the `GetWorkflow` MCP tool) rather than designing them: merge-back merges under the board's `AcquireMergeLock`/`ReleaseMergeLock` and returns `runWorkDir` = the parent worktree. Pair them with `onSuccess: completed`.
+
 ## Authoring the descriptions
 
 The root `description` is the workflow's **selection contract**. The `/please` skill reads it — together with the stage descriptions — from the `ListWorkflows` catalog to pick a workflow without loading full definitions, so it is the most selection-critical text in the file. Draft it here, before the approval loop, from facts already gathered in Steps 1–3 — never from imagination.
@@ -316,7 +343,7 @@ No slash-command names, no plugin provenance ("from the 7c-work-DEV plugin"), no
 **Where each clause comes from:**
 
 - **Produces / Use when** — the constituent skills' frontmatter `description` lines (Step 1), read as a pipeline: the first stage's precondition is the workflow's entry condition, the last stage's product is what the workflow produces.
-- **Gates** — the Step 2/3 categories. An interview, approval, or CONVERSATIONAL stage, or any stage whose `stageSystemPrompt` asks the user something, is a human stop — name the stage and what it stops for. No such stage → `Runs unattended`. A GATE stage that can abort is not a human stop, but say so next to this clause (`Runs unattended, aborting when the ticket routes to Manual`).
+- **Gates** — the Step 2/3 categories. An interview, approval, or CONVERSATIONAL stage, a `pauseBefore` or `escalateOnLoopExhausted` stage, or any stage whose `stageSystemPrompt` asks the user something, is a human stop — name the stage and what it stops for. No such stage → `Runs unattended`. A GATE stage that can abort is not a human stop, but say so next to this clause (`Runs unattended, aborting when the ticket routes to Manual`).
 - **Requires** — skills whose SKILL.md calls Azure DevOps, Jira, Confluence, Figma, a browser or running app, Storybook, Union, or Chrome DevTools MCP. Nothing of the kind → `Requires nothing external`.
 - **Ships** — a stage declaring a `prUrl` output → `opens a PR`; a stage that posts a review comment and sets a vote → `posts a comment and vote`; a comment without a vote → `posts a comment (no vote)`; only a `report` file output → `report only`; code changes and no PR → `code on the branch`. **Composition rule:** a workflow often makes more than one delivery — list every one it makes, in the fixed order PR → comment/vote → report → code, joined with `and` (`opens a PR and posts a comment and vote`, `code on the branch and posts a comment (no vote)`). Append `, uncommitted` to `code on the branch` when nothing is committed, and name optional downstream stages after a semicolon (`code on the branch, uncommitted; optional PR and audit stages`).
 - **Not for** — the sibling in the destination folder with the most overlapping purpose; put the single fact that decides between them in parentheses right after the id (where the spec comes from, known vs unknown root cause, PR opened vs not, output medium, …). When two or more siblings are confusable, list each with its own parenthetical fact, or share one parenthetical when the same fact separates them all.
@@ -424,7 +451,7 @@ Once all stageSystemPrompts and descriptions are approved, assemble the `Workflo
 - `label`: `/` + the skill's short name without namespace (e.g., `/interview`)
 - `stagePrompt`: `/` + the full skill command (e.g., `/wsbaser:interview`)
 - `position`: 0-based integer, incremented by 1 for each sequential stage
-- `category`: the inferred category from Step 2 (a GATE stage emits `SPEC`)
+- `category`: the inferred category from Step 2 (a GATE or CONVERSATIONAL stage emits `SPEC`)
 - `required`: `true` for all stages unless the user requested otherwise
 - `description`: the stage description approved in Step 5b, verbatim
 - `outputs`: the outputs inferred in Step 2, as `{name}: { type, required, description }`. **Always emit the key** — a stage that produces nothing gets `outputs: {}`, which is a declaration, not an omission. A GATE stage emits its verdict as `{ type: json, required: true, schema: { enum: [...] } }`.
@@ -433,6 +460,8 @@ Once all stageSystemPrompts and descriptions are approved, assemble the `Workflo
 - `maxRetries`: set to `2` on the **TEST stage that returns `loop`** — the same stage that carries `retryTarget`. The loop budget belongs to the stage doing the rejecting, not the stage being re-run.
 
   > **This one fails silently.** The engine reads `maxRetries` off the stage that returned `loop`. Put it on the BUILD stage instead — the retry target — and the rejecting stage's budget resolves to `0`, so the loop is refused on the first rejection and the run ends looking like a clean failure. Nothing warns you. Equally, `maxRetries` on a stage with no `retryTarget` is unreachable configuration that reads to every future maintainer as a working retry loop.
+
+**Fields from "Optional engine fields"** are emitted only where the pipeline needs them.
 
 **Root fields:** `id`, `name`, and `description` are all required. `description` is the six-clause selection contract approved in Step 5b, verbatim — the loader skips a workflow whose `description` is missing or blank, exactly as it skips one without an `id`.
 
@@ -504,13 +533,15 @@ Note the TEST stage's `inputs:`. Default resolution would give it the outputs of
 - Every `inputs[].from` reads `{stageId}.{outputName}` where `stageId` is a stage at an **earlier** position and `outputName` is declared in that stage's `outputs:`. A forward reference or an undeclared output name is rejected by the loader and drops the whole workflow. Where `from:` is a list, **every element** must satisfy this rule on its own — one bad entry fails the workflow even if the others resolve.
 - Every `inputs[].fallback` is one of `brief.description`, `brief.title`, `brief.acceptanceCriteria`
 - Any `required: true` input whose source stage is optional (`required: false`) carries a `fallback:` — without one, the run breaks the moment the user deselects that stage
-- `maxRetries` appears only together with `retryTarget`, on the stage that emits `loop`; every `retryTarget` names a stage at an earlier position
+- `maxRetries` appears only together with `retryTarget`, on the stage that emits `loop`; every `retryTarget` names a stage at an earlier position; `continueOnLoopExhausted`, `escalateOnLoopExhausted` and `skipFinalVerification` sit only on that same stage, never both of the first two, and `skipFinalVerification` only with `continueOnLoopExhausted: true`
+- Every `when` operand names an earlier stage and an output it declares, and no `inputs[].from` or `when` reads `runWorkDir`
+- `onSuccess`, when present, is `waiting_approval` or `completed`
 - `category` is one of: `SPEC`, `BUILD`, `TEST` (GATE stages use `SPEC` in the YAML)
 - Every `stageSystemPrompt` instructs the agent to pass `summary`, and to pass `reason` wherever it may return `loop` or `abort`
 - Every output name used in a `stageSystemPrompt` matches a name declared in that stage's `outputs:` — a mismatch is rejected at runtime as an undeclared output
 - All stage `id` values are unique within the workflow
 - Every file path in a `stagePrompt`/`stageSystemPrompt` sits in a `{{artifactHandle}}/` subfolder of its root folder (e.g. `.reports/{{artifactHandle}}/…`) or is named by `{{artifactHandle}}` — no fixed shared paths — and every `{{…}}` is `{{artifactHandle}}` or `{{featureId}}`
-- Each sequential stage has a unique `position` value (same position = mutually exclusive alternatives)
+- Each sequential stage has a unique `position` value (same position = mutually exclusive alternatives), and stages are listed in `position` order: the loader checks "earlier" by list order, the run by `position`
 
 ## Step 7 — Write YAML
 
