@@ -53,13 +53,13 @@ Run the phases in order. Each one builds on the data the previous one created.
 
 **You orchestrate; subagents run the phases.** If you can start subagents, give each phase to one subagent, one after another, never in parallel. Use the brief in `references/phase-brief.md`. Your own context stays free for judging results, deciding on workarounds and writing the report. A run of 27 steps done in a single context took 100 minutes and left no room for judgement. Run the phases yourself only when you cannot start subagents, or when the whole run has fewer than about 8 steps.
 
-**After login, install the page helper.** Pass the text of `scripts/capture.js.txt` as `evaluate_script`'s function. It gives `window.__av`:
+**After login, install the page helper.** Copy `scripts/capture.js.txt` into the work folder as `capture.js` and load it with `evaluate_script`'s `sourcePath`. The browser tool reads files only from its allowed roots, which include the scratchpad but not the plugin folder. If that fails, pass the file's text as the function instead. The helper gives `window.__av`:
 - an API-call log with bodies already redacted (`take()`);
 - the recording ticker (`tickStart(label)` / `tickStop()`);
 - an element outline for proof shots (`outline(selector, text)` / `clear()`);
 - whitespace-normalised text readers (`text(selector)`, `has(text)`).
 
-Install it again after every full page load. Script files can't be loaded by path: the browser tool only reads files inside its workspace roots.
+Install it again after every full page load. Keep any environment patch (see below) as a file in the work folder too, and load it right after the helper. The app may send request bodies as bytes rather than text, so a patch must decode a `Uint8Array` body before editing it.
 
 **Each step, one clip.** For every UI step:
 1. Start a screen recording to `evidence/<run-id>/<step>.mp4` and call `__av.tickStart("Step <id>")`.

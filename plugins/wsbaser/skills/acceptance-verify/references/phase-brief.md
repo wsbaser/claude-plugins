@@ -15,7 +15,7 @@ The orchestrator fills in the angle brackets. Send one phase at a time and wait 
 > Environment workarounds in force: `<none | exact description, e.g. the in-page patch and how to re-apply it after a page load>`.
 >
 > For each step of the phase, in order:
-> 1. Make sure `window.__av` exists. If not, pass the text of `<skill-dir>/scripts/capture.js.txt` as `evaluate_script`'s function, and re-apply the workarounds.
+> 1. Make sure `window.__av` exists. If not, load `<workdir>/capture.js` with `evaluate_script`'s `sourcePath`, then the workaround files `<workdir>/<patch>.js`, in that order.
 > 2. Start the step's recording to `evidence/<run id>/<id>.mp4` and call `__av.tickStart("Step <id>")`.
 > 3. Do the step. Verify each Expect clause against what the page or API shows (checks with exact `actual`), take the proof screenshot with the element outlined, and capture the API calls with `__av.take()` and `scripts/http_evidence.py`. Capture the console too.
 > 4. Call `__av.tickStop()` and stop the recording. Then write `results/steps/<id>.json` with `video: { src, dur }`.
