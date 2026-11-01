@@ -1,29 +1,36 @@
 # Phase brief (for a subagent running one phase)
 
-Fill in the angle brackets. Send one phase at a time and wait for it to finish; phases depend on each other.
+The orchestrator fills in the angle brackets. Send one phase at a time and wait for it to finish; phases depend on each other.
 
-> You are running phase `<n> · <phase title>` of the acceptance run for `<ticket>` against `<app URL>/<tenant>`. The browser is already logged in: use **only** `<browser MCP instance>` tools, page id `<page id>`, and do not log in, log out or open other tenants.
+> You are running phase `<n> · <phase title>` of the acceptance run for `<ticket>` against `<app URL>/<tenant>`. Use **only** the `<browser MCP instance>` tools (load their schemas with ToolSearch first), page id `<page id>`.
+>
+> The browser is normally logged in already. If you meet the login screen, log in with the test account from `<CLAUDE.local.md path>` "App Credentials", pick company `<company>`, and say so in your report. Never record or screenshot the login.
 >
 > Read first:
-> - `<workdir>/run-data.json`: the steps of phase `<n>` (`steps[].ph == <n>`), their `d`, `e`, `check`, `fields`, `head`, `k`, the `key` rows they reference, and `meta.knownIssues`.
-> - `<skill-dir>/references/evidence.md`: how to capture and verify each step.
+> - `<workdir>/run-data.json`: the steps of phase `<n>` (`steps[].ph == <n>`), with their `d`, `e`, `check`, `fields`, `head` and `k`, the `key` rows they reference, and `meta.knownIssues`.
+> - `<skill-dir>/references/evidence.md`: how to capture and verify each step, record its clip and drive grid editors.
 > - `<skill-dir>/references/results.md`: the exact format of the step files you write.
 >
 > Values known so far: `<KEY=value, …>`. Run id: `<run id>`. Evidence folder: `<workdir>/evidence/<run id>/`.
+> Environment workarounds in force: `<none | exact description, e.g. the in-page patch and how to re-apply it after a page load>`.
 >
-> Do:
-> 1. Start the screen recording to `evidence/<run id>/phase-<n>.mp4` and read `Date.now()` as the phase clock.
-> 2. Run each step of the phase in order. Verify against the Expect by reading the page or API (checks with exact `actual`), take the proof screenshot with the element outlined, capture the key API call and the console, and write `results/steps/<id>.json` after every step.
-> 3. On a step that does not hold, look once more, then record the failure with its cause (`product`, `known`, `run`, `env`). Mark the later steps that cannot run as `blocked` with the reason, and keep going with the ones that can.
-> 4. Stop the recording and return its duration.
+> For each step of the phase, in order:
+> 1. Make sure `window.__av` exists. If not, pass the text of `<skill-dir>/scripts/capture.js.txt` as `evaluate_script`'s function, and re-apply the workarounds.
+> 2. Start the step's recording to `evidence/<run id>/<id>.mp4` and call `__av.tickStart("Step <id>")`.
+> 3. Do the step. Verify each Expect clause against what the page or API shows (checks with exact `actual`), take the proof screenshot with the element outlined, and capture the API calls with `__av.take()` and `scripts/http_evidence.py`. Capture the console too.
+> 4. Call `__av.tickStop()` and stop the recording. Then write `results/steps/<id>.json` with `video: { src, dur }`.
+>
+> On a step that does not hold:
+> - look once more;
+> - if it still fails, record the failure with its cause (`product`, `known`, `run` or `env`);
+> - mark the later steps that cannot run `blocked`, with the reason, and keep going with the ones that can.
 >
 > Rules:
-> - Change only the data this run creates, the `AT …` records, plus what a step explicitly names.
+> - Change only the data this run creates, i.e. the `AT …` records, plus what a step explicitly names.
 > - Never write credentials or tokens into any file.
 > - Don't edit run-data.json, don't build or publish, and don't file tickets.
 >
 > Return at most 10 lines:
-> - the video entry (`id`, `src`, `dur`);
 > - the values found;
 > - one line per step that didn't pass, with its status, cause and a short reason;
-> - anything the next phase must know, e.g. a record that wasn't created.
+> - anything the next phase must know, e.g. a record that wasn't created or a workaround you had to add.

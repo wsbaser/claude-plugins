@@ -34,6 +34,8 @@ def files_of(results):
     for r in (results.get("steps") or {}).values():
         out.update(sh["src"] for sh in r.get("shots") or [] if sh.get("src"))
         out.update(h["full"] for h in r.get("http") or [] if h.get("full"))
+        if (r.get("video") or {}).get("src"):
+            out.add(r["video"]["src"])
     return out
 
 
@@ -68,7 +70,7 @@ def main():
     records = [dict(x, step=x.get("step", sid)) for sid, r in steps.items() for x in r.get("records") or []]
     videos = list(run.pop("videos", []))
     if partial:
-        used = {r["video"]["id"] for r in steps.values() if r.get("video")}
+        used = {r["video"]["id"] for r in steps.values() if (r.get("video") or {}).get("id")}
         have = {v["id"] for v in videos}
         videos += [v for v in prev.get("videos") or [] if v["id"] in used and v["id"] not in have]
 

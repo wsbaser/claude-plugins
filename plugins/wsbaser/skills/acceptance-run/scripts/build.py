@@ -176,7 +176,11 @@ def validate_results(res, ids, fields, out_dir, published, errors, warnings):
             if h.get("full"):
                 need_file(h["full"], f"{where} http {h.get('url')}")
         vref = r.get("video")
-        if vref:
+        if vref and vref.get("src"):
+            need_file(vref["src"], f"{where} recording")
+            if not vref.get("dur"):
+                errors.append(f"{where}: a step recording needs 'dur' in seconds (measure it in a browser)")
+        elif vref:
             if vref.get("id") not in videos:
                 errors.append(f"{where}: video '{vref.get('id')}' is not in results.videos")
             elif not (0 <= vref.get("t0", -1) <= vref.get("t1", -1)):

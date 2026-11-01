@@ -349,6 +349,10 @@ table.chk { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
 .thumb .kind.failure { background: var(--fail); }
 .thumb .zoom { position: absolute; top: 6px; right: 6px; font-size: 11px; background: rgba(15, 23, 42, .7); color: #fff; border-radius: 3px; padding: 1px 6px; opacity: 0; }
 .thumb:hover .zoom, .thumb:focus-visible .zoom { opacity: 1; }
+.thumb.clip { cursor: pointer; }
+.thumb.clip video { display: block; width: 168px; height: 105px; object-fit: cover; object-position: top left; background: #0b1120; pointer-events: none; }
+.thumb.clip .play { position: absolute; left: 50%; top: 52px; transform: translate(-50%, -50%); width: 36px; height: 36px; border-radius: 50%; background: rgba(15, 23, 42, .78); color: #fff; display: grid; place-items: center; font-size: 14px; }
+.thumb.clip:hover .play { background: var(--btn); }
 .vbtn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 4px; padding: 4px 10px; font-size: var(--fs-xs); font-weight: 600; color: var(--accent); display: inline-flex; gap: 6px; align-items: center; }
 .vbtn:hover { border-color: var(--accent-2); }
 .http { display: grid; gap: 4px; }
@@ -1128,7 +1132,15 @@ function causeChip(r) {
         "</span>"
     : "";
 }
+function hasClip(r) {
+  return !!(r && r.video && r.video.src);
+}
 function videoBtn(id, r) {
+  if (hasClip(r))
+    return (
+      '<button class="vbtn" data-clip="' + esc(id) + '">▶ Watch this step <span class="mono">' +
+      fmtT(r.video.dur) + "</span></button>"
+    );
   if (!r.video || !videos[r.video.id]) return "";
   return (
     '<button class="vbtn" data-vid="' +
@@ -1259,7 +1271,9 @@ function trailHtml(id, r) {
         acts
           .map(function (a) {
             var t =
-              a.t != null && r.video && videos[r.video.id]
+              a.t != null && hasClip(r)
+                ? '<button class="t mono" data-clip="' + esc(id) + '" data-at="' + a.t + '" title="Play from here">' + fmtT(a.t) + "</button>"
+                : a.t != null && r.video && videos[r.video.id]
                 ? '<button class="t mono" data-vid="' +
                   esc(r.video.id) +
                   '" data-at="' +
@@ -1427,14 +1441,15 @@ function evHtml(s) {
       "</div>";
   }
   if ((r.checks || []).length) h += checksHtml(r.checks);
-  if (list.length)
+  if (list.length || hasClip(r))
     h +=
       '<div class="shots">' +
       list
         .map(function (sh, i) {
-          return thumb("step:" + s.id, list, i, i === 0);
+          return thumb("step:" + s.id, list, i, i === 0) + (i === 0 ? clipTile(s.id, r) : "");
         })
         .join("") +
+      (list.length ? "" : clipTile(s.id, r)) +
       "</div>";
   var keyHttp = (r.http || []).filter(function (x) {
     return x.key;
@@ -1749,13 +1764,42 @@ function stepsInVideo(vid) {
       return RS[a.id].video.t0 - RS[b.id].video.t0;
     });
 }
+function clipTile(id, r) {
+  if (!hasClip(r)) return "";
+  return (
+    '<button class="thumb clip" data-clip="' + esc(id) + '" aria-label="Play the recording of step ' + esc(id) + '">' +
+    '<video src="' + esc(r.video.src) + '#t=0.5" preload="metadata" muted playsinline tabindex="-1"></video>' +
+    '<span class="kind">recording</span><span class="play" aria-hidden="true">▶</span>' +
+    '<span class="tcap">Step ' + esc(id) + " · " + fmtT(r.video.dur) + "</span></button>"
+  );
+}
+function clipSteps(ph) {
+  return steps.filter(function (s) {
+    return hasClip(RS[s.id]) && (ph == null || s.ph === ph);
+  });
+}
 function renderEvidence() {
   if (!R) return;
   var vids = R.videos || [],
     h = "";
+  var withClips = clipSteps();
+  if (withClips.length) {
+    var lastClipPh = -1,
+      cards = "";
+    withClips.forEach(function (s) {
+      if (s.ph !== lastClipPh) {
+        cards += '<div class="gal-ph">Phase ' + s.ph + " · " + esc(phases[s.ph].t) + "</div>";
+        lastClipPh = s.ph;
+      }
+      var st = dotRes(s.id);
+      cards += '<button class="vcard" data-clip="' + esc(s.id) + '"><b><span class="dot ' + st + '">' + (glyph[st] || "") + "</span> ▶ " +
+        esc(s.id) + " " + esc(s.t) + "</b><span>" + fmtT(RS[s.id].video.dur) + "</span></button>";
+    });
+    h += '<div class="sec"><h2>Step recordings <span class="cap">one clip per step, in real time</span></h2><div class="vids">' + cards + "</div></div>";
+  }
   if (vids.length)
     h +=
-      '<div class="sec"><h2>Screen recordings <span class="cap">one per phase; each step jumps to its own moment</span></h2><div class="vids">' +
+      '<div class="sec"><h2>Phase recordings</h2><div class="vids">' +
       vids
         .map(function (v) {
           return (
@@ -2099,6 +2143,7 @@ function openVideo(vid, stepId, at) {
   if (!v) return;
   if ($("lb").hidden) LB.ret = document.activeElement;
   LB.mode = "vid";
+  LB.clip = null;
   LB.vid = vid;
   LB.keep = false;
   $("lb-keep").setAttribute("aria-pressed", "false");
@@ -2135,6 +2180,51 @@ function openVideo(vid, stepId, at) {
     'Click a step to play just that step · "Keep playing" continues past its end · Esc close';
   playSeg(stepId, at);
 }
+function openClip(stepId, at) {
+  var s = steps[byId[stepId]],
+    r = RS[stepId];
+  if (!s || !hasClip(r)) return;
+  if ($("lb").hidden) LB.ret = document.activeElement;
+  LB.mode = "vid";
+  LB.vid = null;
+  LB.seg = null;
+  LB.clip = stepId;
+  LB.keep = false;
+  showLb();
+  $("lb-vid-tools").hidden = true;
+  var el = $("lb-vid");
+  if (el.getAttribute("data-src") !== r.video.src) {
+    el.src = r.video.src;
+    el.setAttribute("data-src", r.video.src);
+  }
+  $("lb-title").innerHTML = '<span class="mono">' + esc(s.id) + "</span>" + esc(s.t);
+  $("lb-pos").textContent = "step recording · " + fmtT(r.video.dur);
+  $("lb-open").href = r.video.src;
+  $("lb-prev").hidden = $("lb-next").hidden = true;
+  $("lb-strip").innerHTML = "";
+  var st = dotRes(s.id);
+  $("lb-cap").innerHTML =
+    '<span class="status ' + st + '">' + esc(STATUS_LABEL[st] || "to do") + "</span>" +
+    (r.summary ? "<span>" + esc(plain(r.summary)) + "</span>" : "");
+  $("lb-chaps").innerHTML = clipSteps(s.ph)
+    .map(function (x) {
+      var xs = dotRes(x.id);
+      return '<button data-clipch="' + esc(x.id) + '" aria-current="' + (x.id === stepId) + '"><span class="mono">' + esc(x.id) +
+        (glyph[xs] ? " " + glyph[xs] : "") + "</span>" + esc(x.t) + "</button>";
+    })
+    .join("");
+  $("lb-hint").textContent = "The other steps of this phase are listed below · Esc close";
+  var start = at != null ? +at : 0;
+  function go() {
+    try {
+      el.currentTime = start;
+    } catch (e) {}
+    var pr = el.play();
+    if (pr && pr["catch"]) pr["catch"](function () {});
+  }
+  if (el.readyState >= 1) go();
+  else el.addEventListener("loadedmetadata", go, { once: true });
+}
 function playSeg(stepId, at) {
   var el = $("lb-vid"),
     seg = stepId && RS[stepId] && RS[stepId].video,
@@ -2166,6 +2256,7 @@ function playSeg(stepId, at) {
     : '<span class="muted">Whole phase</span>';
 }
 function markChap() {
+  if (LB.clip) return;
   var t = $("lb-vid").currentTime,
     cur = null;
   stepsInVideo(LB.vid).forEach(function (s) {
@@ -2209,6 +2300,11 @@ $("lb").addEventListener("click", function (e) {
   if (li) {
     LB.i = +li.getAttribute("data-li");
     loadShot();
+    return;
+  }
+  var cc = e.target.closest("[data-clipch]");
+  if (cc) {
+    openClip(cc.getAttribute("data-clipch"));
     return;
   }
   var ch = e.target.closest("[data-ch]");
@@ -2257,6 +2353,12 @@ document.addEventListener("click", function (e) {
   if (th) {
     e.preventDefault();
     openShots(SETS[th.getAttribute("data-set")], +th.getAttribute("data-i"));
+    return;
+  }
+  var cb = e.target.closest("[data-clip]");
+  if (cb && !e.target.closest("#lb")) {
+    e.preventDefault();
+    openClip(cb.getAttribute("data-clip"), cb.getAttribute("data-at"));
     return;
   }
   var vb = e.target.closest("[data-vid]");

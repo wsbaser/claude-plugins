@@ -1,0 +1,153 @@
+() => {
+  // Installs window.__av in the app page: an API-call log, the recording ticker, an element outline and text readers.
+  // Pass this file's text as evaluate_script's function after login and after every full page load; it is idempotent.
+  if (window.__av) return "already installed";
+  const SECRET =
+    /^(password|passwd|secret|token|access_?token|refresh_?token|client_?secret|api_?key|apikey)$/i;
+  const MAX = 20000;
+  const redact = (text) => {
+    if (typeof text !== "string" || !text) return text || "";
+    try {
+      const walk = (v) => {
+        if (Array.isArray(v)) return v.map(walk);
+        if (v && typeof v === "object") {
+          const o = {};
+          for (const k of Object.keys(v))
+            o[k] = SECRET.test(k) ? "[redacted]" : walk(v[k]);
+          return o;
+        }
+        return v;
+      };
+      return JSON.stringify(walk(JSON.parse(text)), null, 2);
+    } catch (e) {
+      return text.replace(/(Bearer\s+)[\w.\-=]+/gi, "$1[redacted]");
+    }
+  };
+  const log = [];
+  const isApi = (url) =>
+    !/\.(js|css|wasm|dll|dat|blat|woff2?|png|svg|ico|json\.br|webp)(\?|$)/i.test(
+      url
+    ) && !/_framework|_content|fonts\./i.test(url);
+  const push = (e) => {
+    e.req = redact(e.req).slice(0, MAX);
+    e.res = redact(e.res).slice(0, MAX);
+    log.push(e);
+  };
+
+  const origFetch = window.fetch;
+  window.fetch = async function (input, init) {
+    const url = typeof input === "string" ? input : input.url;
+    const method = (
+      (init && init.method) ||
+      (input && input.method) ||
+      "GET"
+    ).toUpperCase();
+    const t0 = performance.now();
+    const res = await origFetch.apply(this, arguments);
+    if (isApi(url)) {
+      let body = "";
+      try {
+        body = await res.clone().text();
+      } catch (e) {}
+      push({
+        method,
+        url: url.replace(location.origin, ""),
+        status: res.status,
+        ms: Math.round(performance.now() - t0),
+        req: init && typeof init.body === "string" ? init.body : "",
+        res: body,
+        at: new Date().toISOString(),
+      });
+    }
+    return res;
+  };
+  const XO = XMLHttpRequest.prototype.open,
+    XS = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function (m, u) {
+    this.__av = { method: String(m).toUpperCase(), url: String(u) };
+    return XO.apply(this, arguments);
+  };
+  XMLHttpRequest.prototype.send = function (body) {
+    const meta = this.__av,
+      t0 = performance.now();
+    if (meta && isApi(meta.url))
+      this.addEventListener("loadend", () =>
+        push({
+          method: meta.method,
+          url: meta.url.replace(location.origin, ""),
+          status: this.status,
+          ms: Math.round(performance.now() - t0),
+          req: typeof body === "string" ? body : "",
+          res: typeof this.responseText === "string" ? this.responseText : "",
+          at: new Date().toISOString(),
+        })
+      );
+    return XS.apply(this, arguments);
+  };
+
+  let tick = null,
+    tickTimer = null,
+    outlined = null;
+  window.__av = {
+    // API calls since the last take(); call it right after the action you want the evidence for.
+    take: () => log.splice(0, log.length),
+    // A small clock in the corner while a step is recorded. The screencast stores a frame only when the
+    // screen changes, so without it a recording plays back as a time-lapse; with it, in real time.
+    tickStart: (label) => {
+      if (!tick) {
+        tick = document.createElement("div");
+        tick.style.cssText =
+          "position:fixed;left:8px;bottom:8px;z-index:2147483647;font:600 12px/1.4 ui-monospace,monospace;background:rgba(15,23,42,.85);color:#fff;padding:3px 8px;border-radius:4px;pointer-events:none";
+      }
+      document.body.appendChild(tick);
+      const t0 = Date.now();
+      clearInterval(tickTimer);
+      tickTimer = setInterval(() => {
+        tick.textContent =
+          label + " · " + ((Date.now() - t0) / 1000).toFixed(1) + " s";
+      }, 100);
+      return t0;
+    },
+    tickStop: () => {
+      clearInterval(tickTimer);
+      if (tick) tick.remove();
+      return Date.now();
+    },
+    // Outline the element that proves the step before the proof screenshot; clear it afterwards.
+    outline: (selector, text) => {
+      window.__av.clear();
+      let el = selector ? document.querySelector(selector) : null;
+      if (!el && text)
+        el =
+          [...document.querySelectorAll("body *")]
+            .reverse()
+            .find(
+              (n) =>
+                n.children.length === 0 && (n.innerText || "").includes(text)
+            ) || null;
+      if (!el) return false;
+      outlined = { el, prev: el.style.outline, off: el.style.outlineOffset };
+      el.style.outline = "3px solid #e11d48";
+      el.style.outlineOffset = "3px";
+      el.scrollIntoView({ block: "center" });
+      return true;
+    },
+    clear: () => {
+      if (outlined) {
+        outlined.el.style.outline = outlined.prev;
+        outlined.el.style.outlineOffset = outlined.off;
+        outlined = null;
+      }
+    },
+    // Visible text, whitespace-normalised, for comparing with the Expect wording.
+    text: (selector) =>
+      [...document.querySelectorAll(selector)].map((n) =>
+        (n.innerText || n.textContent || "").replace(/\s+/g, " ").trim()
+      ),
+    has: (text) =>
+      (document.body.innerText || "")
+        .replace(/\s+/g, " ")
+        .includes(text.replace(/\s+/g, " ")),
+  };
+  return "installed";
+}

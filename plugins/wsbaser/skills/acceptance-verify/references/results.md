@@ -18,7 +18,6 @@
                 { "label": "BE", "value": "unknown", "how": "no version endpoint" } ]
   },
   "notes": "Anything the reader should know about the run as a whole (HTML).",
-  "videos": [ { "id": "p1", "ph": 1, "src": "evidence/r-…/phase-1.mp4", "title": "Phase 1 · Post a journal", "dur": 184.2 } ],
   "partial": false
 }
 ```
@@ -39,9 +38,9 @@
   "summary": "Refusal shows the raw code instead of a sentence.",
   "checks": [ { "what": "Banner text", "expected": "Stock has already been taken …", "actual": "ERR_STOCK_ENTRY_CONSUMED", "ok": false, "how": "DOM text of the toast" } ],
   "failure": { "expected": "…", "actual": "…", "diagnosis": "Backend renamed the code in PR 4237; the frontend maps only the old one.", "where": "ValidationMessageService.cs:186" },
-  "shots": [ { "src": "evidence/r-…/3.7-1.webp", "cap": "Toast with the raw code", "kind": "failure", "at": "15:21:06", "url": "/martin/inventory/inventory-posting?selectedJournal=52" } ],
-  "video": { "id": "p3", "t0": 312.4, "t1": 318.1 },
-  "actions": [ { "t": 312.9, "do": "click", "target": "button \"Reverse journal\"" } ],
+  "shots": [ { "src": "evidence/r-…/3.7-1.webp", "cap": "Toast with the raw code", "kind": "failure", "at": "2026-11-01T15:21:06Z", "url": "/martin/inventory/inventory-posting?selectedJournal=52" } ],
+  "video": { "src": "evidence/r-…/3.7.mp4", "dur": 6.2 },
+  "actions": [ { "t": 1.4, "do": "click", "target": "button \"Reverse journal\"" } ],
   "http": [ { "method": "POST", "url": "/api/inventory/journals/52/reverse", "status": 409, "ok": true, "ms": 95, "key": true, "req": "{}", "res": "{ \"code\": \"ERR_STOCK_ENTRY_CONSUMED\" }", "full": "evidence/r-…/3.7-http-1.json" } ],
   "console": [ { "level": "error", "text": "…" } ],
   "tables": [ { "title": "Stock entries after reversal", "cols": ["Layer", "Qty", "Cost"], "rows": [["L1", "0", "120"]], "source": "GET /api/inventory/items/AT-REV1/layers" } ],
@@ -61,7 +60,7 @@
 | `checks` | `actual` is exactly what the app showed. A `pass` cannot contain a check with `ok: false`. |
 | `failure` | Expected/actual for the headline (left out on screen when a failing check already shows the same pair), `diagnosis`, `where` (`file:line`). On blocked/manual it says why / what to check. |
 | `shots` | First entry is the proof and is shown large. `kind`: `proof`, `context`, `detail`, `before`, `after`, `failure`. |
-| `video` | Seconds into the phase recording `id`. |
+| `video` | The step's own recording: `src` and `dur` in seconds (end clock − start clock). Leave it out when the step has no UI to record. |
 | `http` | `ok` overrides the colour for an expected error status. `key: true` shows the call outside the folded trail. |
 | `console` | `[]` means captured and clean; leave the field out when not captured. |
 | `records` | `route` is an app path; `[KEY]` resolves from field values. `label` may use `{KEY}` tokens. |

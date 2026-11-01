@@ -19,8 +19,8 @@ What to collect at each step, how to collect it with the browser tools (Chrome D
 | Checks (expected / actual) | The Expect holds, compared programmatically | Every step with a verifiable Expect | Top of the step, as a table |
 | Proof screenshot | What the reader would have seen at the Expect moment | Every UI step | Large thumbnail under the checks; viewer with zoom |
 | Context, before and failure screenshots | Where it happened; the state before a change; the page at failure | When they add information (see below) | Small thumbnails next to the proof |
-| Phase recording | The steps were really done, in order | One per phase | "Watch this step" plays just that step; Evidence tab |
-| Action trail | Exactly what was clicked, typed and opened | Every step | Folded "Full trail"; timestamps jump into the recording |
+| Step recording | The step was really done, start to finish | One clip per UI step, in real time | Next to the proof screenshot and "Watch this step" on the step; Evidence tab |
+| Action trail | Exactly what was clicked, typed and opened | Every step | Folded "Full trail"; timestamps jump into the step's recording |
 | API exchange | What the server was asked and answered | API steps; the call behind a UI action | Key call under the screenshots; all calls in the trail and the Evidence tab |
 | Data reads (tables) | A server-side effect the screen doesn't show (ledger rows, stock entries) | When an Expect is about stored data | Small table in the trail |
 | Console | No hidden client errors | Errors and warnings per step | Trail; totals on Results |
@@ -29,19 +29,19 @@ What to collect at each step, how to collect it with the browser tools (Chrome D
 
 ## One step, start to finish (UI)
 
-1. **Mark the start:** `evaluate_script` → `Date.now()`. Subtract the phase clock to get `video.t0`, and keep the absolute time as `started`.
+1. **Start recording:** `screencast_start` to `evidence/<run-id>/<step>.mp4`, then `evaluate_script` → `() => window.__av.tickStart("Step <id>")`. It returns the start clock. Keep it as `started`, in ISO with `Z`. Call `__av.take()` once to drop calls from before the step.
 2. **Before shot,** only when the Expect is a change ("goes from 10 to 0", "the hint disappears"). Take it now.
-3. **Act.** `take_snapshot` for uids, then `click`, `fill`, `press_key`, `navigate_page`. Log each as an action: `{ "t": seconds-into-video, "do": "click", "target": "button \"Reverse\"", "value": "" }`. Name targets by role and visible label, the way the reader sees them, not by uid.
+3. **Act.** `take_snapshot` for uids, then `click`, `fill`, `press_key`, `navigate_page`. Log each as an action: `{ "t": seconds since the start clock, "do": "click", "target": "button \"Reverse\"", "value": "" }`. Name targets by role and visible label, the way the reader sees them, not by uid.
 4. **Wait** for the result: `wait_for` on the expected text, or for the network to go quiet.
 5. **Verify.** Read each Expect clause with `evaluate_script`, e.g. `el.innerText` of the banner, the cell or the status pill. Compare it with the Expect string, normalising only whitespace. Write one check per clause:
    `{ "what": "Banner text", "expected": "…", "actual": "…", "ok": true, "how": "DOM text of the toast" }`.
    For a `check` step, add one check per answer-sheet item, using its `v` field's value.
-6. **Proof shot.** Outline the element that proves the step: inject `outline: 3px solid #e11d48; outline-offset: 3px` with `evaluate_script`. Then scroll it into view, take a viewport screenshot, and remove the outline. If the proof is small text in a big screen, also take an element screenshot (`uid`, kind `detail`).
+6. **Proof shot.** Outline the element that proves the step: `__av.outline(selector)`, or `__av.outline(null, "visible text")`. That also scrolls it into view. Take a viewport screenshot, then `__av.clear()`. If the proof is small text in a big screen, also take an element screenshot (`uid`, kind `detail`).
 7. **Network and console:**
-   - `list_network_requests` (`xhr`, `fetch`) since the action, then `get_network_request` for the call the step's `k` names. Save the bodies to files and redact them.
+   - Save `() => window.__av.take()` to a file with `evaluate_script`'s `filePath`. Then run `python <skill-dir>/scripts/http_evidence.py <file> <workdir> <run-id> <step> --key N` to get the step's `http` list, with full bodies written to `evidence/`. `list_network_requests` mixes in hundreds of static files, so use it only if the helper is missing.
    - `list_console_messages` for `error` and `warn`.
 8. **Values and records.** Anything the step's `fields` ask for goes into `values`. Anything created or changed goes into `records` with an app route, e.g. `inventory/journals/[J1]`.
-9. **Mark the end:** `Date.now()` again, giving `video.t1` and `ms`.
+9. **Stop recording:** `__av.tickStop()` returns the end clock. Then call `screencast_stop`. Set `video` to `{ "src": "evidence/<run-id>/<step>.mp4", "dur": (end − start) / 1000 }` and `ms` to end − start.
 10. **Write** `results/steps/<id>.json`.
 
 ## API steps (BE-only)
@@ -66,11 +66,24 @@ Run the UI flow, then attach the API call the action triggered, marked `key: tru
 - Take one **proof** shot per UI step: the moment the Expect is visible, with the element outlined. It is the first entry in `shots`, and the page shows it large. Caption it with what it proves, not what the screen is: "Banner: reversal refused, 2 of 6 already used", not "Journal page".
 - Add **context** or **detail** only when the proof shot leaves a question. Add **before** for changes. Add **failure** (full page, `fullPage: true`) on every failed step.
 - Use the WebP format at quality 80 and a 1440×900 viewport. Wait until spinners and toasts have settled. A half-loaded page is not evidence.
-- Fill `at` (time) and `url` (the app path without the host) on each shot. The viewer shows both.
+- Fill `at` (ISO time with `Z`) and `url` (the app path without the host) on each shot. The viewer shows both, in the reader's local time.
 
-## Recording and timestamps
+## Driving grid editors
 
-`screencast_start` with `filePath` set to `evidence/<run-id>/phase-<n>.mp4`, after login. Then `screencast_stop` at the end of the phase. Measure the recording's duration as the time between start and stop (`dur`, in seconds). Step `t0`/`t1` and action `t` are seconds from the phase clock. They don't need to be exact; a second or so is fine. The player plays from `t0` and pauses at `t1`.
+Spreadsheet-style grids (DevExpress and similar) don't put their cells in the accessibility tree.
+- To edit, double-click the cell, wait for the editor, type with `type_text`, and press `Tab` or `Enter` to commit.
+- To read, query the grid's rows with `__av.text("<row selector>")`, rather than the snapshot.
+
+## Recording
+
+Record one clip per UI step, never one per phase.
+
+The screencast stores a frame only when the screen changes and plays the frames back at a fixed rate. A recording of a mostly still page therefore plays as a time-lapse: a 7-minute phase played in 8 seconds. The ticker from `__av.tickStart` changes a corner of the screen ten times a second, so the clip plays in real time. Its label also stamps the step id into every frame.
+
+- Start the recording after login, so it never contains a password.
+- A full page load removes the ticker and the helper. Install the helper again and call `tickStart` again.
+- A step done in a second tab, such as a stale-screen test, needs its own `screencast_start` on that page. Otherwise it has no clip, which is acceptable; say so in the step's notes.
+- Keep each clip under 15 MB. A normal step is well under 1 MB.
 
 ## Network capture and redaction
 
@@ -84,10 +97,10 @@ Keep request and response bodies, but before writing them:
 ```
 <workdir>/
   run-data.json                 from extract.py
-  results/run.json              run-level facts and videos
+  results/run.json              run-level facts
   results/steps/<id>.json       one per step
   evidence/<run-id>/
-    phase-1.mp4
+    2.3.mp4                     the step's recording
     2.3-1.webp  2.3-2.webp      <step>-<n>
     2.3-http-1.json             full response bodies
 ```

@@ -1,6 +1,6 @@
 ---
 name: wsbaser:acceptance-verify
-description: Runs an acceptance-run page for real. Given the link to an acceptance test runner artifact (built by wsbaser:acceptance-run), it performs every step in the test environment's UI or API, checks each Expect against what the app actually shows or returns, and records evidence (asserted expected-vs-actual checks, screenshots, one screen recording per phase, API calls with bodies, the action trail, console output, links to the records it created). It then republishes the same artifact with a Results tab, per-step proof and an Evidence gallery, so the user can trust the automated run instead of repeating it by hand. Use whenever the user shares an acceptance-run artifact link and asks to run it, execute it, test it, verify the ticket, "do the testing for me", collect test evidence, re-run failed steps, or check whether a story can be closed — even if they don't say "verify".
+description: Runs an acceptance-run page for real. Given the link to an acceptance test runner artifact (built by wsbaser:acceptance-run), it performs every step in the test environment's UI or API, checks each Expect against what the app actually shows or returns, and records evidence (asserted expected-vs-actual checks, screenshots, a real-time screen recording of every step, API calls with bodies, the action trail, console output, links to the records it created). It then republishes the same artifact with a Results tab, per-step proof and an Evidence gallery, so the user can trust the automated run instead of repeating it by hand. Use whenever the user shares an acceptance-run artifact link and asks to run it, execute it, test it, verify the ticket, "do the testing for me", collect test evidence, re-run failed steps, or check whether a story can be closed — even if they don't say "verify".
 ---
 
 # Acceptance verify
@@ -49,11 +49,33 @@ Credentials never appear in evidence. Don't record or screenshot the login, and 
 
 ## 4. Run the steps
 
-Run the phases in order. Each one builds on the data the previous one created. For each phase:
+Run the phases in order. Each one builds on the data the previous one created.
 
-1. Start a screen recording to `evidence/<run-id>/phase-<n>.mp4`. Note the clock (`Date.now()` in the page) right after it starts. Step and action times are seconds from that moment.
-2. Do each step, verify it, capture the evidence and write `results/steps/<id>.json` before starting the next step. Writing step by step means a crash loses nothing and a re-run can resume. `references/evidence.md` covers how to capture each kind of evidence for UI, API and mixed steps, and how to choose the one screenshot that proves the step.
-3. Stop the recording at the end of the phase and add the video to `results/run.json`. If a phase runs past about 8 minutes, stop and start a new part (`phase-<n>b.mp4`), so no file goes over the 15 MB limit for one file.
+**You orchestrate; subagents run the phases.** If you can start subagents, give each phase to one subagent, one after another, never in parallel. Use the brief in `references/phase-brief.md`. Your own context stays free for judging results, deciding on workarounds and writing the report. A run of 27 steps done in a single context took 100 minutes and left no room for judgement. Run the phases yourself only when you cannot start subagents, or when the whole run has fewer than about 8 steps.
+
+**After login, install the page helper.** Pass the text of `scripts/capture.js.txt` as `evaluate_script`'s function. It gives `window.__av`:
+- an API-call log with bodies already redacted (`take()`);
+- the recording ticker (`tickStart(label)` / `tickStop()`);
+- an element outline for proof shots (`outline(selector, text)` / `clear()`);
+- whitespace-normalised text readers (`text(selector)`, `has(text)`).
+
+Install it again after every full page load. Script files can't be loaded by path: the browser tool only reads files inside its workspace roots.
+
+**Each step, one clip.** For every UI step:
+1. Start a screen recording to `evidence/<run-id>/<step>.mp4` and call `__av.tickStart("Step <id>")`.
+2. Do the step, verify it and capture the evidence.
+3. Call `__av.tickStop()`, then stop the recording.
+
+The screencast stores a frame only when the screen changes. The ticker keeps the screen changing, so the clip plays in real time instead of as a time-lapse. The clip's `dur` is the seconds between start and stop.
+
+Write `results/steps/<id>.json` before starting the next step, so a crash loses nothing and a re-run can resume. `references/evidence.md` covers each kind of evidence for UI, API and mixed steps, and how to choose the screenshot that proves the step.
+
+**When the environment blocks every step** (for example, the deployed frontend and backend disagree), first try a workaround that keeps the user's path real, such as a request patch inside the page. If one works:
+- mark the first affected step `fail` with cause `env`;
+- describe the workaround exactly in `run.notes`;
+- carry on.
+
+If no workaround keeps the test meaningful, stop and report.
 
 **Verify, don't eyeball.**
 - Read the expected text or value from the DOM, or from the API response, and compare it to the Expect wording, normalising only whitespace. Record each comparison as a check with `expected`, `actual` (exactly as read), `ok` and `how`.
@@ -61,7 +83,7 @@ Run the phases in order. Each one builds on the data the previous one created. F
 - Use `observed` only when the Expect is visual (a layout, a colour, an icon) and you judged it from a screenshot you actually looked at. Say what you looked at.
 - `actual` is always what the app showed, never what you hoped for.
 
-**Long runs.** If you can start subagents and the run has more than about 12 steps, give each phase to a subagent, one after another, never in parallel. Use the brief in `references/phase-brief.md`. Each subagent drives the same browser and page you logged into, writes its own step files, and returns only a few lines. This keeps your context free for judging results.
+**Wording that is true at another moment.** Sometimes the app's wording is right but the page quotes it from a different moment, e.g. the status strip just after posting versus on reopen. That is cause `run`. Name the right wording in `failure.diagnosis`. When several steps share the same wording issue, say so once in `run.notes`, so the reader doesn't take five red steps for five problems.
 
 ### When a step does not hold
 
@@ -81,7 +103,7 @@ Run the phases in order. Each one builds on the data the previous one created. F
 
 ## 5. Finish, preview, publish
 
-1. Write `results/run.json`: run id, who ran it, start and end time, environment, builds, runner notes and the videos. Follow `references/results.md`. For a re-run of only some steps, set `"partial": true`, so earlier results and their published files are kept.
+1. Write `results/run.json`: run id, who ran it, start and end time, environment, builds and runner notes. Follow `references/results.md`. Step recordings sit on their steps, not here. For a re-run of only some steps, set `"partial": true`, so earlier results and their published files are kept.
 2. Build:
    ```bash
    python <skill-dir>/scripts/finish.py <workdir>
@@ -91,7 +113,7 @@ Run the phases in order. Each one builds on the data the previous one created. F
    - the Results tab;
    - one passed and one failed step on the Run tab;
    - a screenshot opened in the viewer, zoomed;
-   - a "Watch this step" clip.
+   - a step's recording, which must play in real time.
 
    Fix what looks wrong once.
 4. Publish to the **same artifact** with the Artifact tool:
@@ -118,6 +140,6 @@ For each `product` failure, offer to file a bug sub-task under the story (summar
 These principles shaped the page. Keep them when you adapt.
 
 - **Proof of doing, proof of seeing, a way to check yourself.** The action trail and the recording show the step was done. The checks and screenshots show what was seen. Links to the created records let the reader look for themselves.
-- **Strongest evidence first.** Each step leads with its status and the expected-vs-actual table, then the one proof screenshot. The rest of the trail is folded, and it opens by itself when the step failed.
+- **Strongest evidence first, everything reachable from the step.** On the Run tab, each step leads with its status and the expected-vs-actual table. Then come the proof screenshot and the step's recording side by side, then the key API call. The rest of the trail (actions, all API calls, data reads, console, records) is folded under the step, and it opens by itself when the step failed. The Evidence tab only regroups the same material for browsing.
 - **Honest labels.** `asserted`, `observed` and `manual` tell the reader how much weight a pass carries. `retried`, `blocked` and `cause` stop a flaky or environmental problem from posing as a product verdict, or the other way round.
 - **The reader's word wins.** Marks the user makes on the page override the automated ones, and a new automated run clears marks made against the old run.
