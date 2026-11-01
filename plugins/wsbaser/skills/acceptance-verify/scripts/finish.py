@@ -22,7 +22,7 @@ import build  # noqa: E402  (the shared page builder and validator)
 
 MAX_FILE = 15 * 1024 * 1024
 MAX_BATCH_FILES = 250
-MAX_BATCH_BYTES = 60 * 1024 * 1024
+MAX_BATCH_BYTES = 12 * 1024 * 1024  # larger single publishes failed with ECONNRESET
 
 
 def files_of(results):

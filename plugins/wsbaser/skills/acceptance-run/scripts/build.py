@@ -107,6 +107,9 @@ def validate(d, out_dir=None, published=()):
                 warnings.append(f"token {{{name}}} has no field; it will render literally")
 
     if d.get("results"):
+        emails = {m for t in strings(d["results"]) for m in re.findall(r"[\w.+-]+@[\w-]+\.[a-z]{2,}", t)}
+        if emails:
+            warnings.append(f"results contain email addresses {sorted(emails)[:3]}; replace them with [email] unless the step is about them")
         validate_results(d["results"], ids, fields, out_dir, set(published), errors, warnings)
     for text in strings(d):
         for pat, what in SECRETS:

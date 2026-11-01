@@ -20,8 +20,12 @@ SECRET = re.compile(r'(?i)"(password|passwd|secret|token|access_?token|refresh_?
 EXCERPT = 3000
 
 
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
 def scrub(text):
     text = SECRET.sub(lambda m: f'"{m.group(1)}": "[redacted]"', text or "")
+    text = EMAIL.sub("[email]", text)
     return re.sub(r"(?i)(bearer\s+)[\w.\-=]+", r"\1[redacted]", text)
 
 

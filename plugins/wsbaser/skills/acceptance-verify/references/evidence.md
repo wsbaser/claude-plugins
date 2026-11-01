@@ -81,7 +81,9 @@ Record one clip per UI step, never one per phase.
 The screencast stores a frame only when the screen changes and plays the frames back at a fixed rate. A recording of a mostly still page therefore plays as a time-lapse: a 7-minute phase played in 8 seconds. The ticker from `__av.tickStart` changes a corner of the screen ten times a second, so the clip plays in real time. Its label also stamps the step id into every frame.
 
 - Start the recording after login, so it never contains a password.
-- A full page load removes the ticker and the helper. Install the helper again and call `tickStart` again.
+- A full page load removes the ticker and the helper. Install the helper again and call `tickStart` straight away. Otherwise the rest of the clip is compressed: in one run, a 7-minute step played in 7 seconds. Prefer in-app navigation (`Blazor.navigateTo(...)` or clicking links) to `navigate_page`.
+- Opening a second tab while a recording runs damaged the recordings of that phase: the browser wrote clips that stop decoding after a few seconds. Stop the current recording before you open another tab, and record the other tab's step on that tab.
+- Check every clip right after you stop it. Load it in a `<video>` on a local page, seek to the end, and compare the duration with `dur`. A clip that errors goes out of `video`, with a note in `notes`. A clip much shorter than `dur` gets the measured length as `dur`, with a note that it is compressed.
 - A step done in a second tab, such as a stale-screen test, needs its own `screencast_start` on that page. Otherwise it has no clip, which is acceptable; say so in the step's notes.
 - Keep each clip under 15 MB. A normal step is well under 1 MB.
 
