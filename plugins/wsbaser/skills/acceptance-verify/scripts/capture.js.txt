@@ -1,12 +1,16 @@
 () => {
-  // Installs window.__av in the app page: an API-call log, the recording ticker, an element outline and text readers.
-  // Pass this file's text as evaluate_script's function after login and after every full page load; it is idempotent.
+  // Installs window.__av in the app page: an API-call log, the recording ticker, step checks, an element outline and text readers.
+  // Two ways in, both idempotent:
+  //   evaluate_script with this text as the function, after login;
+  //   navigate_page with initScript "(<this text>)()" for every full page load, so the helper (and a running ticker) survive it.
   if (window.__av) return "already installed";
   const SECRET =
     /^(password|passwd|secret|token|access_?token|refresh_?token|client_?secret|api_?key|apikey)$/i;
+  const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
   const MAX = 20000;
   const redact = (text) => {
     if (typeof text !== "string" || !text) return text || "";
+    let out;
     try {
       const walk = (v) => {
         if (Array.isArray(v)) return v.map(walk);
@@ -18,16 +22,26 @@
         }
         return v;
       };
-      return JSON.stringify(walk(JSON.parse(text)), null, 2);
+      out = JSON.stringify(walk(JSON.parse(text)), null, 2);
     } catch (e) {
-      return text.replace(/(Bearer\s+)[\w.\-=]+/gi, "$1[redacted]");
+      out = text.replace(/(Bearer\s+)[\w.\-=]+/gi, "$1[redacted]");
     }
+    // The tester's own login shows up in many responses; a shareable page carries none.
+    return out.replace(EMAIL, "[email]");
+  };
+  // Blazor sends request bodies as bytes, not strings.
+  const bodyText = (b) => {
+    try {
+      if (typeof b === "string") return b;
+      if (b instanceof Uint8Array || b instanceof ArrayBuffer)
+        return new TextDecoder().decode(b);
+    } catch (e) {}
+    return "";
   };
   const log = [];
   const isApi = (url) =>
-    !/\.(js|css|wasm|dll|dat|blat|woff2?|png|svg|ico|json\.br|webp)(\?|$)/i.test(
-      url
-    ) && !/_framework|_content|fonts\./i.test(url);
+    !/\.(js|css|wasm|dll|dat|blat|woff2?|png|svg|ico|json\.br|webp)(\?|$)/i.test(url) &&
+    !/_framework|_content|fonts\./i.test(url);
   const push = (e) => {
     e.req = redact(e.req).slice(0, MAX);
     e.res = redact(e.res).slice(0, MAX);
@@ -37,11 +51,7 @@
   const origFetch = window.fetch;
   window.fetch = async function (input, init) {
     const url = typeof input === "string" ? input : input.url;
-    const method = (
-      (init && init.method) ||
-      (input && input.method) ||
-      "GET"
-    ).toUpperCase();
+    const method = ((init && init.method) || (input && input.method) || "GET").toUpperCase();
     const t0 = performance.now();
     const res = await origFetch.apply(this, arguments);
     if (isApi(url)) {
@@ -54,7 +64,7 @@
         url: url.replace(location.origin, ""),
         status: res.status,
         ms: Math.round(performance.now() - t0),
-        req: init && typeof init.body === "string" ? init.body : "",
+        req: bodyText(init && init.body),
         res: body,
         at: new Date().toISOString(),
       });
@@ -77,7 +87,7 @@
           url: meta.url.replace(location.origin, ""),
           status: this.status,
           ms: Math.round(performance.now() - t0),
-          req: typeof body === "string" ? body : "",
+          req: bodyText(body),
           res: typeof this.responseText === "string" ? this.responseText : "",
           at: new Date().toISOString(),
         })
@@ -85,46 +95,111 @@
     return XS.apply(this, arguments);
   };
 
+  const norm = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+  const find = (selector, text) => {
+    let el = selector ? document.querySelector(selector) : null;
+    if (!el && text)
+      el =
+        [...document.querySelectorAll("body *")]
+          .reverse()
+          .find((n) => n.children.length === 0 && (n.innerText || "").includes(text)) || null;
+    return el;
+  };
+  // The ticker and the open step live in sessionStorage, so a full page load (with the initScript) picks them up again.
+  const store = {
+    get: () => {
+      try {
+        return JSON.parse(sessionStorage.getItem("__av_step") || "null");
+      } catch (e) {
+        return null;
+      }
+    },
+    set: (v) => {
+      try {
+        v ? sessionStorage.setItem("__av_step", JSON.stringify(v)) : sessionStorage.removeItem("__av_step");
+      } catch (e) {}
+    },
+  };
   let tick = null,
     tickTimer = null,
     outlined = null;
+  const showTick = (label, t0) => {
+    const draw = () => {
+      if (!document.body) return;
+      if (!tick) {
+        tick = document.createElement("div");
+        tick.style.cssText =
+          "position:fixed;left:8px;bottom:8px;z-index:2147483647;font:600 12px/1.4 ui-monospace,monospace;background:rgba(15,23,42,.85);color:#fff;padding:3px 8px;border-radius:4px;pointer-events:none";
+      }
+      if (!tick.isConnected) document.body.appendChild(tick);
+      tick.textContent = label + " · " + ((Date.now() - t0) / 1000).toFixed(1) + " s";
+    };
+    clearInterval(tickTimer);
+    tickTimer = setInterval(draw, 100);
+  };
+
   window.__av = {
     // API calls since the last take(); call it right after the action you want the evidence for.
     take: () => log.splice(0, log.length),
     // A small clock in the corner while a step is recorded. The screencast stores a frame only when the
     // screen changes, so without it a recording plays back as a time-lapse; with it, in real time.
     tickStart: (label) => {
-      if (!tick) {
-        tick = document.createElement("div");
-        tick.style.cssText =
-          "position:fixed;left:8px;bottom:8px;z-index:2147483647;font:600 12px/1.4 ui-monospace,monospace;background:rgba(15,23,42,.85);color:#fff;padding:3px 8px;border-radius:4px;pointer-events:none";
-      }
-      document.body.appendChild(tick);
       const t0 = Date.now();
-      clearInterval(tickTimer);
-      tickTimer = setInterval(() => {
-        tick.textContent =
-          label + " · " + ((Date.now() - t0) / 1000).toFixed(1) + " s";
-      }, 100);
+      store.set(Object.assign(store.get() || {}, { label, t0 }));
+      showTick(label, t0);
       return t0;
     },
     tickStop: () => {
       clearInterval(tickTimer);
       if (tick) tick.remove();
+      const s = store.get();
+      if (s) store.set(Object.assign(s, { label: null }));
       return Date.now();
+    },
+    // One call opens a step: drops older API calls, starts the ticker, opens a list of checks.
+    begin: (id) => {
+      log.splice(0, log.length);
+      store.set({ id, checks: [], started: new Date().toISOString() });
+      return window.__av.tickStart("Step " + id);
+    },
+    // Read the element and compare it with the Expect wording; the check is kept for end().
+    // target: a CSS selector, or { text: "visible text" } to find the element by its text, or { page: true } for the whole page.
+    // opts: { how, ac, mode: "equals" | "contains" (default) | "regex", actual } — pass actual to record a value you read yourself.
+    check: (what, target, expected, opts) => {
+      opts = opts || {};
+      let actual = opts.actual;
+      if (actual === undefined) {
+        if (target && target.page) actual = document.body.innerText;
+        else {
+          const el = typeof target === "string" ? find(target) : find(null, target && target.text);
+          actual = el ? el.innerText || el.textContent || el.value || "" : null;
+        }
+      }
+      const a = actual == null ? "(not found)" : norm(actual),
+        e = norm(expected),
+        mode = opts.mode || "contains";
+      const ok =
+        actual != null &&
+        (mode === "equals" ? a === e : mode === "regex" ? new RegExp(expected).test(a) : a.includes(e));
+      const c = { what, expected: String(expected), actual: a.length > 300 && mode !== "equals" ? (ok ? e : a.slice(0, 300) + "…") : a, ok, how: opts.how || (typeof target === "string" ? "DOM text of " + target : "DOM text") };
+      if (opts.ac) c.ac = opts.ac;
+      const s = store.get() || { checks: [] };
+      s.checks = (s.checks || []).concat([c]);
+      store.set(s);
+      return c;
+    },
+    // Closes the step: stops the ticker and returns timing, checks and the step's API calls in one object.
+    // Save it with evaluate_script's filePath to results/raw/<id>.json, then run step.py.
+    end: () => {
+      const s = store.get() || {};
+      const ended = window.__av.tickStop();
+      store.set(null);
+      return { id: s.id, started: s.started, ended: new Date(ended).toISOString(), ms: s.t0 ? ended - s.t0 : null, checks: s.checks || [], calls: log.splice(0, log.length) };
     },
     // Outline the element that proves the step before the proof screenshot; clear it afterwards.
     outline: (selector, text) => {
       window.__av.clear();
-      let el = selector ? document.querySelector(selector) : null;
-      if (!el && text)
-        el =
-          [...document.querySelectorAll("body *")]
-            .reverse()
-            .find(
-              (n) =>
-                n.children.length === 0 && (n.innerText || "").includes(text)
-            ) || null;
+      const el = find(selector, text);
       if (!el) return false;
       outlined = { el, prev: el.style.outline, off: el.style.outlineOffset };
       el.style.outline = "3px solid #e11d48";
@@ -140,14 +215,11 @@
       }
     },
     // Visible text, whitespace-normalised, for comparing with the Expect wording.
-    text: (selector) =>
-      [...document.querySelectorAll(selector)].map((n) =>
-        (n.innerText || n.textContent || "").replace(/\s+/g, " ").trim()
-      ),
-    has: (text) =>
-      (document.body.innerText || "")
-        .replace(/\s+/g, " ")
-        .includes(text.replace(/\s+/g, " ")),
+    text: (selector) => [...document.querySelectorAll(selector)].map((n) => norm(n.innerText || n.textContent)),
+    has: (text) => norm(document.body.innerText).includes(norm(text)),
   };
+  // A step that was open before a full page load keeps its ticker running.
+  const open = store.get();
+  if (open && open.label && open.t0) showTick(open.label, open.t0);
   return "installed";
 }

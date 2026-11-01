@@ -29,20 +29,19 @@ What to collect at each step, how to collect it with the browser tools (Chrome D
 
 ## One step, start to finish (UI)
 
-1. **Start recording:** `screencast_start` to `evidence/<run-id>/<step>.mp4`, then `evaluate_script` → `() => window.__av.tickStart("Step <id>")`. It returns the start clock. Keep it as `started`, in ISO with `Z`. Call `__av.take()` once to drop calls from before the step.
+The short version, which `step.py` turns into the step file: `screencast_start`, `__av.begin(id)`, act, `__av.check(...)` per clause, proof shot `<id>-1.webp`, `__av.end()` saved to `results/raw/<id>.json`, `screencast_stop`, draft, `step.py`. The long version below says what each piece is for.
+
+1. **Start recording:** `screencast_start` to `evidence/<run-id>/<step>.mp4`, then `() => window.__av.begin("<id>")`. It drops calls from before the step, starts the ticker and the clock, and opens the check list.
 2. **Before shot,** only when the Expect is a change ("goes from 10 to 0", "the hint disappears"). Take it now.
 3. **Act.** `take_snapshot` for uids, then `click`, `fill`, `press_key`, `navigate_page`. Log each as an action: `{ "t": seconds since the start clock, "do": "click", "target": "button \"Reverse\"", "value": "" }`. Name targets by role and visible label, the way the reader sees them, not by uid.
 4. **Wait** for the result: `wait_for` on the expected text, or for the network to go quiet.
-5. **Verify.** Read each Expect clause with `evaluate_script`, e.g. `el.innerText` of the banner, the cell or the status pill. Compare it with the Expect string, normalising only whitespace. Write one check per clause:
-   `{ "what": "Banner text", "expected": "…", "actual": "…", "ok": true, "how": "DOM text of the toast" }`.
-   For a `check` step, add one check per answer-sheet item, using its `v` field's value.
+5. **Verify.** One `__av.check(what, target, expected, opts)` per Expect clause, e.g. `__av.check("Banner text", ".toast", "Reversal refused", { how: "DOM text of the toast" })`. It reads the element, normalises whitespace, compares (`contains`; `mode: "equals"` or `"regex"` when needed) and keeps `{ what, expected, actual, ok, how }`. For a value you read another way (an API field, a grid cell via `text()`), pass it as `opts.actual`.
+   For a `check` step, add one check per answer-sheet item, using its `v` field's value, with `ac: key.colAc[i]`. `step.py` then gives the step one verdict per AC.
 6. **Proof shot.** Outline the element that proves the step: `__av.outline(selector)`, or `__av.outline(null, "visible text")`. That also scrolls it into view. Take a viewport screenshot, then `__av.clear()`. If the proof is small text in a big screen, also take an element screenshot (`uid`, kind `detail`).
-7. **Network and console:**
-   - Save `() => window.__av.take()` to a file with `evaluate_script`'s `filePath`. Then run `python <skill-dir>/scripts/http_evidence.py <file> <workdir> <run-id> <step> --key N` to get the step's `http` list, with full bodies written to `evidence/`. `list_network_requests` mixes in hundreds of static files, so use it only if the helper is missing.
-   - `list_console_messages` for `error` and `warn`.
-8. **Values and records.** Anything the step's `fields` ask for goes into `values`. Anything created or changed goes into `records` with an app route, e.g. `inventory/journals/[J1]`.
-9. **Stop recording:** `__av.tickStop()` returns the end clock. Then call `screencast_stop`. Set `video` to `{ "src": "evidence/<run-id>/<step>.mp4", "dur": (end − start) / 1000 }` and `ms` to end − start.
-10. **Write** `results/steps/<id>.json`.
+7. **Console:** `list_console_messages` for `error` and `warn`, into the draft's `console`.
+8. **Values and records.** Anything the step's `fields` ask for goes into the draft's `values`. Anything created or changed goes into `records` with an app route, e.g. `inventory/journals/[J1]`.
+9. **Close the step:** `() => window.__av.end()` with `filePath` = `<workdir>/results/raw/<id>.json`. It stops the ticker and returns the clock, the checks and the step's API calls (bodies redacted, emails replaced). Then `screencast_stop`.
+10. **Write** `results/drafts/<id>.json` (summary, cause, failure, issue, captions, actions, console, values, records) and run `python <skill-dir>/scripts/step.py <workdir> <run-id> <id> --key N`. It finds the shots and the clip by name, derives status and per-AC verdicts, and writes the API calls with full bodies under `evidence/`. A draft `status` overrides the derived one (`blocked`, `manual`, `skip`).
 
 ## API steps (BE-only)
 
@@ -81,9 +80,9 @@ Record one clip per UI step, never one per phase.
 The screencast stores a frame only when the screen changes and plays the frames back at a fixed rate. A recording of a mostly still page therefore plays as a time-lapse: a 7-minute phase played in 8 seconds. The ticker from `__av.tickStart` changes a corner of the screen ten times a second, so the clip plays in real time. Its label also stamps the step id into every frame.
 
 - Start the recording after login, so it never contains a password.
-- A full page load removes the ticker and the helper. Install the helper again and call `tickStart` straight away. Otherwise the rest of the clip is compressed: in one run, a 7-minute step played in 7 seconds. Prefer in-app navigation (`Blazor.navigateTo(...)` or clicking links) to `navigate_page`.
+- A full page load removes the helper. Do every full load with `navigate_page` and `initScript` = `(<capture.js text>)()`: the helper then comes back before the app starts, and picks up the open step's ticker from `sessionStorage`. Without it the rest of the clip is compressed: in one run, a 7-minute step played in 7 seconds. The API log does not survive a full load, so prefer in-app navigation (`Blazor.navigateTo(...)` or clicking links).
 - Opening a second tab while a recording runs damaged the recordings of that phase: the browser wrote clips that stop decoding after a few seconds. Stop the current recording before you open another tab, and record the other tab's step on that tab.
-- Check every clip right after you stop it. Load it in a `<video>` on a local page, seek to the end, and compare the duration with `dur`. A clip that errors goes out of `video`, with a note in `notes`. A clip much shorter than `dur` gets the measured length as `dur`, with a note that it is compressed.
+- Check the clips after every phase with `scripts/clipcheck.py` (see SKILL.md). It seeks each clip to 25, 50, 75 and 100 % in a local page: a clip that errors goes out of `video`, a compressed one gets its measured length, each with a note on the step. The last run's own check, done by hand at the end, missed a clip that broke at 3.4 s.
 - A step done in a second tab, such as a stale-screen test, needs its own `screencast_start` on that page. Otherwise it has no clip, which is acceptable; say so in the step's notes.
 - Keep each clip under 15 MB. A normal step is well under 1 MB.
 
@@ -99,8 +98,12 @@ Keep request and response bodies, but before writing them:
 ```
 <workdir>/
   run-data.json                 from extract.py
+  capture.js  patches/*.js      page helper and environment patches
   results/run.json              run-level facts
-  results/steps/<id>.json       one per step
+  results/raw/<id>.json         __av.end() output
+  results/drafts/<id>.json      what you add by hand
+  results/steps/<id>.json       one per step, written by step.py
+  published.json                what the artifact already holds (finish.py --mark-published)
   evidence/<run-id>/
     2.3.mp4                     the step's recording
     2.3-1.webp  2.3-2.webp      <step>-<n>

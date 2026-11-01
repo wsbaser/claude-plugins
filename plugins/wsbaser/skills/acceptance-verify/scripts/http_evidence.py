@@ -35,17 +35,11 @@ def nums(args, flag):
     return set()
 
 
-def main():
-    if len(sys.argv) < 5:
-        sys.exit(__doc__)
-    calls_path, wd, run_id, step = sys.argv[1:5]
-    raw = json.loads(Path(calls_path).read_text(encoding="utf-8"))
-    if isinstance(raw, dict) and "result" in raw:
-        raw = raw["result"]
-    key, ok = nums(sys.argv, "--key"), nums(sys.argv, "--ok")
+def entries(raw, wd, run_id, step, key=(), ok=()):
+    """The step's `http` list; full bodies longer than the excerpt go to evidence/<run-id>/."""
     out_dir = Path(wd) / "evidence" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
-    entries = []
+    out = []
     for i, c in enumerate(raw, 1):
         res, req = scrub(c.get("res", "")), scrub(c.get("req", ""))
         e = {"method": c.get("method"), "url": c.get("url"), "status": c.get("status"), "ms": c.get("ms"),
@@ -58,8 +52,20 @@ def main():
             e["key"] = True
         if i in ok:
             e["ok"] = True
-        entries.append(e)
-    print(json.dumps(entries, ensure_ascii=False, indent=1))
+        out.append(e)
+    return out
+
+
+def main():
+    if len(sys.argv) < 5:
+        sys.exit(__doc__)
+    calls_path, wd, run_id, step = sys.argv[1:5]
+    raw = json.loads(Path(calls_path).read_text(encoding="utf-8"))
+    if isinstance(raw, dict) and "result" in raw:
+        raw = raw["result"]
+    if isinstance(raw, dict) and "calls" in raw:
+        raw = raw["calls"]
+    print(json.dumps(entries(raw, wd, run_id, step, nums(sys.argv, "--key"), nums(sys.argv, "--ok")), ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":

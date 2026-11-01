@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "template.html"
+APP_JS = TEMPLATE.with_name("template.js.txt")
 TOKEN = re.compile(r"\{([A-Z][A-Z0-9_]*)\}")
 RESERVED = {"BASE", "ALIAS"}
 
@@ -68,6 +69,21 @@ def validate(d, out_dir=None, published=()):
             errors.append(f"step {s['id']}: check '{s['check']}' has no row in key.rows")
         if not s.get("b"):
             warnings.append(f"step {s['id']}: no business meaning (b)")
+        if s.get("assume") is not None and not (isinstance(s["assume"], list) and all(isinstance(x, str) for x in s["assume"])):
+            errors.append(f"step {s['id']}: 'assume' must be a list of strings")
+        for a in s.get("ac") or []:
+            if d.get("ac") and a not in d["ac"]:
+                errors.append(f"step {s['id']}: ac '{a}' is not in ac")
+
+    col_ac = (d.get("key") or {}).get("colAc")
+    if col_ac is not None:
+        if len(col_ac) != len((d.get("key") or {}).get("cols", [])):
+            errors.append("key.colAc must have one AC per column in key.cols")
+        for a in col_ac:
+            if a and a not in (d.get("ac") or {}):
+                errors.append(f"key.colAc names '{a}', which is not in ac")
+    elif (d.get("key") or {}).get("rows") and len(d.get("ac") or {}) > 1:
+        warnings.append("key.colAc missing: a failed answer-sheet column will fail every AC its step covers")
 
     for r in (d.get("key") or {}).get("rows", []):
         if r["step"] not in ids:
@@ -110,7 +126,7 @@ def validate(d, out_dir=None, published=()):
         emails = {m for t in strings(d["results"]) for m in re.findall(r"[\w.+-]+@[\w-]+\.[a-z]{2,}", t)}
         if emails:
             warnings.append(f"results contain email addresses {sorted(emails)[:3]}; replace them with [email] unless the step is about them")
-        validate_results(d["results"], ids, fields, out_dir, set(published), errors, warnings)
+        validate_results(d["results"], ids, fields, out_dir, set(published), errors, warnings, d["steps"])
     for text in strings(d):
         for pat, what in SECRETS:
             if pat.search(text):
@@ -130,7 +146,7 @@ SECRETS = [
 ]
 
 
-def validate_results(res, ids, fields, out_dir, published, errors, warnings):
+def validate_results(res, ids, fields, out_dir, published, errors, warnings, steps_all=()):
     """Automated results: every reference must resolve, and every file the page shows must exist."""
     run = res.get("run") or {}
     if not run.get("id"):
@@ -163,6 +179,14 @@ def validate_results(res, ids, fields, out_dir, published, errors, warnings):
             errors.append(f"{where}: a {st} step needs a summary or failure that says why")
         if st == "fail" and not r.get("cause"):
             errors.append(f"{where}: a failed step needs a cause (product, run, env or known)")
+        for a, v in (r.get("acs") or {}).items():
+            step = next((s for s in steps_all if s.get("id") == sid), {})
+            if a not in (step.get("ac") or []):
+                errors.append(f"{where}: acs names '{a}', which the step does not cover")
+            if v not in ("pass", "fail", "skip"):
+                errors.append(f"{where}: acs.{a} must be pass, fail or skip")
+        if r.get("issue") is not None and not isinstance(r["issue"], str):
+            errors.append(f"{where}: issue must be a short string shared by steps that fail for the same reason")
         checks = r.get("checks") or []
         if r.get("method") == "asserted" and not checks:
             errors.append(f"{where}: method 'asserted' needs at least one check with expected and actual")
@@ -189,7 +213,7 @@ def validate_results(res, ids, fields, out_dir, published, errors, warnings):
             elif not (0 <= vref.get("t0", -1) <= vref.get("t1", -1)):
                 errors.append(f"{where}: video t0/t1 must satisfy 0 <= t0 <= t1")
     missing = [i for i in ids if i not in (res.get("steps") or {})]
-    if missing:
+    if missing and not run.get("inProgress"):
         warnings.append(f"no automated result for steps {missing}; they show as 'not part of the automated run'")
 
 
@@ -206,6 +230,8 @@ def build(data, out_path, published=()):
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.read_text(encoding="utf-8")
     html = html.replace("__TITLE__", f"{data['meta']['ticket']} Acceptance Run")
+    # The page script lives in a .txt file so code formatters leave it alone.
+    html = html.replace("/*__APP_JS__*/", APP_JS.read_text(encoding="utf-8"))
     html = html.replace("/*__RUN_DATA__*/", payload)
     out_path.write_text(html, encoding="utf-8", newline="\n")
     print(f"built {out_path} ({len(data['steps'])} steps, {len(data.get('ac') or {})} ACs"

@@ -14,11 +14,16 @@ The orchestrator fills in the angle brackets. Send one phase at a time and wait 
 > Values known so far: `<KEY=value, …>`. Run id: `<run id>`. Evidence folder: `<workdir>/evidence/<run id>/`.
 > Environment workarounds in force: `<none | exact description, e.g. the in-page patch and how to re-apply it after a page load>`.
 >
+> Throwaway names carry the run suffix `<suffix>` (e.g. `AT-REV1-<suffix>`); use the values above, not the page's defaults.
+>
 > For each step of the phase, in order:
-> 1. Make sure `window.__av` exists. If not, load `<workdir>/capture.js` with `evaluate_script`'s `sourcePath`, then the workaround files `<workdir>/<patch>.js`, in that order.
-> 2. Start the step's recording to `evidence/<run id>/<id>.mp4` and call `__av.tickStart("Step <id>")`.
-> 3. Do the step. Verify each Expect clause against what the page or API shows (checks with exact `actual`), take the proof screenshot with the element outlined, and capture the API calls with `__av.take()` and `scripts/http_evidence.py`. Capture the console too.
-> 4. Call `__av.tickStop()` and stop the recording. Then write `results/steps/<id>.json` with `video: { src, dur }`.
+> 1. Make sure `window.__av` exists. If not, load `<workdir>/capture.js` with `evaluate_script`'s `sourcePath`, then `<workdir>/patches/*.js`. For a full page load use `navigate_page` with `initScript` = `(<capture.js text>)()` plus the patches.
+> 2. `screencast_start` to `evidence/<run id>/<id>.mp4`, then `__av.begin("<id>")`.
+> 3. Do the step. One `__av.check(...)` per Expect clause; for answer-sheet items pass `ac` from `key.colAc`. Proof screenshot to `evidence/<run id>/<id>-1.webp` with the element outlined. Console errors into the draft.
+> 4. `__av.end()` with `filePath` = `<workdir>/results/raw/<id>.json`, then `screencast_stop`. Never open another tab while recording.
+> 5. Write `results/drafts/<id>.json` with only what a script can't know (summary, cause, failure, issue, captions, actions, records, values, console), then run `python <skill-dir>/scripts/step.py <workdir> <run id> <id> --key N`. Fix what it prints under `needs:`.
+>
+> Steps failing for one shared reason get the same `issue` title. A failure on something listed in the step's `assume` is cause `run` unless the code shows the app is wrong; a failure the step's `known` predicts is cause `known`.
 >
 > On a step that does not hold:
 > - look once more;

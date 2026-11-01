@@ -1,0 +1,46 @@
+() => {
+  // Template for a request patch: works around an environment blocker so the run can reach the behaviour under test.
+  // Copy it to <workdir>/patches/<name>.js, fill in RULES, and load it in the same two ways as capture.js
+  // (evaluate_script, and navigate_page initScript for every full load). Every patch is logged in run.json
+  // "workarounds" and on each step it touched; a patched step can never fail or pass on what the patch changed.
+  const NAME = "journal-date"; // short name, shown in the run notes
+  const RULES = [
+    {
+      // Which requests: a regex on the path (no query), and the methods.
+      url: /inventory-journals(\/\d+)?$/,
+      methods: ["POST", "PUT"],
+      // Change the parsed JSON body; return it. Only fill what is missing, never overwrite what the app sent.
+      body: (b) => {
+        if (!b.date) b.date = new Date().toISOString().slice(0, 10);
+        return b;
+      },
+    },
+  ];
+
+  const key = "__avPatch_" + NAME;
+  if (window[key]) return "already installed";
+  const hits = [];
+  const text = (b) => (typeof b === "string" ? b : b instanceof Uint8Array || b instanceof ArrayBuffer ? new TextDecoder().decode(b) : null);
+  const f = window.fetch;
+  window.fetch = function (input, init) {
+    try {
+      const url = (typeof input === "string" ? input : input.url).split("?")[0];
+      const m = ((init && init.method) || (input && input.method) || "GET").toUpperCase();
+      for (const r of RULES) {
+        if (!r.url.test(url) || r.methods.indexOf(m) < 0 || !init || !init.body) continue;
+        const t = text(init.body); // Blazor sends a Uint8Array; JSON.parse on it fails silently otherwise
+        if (t == null) continue;
+        const before = t;
+        const after = JSON.stringify(r.body(JSON.parse(t)));
+        if (after !== before) {
+          init = Object.assign({}, init, { body: after });
+          hits.push({ url, method: m, at: new Date().toISOString() });
+        }
+      }
+    } catch (e) {}
+    return f.call(this, input, init);
+  };
+  // hits() tells you which requests the patch changed, for the step notes.
+  window[key] = { hits: () => hits.splice(0, hits.length) };
+  return "installed";
+}

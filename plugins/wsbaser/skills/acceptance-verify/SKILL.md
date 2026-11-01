@@ -45,6 +45,8 @@ Credentials never appear in evidence. Don't record or screenshot the login, and 
   - manual: needs a human, e.g. an email arriving, a printout, another device, a judgement about looks.
 
   Manual steps get `status: "manual"` with the exact thing to check. Don't fake them.
+- **Unique throwaway names.** Names the page gives its throwaway data (`AT-REV1`, `AT journal`) collide with an earlier run's leftovers: a second run found the item already there and had to improvise. Give every name the run's short suffix, e.g. `AT-REV1-1101a` for run `r-2026-11-01T1700`, and put each renamed value in the first step's `values`. Values prefill Test data, so every later step and link uses the new name.
+- **Assumptions and known failures.** A step's `assume` lists what the page took from the code without seeing it in the app; a failure that hits an assumption is cause `run` (fix the step) unless the code shows the app is wrong. A step's `known` names an issue it is expected to fail on; such a failure is cause `known`.
 - **Browser.** Use a headless browser, unless the user says otherwise. Open an isolated page and set the viewport to 1440×900. Log in and pick the tenant.
 
 ## 4. Run the steps
@@ -53,26 +55,30 @@ Run the phases in order. Each one builds on the data the previous one created.
 
 **You orchestrate; subagents run the phases.** If you can start subagents, give each phase to one subagent, one after another, never in parallel. Use the brief in `references/phase-brief.md`. Your own context stays free for judging results, deciding on workarounds and writing the report. A run of 27 steps done in a single context took 100 minutes and left no room for judgement. Run the phases yourself only when you cannot start subagents, or when the whole run has fewer than about 8 steps.
 
-**After login, install the page helper.** Copy `scripts/capture.js.txt` into the work folder as `capture.js` and load it with `evaluate_script`'s `sourcePath`. The browser tool reads files only from its allowed roots, which include the scratchpad but not the plugin folder. If that fails, pass the file's text as the function instead. The helper gives `window.__av`:
-- an API-call log with bodies already redacted (`take()`);
-- the recording ticker (`tickStart(label)` / `tickStop()`);
-- an element outline for proof shots (`outline(selector, text)` / `clear()`);
-- whitespace-normalised text readers (`text(selector)`, `has(text)`).
+**After login, install the page helper.** Copy `scripts/capture.js.txt` into the work folder as `capture.js` and load it with `evaluate_script`'s `sourcePath` (the browser tool reads files only from its allowed roots: the scratchpad, not the plugin folder; if that fails, pass the text as the function). For every full page load use `navigate_page` with `initScript` set to `(<capture.js text>)()` followed by any patch, so the helper, the patch and a running ticker are back before the app starts. Prefer in-app navigation anyway; it keeps the API log. The helper gives `window.__av`:
+- `begin(id)`: drops older API calls, starts the ticker, opens the step's check list;
+- `check(what, target, expected, { how, ac, mode })`: reads the element (a selector or `{ text }`), compares it with the Expect wording (whitespace-normalised, `contains` by default) and keeps the check;
+- `end()`: stops the ticker and returns timing, checks and the step's API calls in one object;
+- `outline(selector, text)` / `clear()` for the proof shot, `text(selector)` and `has(text)` for reads, `take()` for the raw API log.
 
-Install it again after every full page load. Keep any environment patch (see below) as a file in the work folder too, and load it right after the helper. The app may send request bodies as bytes rather than text, so a patch must decode a `Uint8Array` body before editing it.
+**Each step, five moves.** For every UI step:
+1. `screencast_start` to `evidence/<run-id>/<id>.mp4`, then `__av.begin("<id>")`.
+2. Do the step, then one `check` per Expect clause. For a `check` step add one per answer-sheet item with `ac` = `key.colAc[i]`, so a wrong price fails only the AC it belongs to.
+3. Proof screenshot to `evidence/<run-id>/<id>-1.webp` (more as `-2`, `-3`).
+4. `__av.end()` saved with `evaluate_script`'s `filePath` to `results/raw/<id>.json`, then `screencast_stop`.
+5. Write `results/drafts/<id>.json` only for what a script can't know (summary, cause, failure, issue, captions, records, values, actions), then `python <skill-dir>/scripts/step.py <workdir> <run-id> <id> --key N`. It writes `results/steps/<id>.json`: status from the checks, per-AC verdicts, shots, clip, redacted API calls.
 
-**Each step, one clip.** For every UI step:
-1. Start a screen recording to `evidence/<run-id>/<step>.mp4` and call `__av.tickStart("Step <id>")`.
-2. Do the step, verify it and capture the evidence.
-3. Call `__av.tickStop()`, then stop the recording.
+The screencast stores a frame only when the screen changes. The ticker keeps it changing, so the clip plays in real time. Never open a second tab while recording: it damaged every clip of a phase.
 
-The screencast stores a frame only when the screen changes. The ticker keeps the screen changing, so the clip plays in real time instead of as a time-lapse. The clip's `dur` is the seconds between start and stop.
+The step file exists before the next step starts, so a crash loses nothing and a re-run can resume. `references/evidence.md` covers each kind of evidence for UI, API and mixed steps, and how to choose the screenshot that proves the step.
 
-Write `results/steps/<id>.json` before starting the next step, so a crash loses nothing and a re-run can resume. `references/evidence.md` covers each kind of evidence for UI, API and mixed steps, and how to choose the screenshot that proves the step.
+**After each phase:**
+1. Check the clips: `python <skill-dir>/scripts/clipcheck.py <workdir>`, open the printed `file:///…/clipcheck.html` in a page that is not recording, wait for the title `done`, save `() => window.__clipcheck` to `results/clipcheck.json`, then `clipcheck.py <workdir> --apply results/clipcheck.json`. It drops damaged clips and fixes compressed ones, with a note on the step. A problem found here is fixed in the next phase (restart the ticker, no second tab), not discovered by the reader.
+2. Publish the progress: `run.json` with `"inProgress": true`, then step 5 below. The page says "Run in progress: 9 of 27 steps done". The user sees results while the run goes on and never has to ask for status.
 
-**When the environment blocks every step** (for example, the deployed frontend and backend disagree), first try a workaround that keeps the user's path real, such as a request patch inside the page. If one works:
+**When the environment blocks every step** (for example, the deployed frontend and backend disagree), first try a workaround that keeps the user's path real. For a request the app sends wrong or incomplete, copy `scripts/patch.js.txt` to `<workdir>/patches/<name>.js` and fill in its rule: it already decodes Blazor's byte bodies, only fills what is missing, and counts what it changed (`window.__avPatch_<name>.hits()`). Load it after the helper, and in every `initScript`. If it works:
 - mark the first affected step `fail` with cause `env`;
-- describe the workaround exactly in `run.notes`;
+- describe the workaround exactly in `run.notes`, and name it in `workarounds` on each step it touched;
 - carry on.
 
 If no workaround keeps the test meaningful, stop and report.
@@ -83,7 +89,9 @@ If no workaround keeps the test meaningful, stop and report.
 - Use `observed` only when the Expect is visual (a layout, a colour, an icon) and you judged it from a screenshot you actually looked at. Say what you looked at.
 - `actual` is always what the app showed, never what you hoped for.
 
-**Wording that is true at another moment.** Sometimes the app's wording is right but the page quotes it from a different moment, e.g. the status strip just after posting versus on reopen. That is cause `run`. Name the right wording in `failure.diagnosis`. When several steps share the same wording issue, say so once in `run.notes`, so the reader doesn't take five red steps for five problems.
+**Wording that is true at another moment.** Sometimes the app's wording is right but the page quotes it from a different moment, e.g. the status strip just after posting versus on reopen. That is cause `run`. Name the right wording in `failure.diagnosis`.
+
+**One reason, one item.** Steps that fail for the same reason share an `issue`, a short title such as "Strip wording differs from the page". The Results tab then shows one item with all its steps as chips, instead of six red cards the reader takes for six problems.
 
 ### When a step does not hold
 
@@ -103,7 +111,7 @@ If no workaround keeps the test meaningful, stop and report.
 
 ## 5. Finish, preview, publish
 
-1. Write `results/run.json`: run id, who ran it, start and end time, environment, builds and runner notes. Follow `references/results.md`. Step recordings sit on their steps, not here. For a re-run of only some steps, set `"partial": true`, so earlier results and their published files are kept.
+1. Write `results/run.json`: run id, who ran it, start and end time, environment, builds and runner notes. Follow `references/results.md`. Step recordings sit on their steps, not here. For a re-run of only some steps, set `"partial": true`, so earlier results and their published files are kept. Set `"inProgress": true` for the publishes after each phase, and leave it out of the last one.
 2. Build:
    ```bash
    python <skill-dir>/scripts/finish.py <workdir>
@@ -122,7 +130,8 @@ If no workaround keeps the test meaningful, stop and report.
    - `root` = the work folder;
    - `files` = the first batch from `publish.json`.
 
-   Publish any further batches to the same `url` and `file_path` with the next `files` map. A batch can include `null` entries; they remove the earlier run's files.
+   Publish any further batches to the same `url` and `file_path` with the next `files` map. A batch can include `null` entries; they remove the earlier run's files. When `batches` is empty, publish the page alone.
+5. After every batch succeeded: `python <skill-dir>/scripts/finish.py <workdir> --mark-published`. The next publish then sends only new or changed files. Batches stay under 12 MB; one 42 MB publish failed with ECONNRESET.
 
 ## 6. Report
 

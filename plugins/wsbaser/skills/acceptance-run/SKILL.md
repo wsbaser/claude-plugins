@@ -7,7 +7,7 @@ description: Builds an interactive acceptance-test runner for one ticket before 
 
 Turn a ticket into a page the user can run acceptance testing from, step by step, in the real app, and use to understand what was built and why it matters.
 
-The page is built from a JSON file by `scripts/build.py` using `assets/template.html` (the 7C look: navy top bar, white cards, tabs **Why it exists · Run · Test data · Expected results · How it works · Sign-off**). Your work is the content: research, the scenario, and the explanations. Don't hand-write HTML pages.
+The page is built from a JSON file by `scripts/build.py` using `assets/template.html` and its script `assets/template.js.txt` (kept as .txt so code formatters leave it alone; the 7C look: navy top bar, white cards, tabs **Why it exists · Run · Test data · Expected results · How it works · Sign-off**). Your work is the content: research, the scenario, and the explanations. Don't hand-write HTML pages.
 
 ## Inputs
 
@@ -22,7 +22,7 @@ Read the project's `CLAUDE.md` and `CLAUDE.local.md`, including files they impor
 - **Sibling repos** and their paths (e.g. `## Sibling Repos` with BE, FE, AI).
 - **App URL, login and default tenant/company** for the test environment.
 
-If the app URL or login is missing, ask once. Offer to save the answers in `CLAUDE.local.md` under `## Acceptance Testing`, for example:
+If the app URL or login is missing, ask once. When nobody can answer (you run as a subagent or unattended), take them from the ticket's or linked bugs' repro steps, say so in the report, and go on. Offer to save the answers in `CLAUDE.local.md` under `## Acceptance Testing`, for example:
 
 ```markdown
 ## Acceptance Testing
@@ -45,13 +45,15 @@ List the acceptance criteria as numbered `AC1…ACn`, using the ticket's own wor
 
 For each repo in the config, find the ticket's commits and branches (commands in `references/research-briefs.md`). Record per repo whether the work is merged (PR number) or on a branch only.
 
-- **FE only:** the steps are UI actions. The backend notes describe the existing API behaviour the screens rely on.
+The branch that counts is the one the ticket's PR merged into (its target branch). Git's default (`git symbolic-ref refs/remotes/origin/HEAD`) and the one `CLAUDE.md` names can disagree, and either can be stale: in one repo git said `develop`, untouched for weeks, while the work sat on `main`. Check which of them contains the ticket's commits (`git branch -r --contains <sha>`), use that one, and name it in the report when the two disagree.
+
+- **FE only:** the steps are UI actions. The backend notes describe the existing API behaviour the screens rely on. Research the backend anyway: what the screen sends and what the server does with it decides most Expect values (a FE-only run once assumed posting sets item prices; it doesn't).
 - **BE only:** the steps are HTTP requests (see "Backend-only runs" below). The UI is used only where an existing screen shows the result.
 - **Vertical slice:** UI steps, with backend notes on what each action triggers server-side.
 
 ### 3. Research in parallel
 
-Launch read-only agents in one message: one per repo that has changes, using the briefs in `references/research-briefs.md`. Write the domain explanation (step 4) while they work.
+Launch read-only agents in one message: one per repo that has changes, plus the backend for a FE-only ticket, using the briefs in `references/research-briefs.md`. Write the domain explanation (step 4) while they work.
 
 While they work, read the ticket again and note what each AC really demands. Note especially the cases a happy-path click-through misses:
 - validation and rejection;
@@ -90,7 +92,9 @@ If the config has an app URL and login, open the app in a **headless** browser. 
 - Find existing records the run can use: accounts, groups, customers, items, and their real names and numbers. Prefill the test-data fields with them.
 - Open the main screens once to confirm the routes load. Catch labels that differ from the code or the ticket, for example an empty cell reading "None" rather than "—".
 
-Do not create or change anything during preparation. The run itself creates its throwaway data, named with an `AT ` prefix. If there is no login, leave the fields empty: they show as amber "fill in" values.
+Do not create or change anything during preparation. The run itself creates its throwaway data, named with an `AT ` prefix (`wsbaser:acceptance-verify` adds a per-run suffix, so a second run doesn't collide with the first). If there is no login, leave the fields empty: they show as amber "fill in" values.
+
+Some text appears only after an action: a toast, a status strip after posting, an error message. Preparation can't see it, so it comes from the code. Quote it, and add it to the step's `assume` list ("strip wording after posting, from `JournalStatusStrip.razor`"). Do the same for any behaviour you inferred and did not see: a field the server sets, a total it recalculates. The page then says "Not confirmed in the app yet", and a runner that sees otherwise checks the code before calling it a product bug. In the last run, two unconfirmed assumptions (strip wording, prices set on posting) became seven red steps.
 
 ### 6. Design the run
 
@@ -107,11 +111,13 @@ Write **one continuous scenario**. Each step uses data that earlier steps create
   - the app's own button and field names.
 - **Expect:**
   - what must be on screen, quoting labels, hints and messages exactly as the code or the live app shows them;
-  - for a result that is a value (an account, a total, a status, a response field), add a `key` row and set `check`, so the expected values show as a table inside the step and on the answer sheet.
+  - for a result that is a value (an account, a total, a status, a response field), add a `key` row and set `check`, so the expected values show as a table inside the step and on the answer sheet;
+  - when answer-sheet columns prove different ACs (a quantity for AC1, a price for AC2), set `key.colAc`, one AC per column. A wrong price then fails AC2 only, not every AC the step covers.
 - **b (business):** one or two plain sentences on why this step matters to the end user.
 - **k (backend):** endpoint, rule, error code, table, event. It is shown folded and opens when the step fails, so write it for debugging.
 - **Fields:** any value the tester only learns during the run (a created id, a document number) gets a field on that step. Later steps refer to it.
-- **Deviations:** where the build differs from the ticket, put a `head` on the step it affects and also list it under `how.deviations`. If a linked bug already covers it, say so and tell the tester not to fail the step for it.
+- **Deviations:** where the build differs from the ticket, put a `head` on the step it affects and also list it under `how.deviations`.
+- **Expected failures:** a step that fails today because of an open bug gets `known` naming it ("S7C1-5074: raw error code until the mapping ships"). The page says "Expected to fail", the summary lists the bug, and a runner classifies the failure as `known` rather than new.
 - **Coverage:** every AC has at least one step; check this in `ac`. Include the negative and "added later" cases from step 3. Include one step proving that already-saved or posted data does not change, whenever the feature changes rules that act on data.
 
 Draw diagrams only where they show a mechanism the prose can't. Follow the `artifact-diagramming` skill, and use the template's SVG classes.

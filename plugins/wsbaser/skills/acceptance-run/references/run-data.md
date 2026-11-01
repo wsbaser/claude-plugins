@@ -92,6 +92,8 @@ Below the figures come two columns of cards. `main` carries the narrative (probl
 | `check` | Id of a `key.rows` entry; its expected values render as a table inside Expect |
 | `head` | Ticket-vs-build difference relevant to this step only |
 | `optional` | Marks the step optional |
+| `assume` | List of things the Expect relies on that preparation did not see in the app (text shown only after an action, server-side effects inferred from code). Shown as "Not confirmed in the app yet" |
+| `known` | An open issue the step is expected to fail on, e.g. `"S7C1-5074: raw error code"`. Shown as "Expected to fail" |
 | `code` | Snippets with a Copy button: HTTP requests, curl, SQL |
 
 ## data
@@ -128,6 +130,8 @@ The answer sheet: one row per check step, one column per thing being checked.
   "diagramHtml": "<figure class=\"fig\">…timeline svg…</figure>"
 }
 ```
+
+`colAc` (optional) gives one AC per column, e.g. `["AC1", "AC2"]`: a check on that column decides only that AC, so a step covering two ACs gets one verdict for each. `build.py` warns when it is missing and the run has more than one AC.
 
 `items[i]` lines up with `cols[i]`. `why` may contain `{TOKEN}`s. `v` is a field key (its live value is shown); use `text` instead for a literal (`"text": "200 OK"`). `tag` is `def` (neutral) or `exc` (highlighted, the thing the feature changes).
 

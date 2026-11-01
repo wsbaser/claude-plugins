@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Merge an automated run into the run data, build the page and plan the publish.
 
-Usage: python finish.py <workdir>
+Usage: python finish.py <workdir>                    build the page and plan the publish
+       python finish.py <workdir> --mark-published   after every publish batch succeeded
+
+Publish after every phase with "inProgress": true in run.json, and once more at the end without it.
+--mark-published records what was sent in published.json (path and SHA-1), so the next publish sends
+only new or changed files and never removes the same file twice.
 
 Reads   <workdir>/run-data.json            (from extract.py)
         <workdir>/results/run.json         (run-level facts, videos)
@@ -13,6 +18,7 @@ Writes  <workdir>/run-data.final.json
 A run.json with "partial": true re-runs only some steps: the earlier results of
 the other steps, and their already-published evidence, are kept.
 """
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -39,6 +45,30 @@ def files_of(results):
     return out
 
 
+def sha1(path):
+    return hashlib.sha1(path.read_bytes()).hexdigest()
+
+
+def manifest(wd):
+    f = wd / "published.json"
+    return json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {"files": {}, "removed": []}
+
+
+def mark_published(wd):
+    plan = json.loads((wd / "publish.json").read_text(encoding="utf-8"))
+    m = manifest(wd)
+    for b in plan["batches"]:
+        for path, src in b.items():
+            if src is None:
+                m["removed"].append(path)
+                m["files"].pop(path, None)
+            else:
+                m["files"][path] = sha1(wd / src)
+    m["removed"] = sorted(set(m["removed"]))
+    (wd / "published.json").write_text(json.dumps(m, indent=1), encoding="utf-8", newline="\n")
+    print(f"published.json: {len(m['files'])} files live")
+
+
 def tally(results):
     c = {}
     for r in (results.get("steps") or {}).values():
@@ -47,6 +77,8 @@ def tally(results):
 
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[2] == "--mark-published":
+        return mark_published(Path(sys.argv[1]).resolve())
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     wd = Path(sys.argv[1]).resolve()
@@ -85,15 +117,18 @@ def main():
 
     results = {"run": run, "values": values, "videos": videos, "records": records, "steps": steps}
     data["results"] = results
-    published = files_of(prev) if partial else set()
+    live = manifest(wd)
+    published = (files_of(prev) if partial else set()) | set(live["files"])
     page = wd / f"{data['meta']['ticket']}-acceptance.html"
     (wd / "run-data.final.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
     if not build.build(data, page, published):
         sys.exit(1)
 
     wanted = files_of(results)
-    send = sorted(p for p in wanted if (wd / p).is_file() and p not in published)
-    remove = sorted(files_of(prev) - wanted)
+    # Send what is new or changed since the last publish of this run; the rest is already in the artifact.
+    send = sorted(p for p in wanted if (wd / p).is_file() and live["files"].get(p) != sha1(wd / p)
+                  and not (partial and p in files_of(prev) and p not in live["files"]))
+    remove = sorted((files_of(prev) | set(live["files"])) - wanted - set(live["removed"]))
     too_big = [p for p in send if (wd / p).stat().st_size > MAX_FILE]
     if too_big:
         sys.exit("error: over 15 MB, split or re-take: " + ", ".join(too_big))
@@ -118,7 +153,8 @@ def main():
     print(f"results: " + ", ".join(f"{n} {k}" for k, n in t.items()) + (" (partial re-run)" if partial else ""))
     print(f"publish: {len(send)} files, {total / 1048576:.1f} MB in {len(batches)} batch(es)"
           + (f"; removes {len(remove)} files of the earlier run" if remove else ""))
-    print(f"plan: {wd / 'publish.json'}")
+    print(f"plan: {wd / 'publish.json'}" + ("  (run in progress)" if run.get("inProgress") else ""))
+    print("after the batches succeed: python finish.py <workdir> --mark-published")
 
 
 if __name__ == "__main__":

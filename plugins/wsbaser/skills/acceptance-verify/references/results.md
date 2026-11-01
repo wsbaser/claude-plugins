@@ -65,5 +65,15 @@
 | `console` | `[]` means captured and clean; leave the field out when not captured. |
 | `records` | `route` is an app path; `[KEY]` resolves from field values. `label` may use `{KEY}` tokens. |
 | `values` | Field keys from `data.groups`. They prefill Test data, so later routes and steps resolve. |
+| `acs` | One verdict per AC (`{"AC1": "pass", "AC2": "fail"}`) for a step that covers several ACs. `step.py` derives it from checks that carry `ac`. The AC roll-up uses it instead of the step's overall status. |
+| `issue` | Short title shared by every step that fails for the same reason; the Results tab groups them into one item. |
+| `workarounds` | Names of the environment patches that changed this step's requests. |
+
+`run.json` may also carry `"inProgress": true` (a progress publish after a phase: the verdict reads "Run in progress", and steps without a result are not flagged) and `"workarounds": [{ "name": "journal-date", "what": "fills the journal date the deployed frontend leaves out" }]`.
+
+## What step.py reads
+
+- `results/raw/<id>.json`: `window.__av.end()` as saved by `evaluate_script` (`id`, `started`, `ended`, `ms`, `checks`, `calls`).
+- `results/drafts/<id>.json`: any field of the table above that a script can't know, plus `captions`, `kinds` and `shotMeta` (`[{ "at", "url" }]`) for the shots in order. Draft fields win over derived ones.
 
 All paths are relative to the work folder, and the page is published from there, so the same paths work in the artifact.
