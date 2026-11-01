@@ -1,7 +1,7 @@
 ## Quality and planning (quality-bootstrap; details in docs/quality/toolchain.md)
 
 - Gates: `<gate command>`. Run them before claiming work is done and quote the result.
-- Tests are the spec. If a test or the test infrastructure looks wrong, write `BLOCKED.md` (what, why, evidence) and stop instead of changing it, unless the task is to change that test.
+- Tests are the spec. If a test or the test infrastructure looks wrong, do not change it (unless the task is to change that test): ask the user with AskUserQuestion — what, why, evidence, your recommendation — and continue with the answer. Never stop the run for it; write `BLOCKED.md` (what, why, evidence) only when the user chooses to stop.
 - Gate scripts, gate configs, baselines and `.claude/settings.json` change only in human-reviewed commits.
 - Use only the tools in docs/quality/toolchain.md; a new tool needs a policy and catalog update first.
 - Plans: ground them in the existing code with the feature-dev `code-explorer` agent (closest implementation, its wiring, the conventions).

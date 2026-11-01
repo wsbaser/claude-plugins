@@ -9,10 +9,13 @@ One review pass that answers a single question: **if this plan is executed exact
 
 ## Inputs
 
-- **Spec** and **plan** paths — from the arguments or the task. If either is missing, stop: there is nothing to check against.
+- **Spec** and **plan** paths — from the arguments or the task. If either is missing, look for it (the plans directory, the spec the plan names); if you still cannot find it, ask the user (see Asking) for the path rather than stopping.
 - **Plans directory** — read `docs/quality/toolchain.md` → "Repo facts" → plans directory. If the repo does not record one, use the plan file's own directory.
 - **`DECISIONS.md`** in the plans directory (create it on first use, see below).
-- **Mode** — *unattended* when invoked by a workflow or told "no questions": never ask; the report is the only output. Otherwise you may ask the user about genuine product questions at the end, never mid-review.
+
+## Asking
+
+Never stop, end the review or hand back an unfinished verdict because you need a human's input — also not when a workflow invoked you. Ask with the **AskUserQuestion** tool instead, then continue: say what you found and the evidence, put your recommendation first, and offer concrete options. Ask only what you cannot decide technically (see Verdict), and ask after the review is done, never mid-review, so every question comes with the full picture. Log each answer in `DECISIONS.md` (by: human) and judge the plan again with it.
 
 ## Fresh context
 
@@ -86,18 +89,18 @@ Count the tasks. More than ~10 means the phase should be split into vertical sli
 | Verdict | When | What happens next |
 | ------- | ---- | ----------------- |
 | **FAIL** | any BLOCKER, any AC with no task or no test, or any task without an automated verify command | The planner fixes these — they need no human judgement. |
-| **CONCERNS** | no FAIL item, but something needs a human: an ambiguous or conflicting AC, a product or business decision the plan makes without a logged decision, a plan over the size limit (splitting changes scope) | A human decides; their answers go into `DECISIONS.md`. |
+| **CONCERNS** | no FAIL item, but something needs a human: an ambiguous or conflicting AC, a product or business decision the plan makes without a logged decision, a plan over the size limit (splitting changes scope) | Ask each concern now (see Asking), log the answers in `DECISIONS.md`, then judge again: PASS, or FAIL when an answer means the plan must change. CONCERNS stays the final verdict only when the user declines to answer. |
 | **PASS** | none of the above | Execute. |
 
 Do not soften FAIL into CONCERNS to be polite, or raise CONCERNS for things you could decide technically: decide them, and log the decision.
 
 ### 9. Rounds
 
-A plan gets **at most two rounds**. The round number comes only from the previous readiness report for this plan (see Output): none → round 1; its round 1 → round 2. Decision log entries do not count as rounds. If this would be round 3 — the plan already failed twice — do not review again: write a short report with verdict CONCERNS, "round limit reached", and the open items from round 2, and hand it to the human.
+A plan gets **at most two rounds**. The round number comes only from the previous readiness report for this plan (see Output): none → round 1; its round 1 → round 2. Decision log entries do not count as rounds. If this would be round 3 — the plan already failed twice — and the caller sets no round budget of its own, do not stop: ask the user (see Asking) with the open items from round 2 and the options "review one more round" (recommended when the open items shrank) and "stop here"; on the first, review it as a further round; on the second, write a short report with verdict CONCERNS, "round limit reached", and those open items. A caller that sets its own round budget (a workflow's `## Review round N of M`) decides the limit instead; follow it.
 
 ### 10. DECISIONS.md
 
-Log only questions this review actually had to settle — points a careful reviewer would otherwise raise again next round: an interpretation of an ambiguous requirement you chose, a tradeoff you weighed and accepted, or a human's answer to a CONCERN. Do not log the plan's ordinary choices you simply agree with (that rubber-stamps the plan on the owner's behalf), and do not log product decisions yourself — list them as open questions for the human. Most reviews log zero to three entries.
+Log only questions this review actually had to settle — points a careful reviewer would otherwise raise again next round: an interpretation of an ambiguous requirement you chose, a tradeoff you weighed and accepted, or a human's answer to a CONCERN. Do not log the plan's ordinary choices you simply agree with (that rubber-stamps the plan on the owner's behalf), and do not log product decisions yourself — ask them (see Asking) and log the human's answer. Most reviews log zero to three entries.
 
 ```markdown
 # Decisions
@@ -129,7 +132,7 @@ Spec: <path> (phase / section) · Round: <1|2> · Verdict: **PASS | CONCERNS | F
 ## Review Focus coverage
 ## Plan size
 <n tasks; plan ≈ k× the spec section>
-## CONCERNS (need a human)
+## CONCERNS (asked — question, answer, decision id)
 ## Decisions logged this round
 ## Next: ordered edits for the planner
 1. <the smallest change that clears each FAIL item, in the order the planner should make them>

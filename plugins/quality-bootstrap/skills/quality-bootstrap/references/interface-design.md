@@ -74,7 +74,7 @@ Status: Proposed · Date: <YYYY-MM-DD> · Plan: <plan path> · Spec: <spec path>
 
 ## 5. Open business questions
 
-Pricing, policy, user-visible behaviour, legal or contractual limits — questions technical judgement cannot settle — go in the ADR's last section and in the plan session's final report, each with the default the plan assumes. Technical questions are decided, not listed. If a business answer would change the interface itself and the default is not reversible, the plan session stops for the human instead of planning on a guess.
+Pricing, policy, user-visible behaviour, legal or contractual limits — questions technical judgement cannot settle — go in the ADR's last section and in the plan session's final report, each with the default the plan assumes. Technical questions are decided, not listed. If a business answer would change the interface itself and the default is not reversible, the plan session asks the human with AskUserQuestion (the question, the options, its recommendation first) and continues with the answer instead of planning on a guess or stopping.
 
 ## 6. Hand back to the plan
 

@@ -70,7 +70,7 @@ Use the repo's package manager (npm / pnpm / yarn / bun) for every command below
 - It snapshots hashes and assertion counts of test files and test configs at session start, and at stop blocks once (exit 2 with the reason) if tests were deleted, assertions dropped, `.skip`/`.only`/`expect(true)` added, test selection (`include`/`exclude`/`setupFiles`) changed, the known-failures list grew, or coverage/mutation thresholds were lowered — regardless of whether the edit came from Edit/Write or a shell command.
 - `--verify "<command>"` also runs the fast gates (the root `quality` script: typecheck, lint, deps, unit tests — never E2E or anything that starts servers) when files changed since the session started, and blocks once if they fail. Keep that script under ~2 minutes; drop `--verify` if it cannot be.
 - A second stop in the same turn (`stop_hook_active`) only warns, so unattended runs never loop.
-- Add to `CLAUDE.md`: tests are the spec; if a test or the test infrastructure looks wrong, write `BLOCKED.md` (what, why, evidence) and stop instead of changing it, unless the task explicitly is to change that test.
+- Add to `CLAUDE.md`: tests are the spec; if a test or the test infrastructure looks wrong, do not change it (unless the task explicitly is to change that test): ask the user with AskUserQuestion — what, why, evidence, your recommendation — and continue with the answer; write `BLOCKED.md` only when the user chooses to stop.
 
 ## 7. Per-task diff check
 
