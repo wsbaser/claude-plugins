@@ -571,6 +571,9 @@ function checksHtml(list) {
           (c.how ? '<span class="how">' + esc(c.how) + "</span>" : "") +
           '</td><td class="v">' +
           esc(c.expected == null ? "" : c.expected) +
+          (c.pageSaid != null
+            ? '<span class="corr">page said <code>' + esc(c.pageSaid) + "</code>" + (c.why ? " · " + esc(c.why) : "") + "</span>"
+            : "") +
           '</td><td class="v act">' +
           esc(c.actual == null ? "" : c.actual) +
           "</td></tr>"
@@ -702,37 +705,7 @@ function trailHtml(id, r) {
   if (http.length)
     parts.push("<div><h4>API calls</h4>" + httpHtml(http) + "</div>");
   tables.forEach(function (t) {
-    parts.push(
-      "<div><h4>" +
-        esc(t.title || "Data read") +
-        '</h4><div class="tbl-wrap"><table class="dt"><thead><tr>' +
-        (t.cols || [])
-          .map(function (c) {
-            return "<th>" + esc(c) + "</th>";
-          })
-          .join("") +
-        "</tr></thead><tbody>" +
-        (t.rows || [])
-          .map(function (row) {
-            return (
-              "<tr>" +
-              row
-                .map(function (v) {
-                  return (
-                    '<td class="mono">' + esc(v == null ? "" : v) + "</td>"
-                  );
-                })
-                .join("") +
-              "</tr>"
-            );
-          })
-          .join("") +
-        "</tbody></table></div>" +
-        (t.source
-          ? '<p class="cap">Read from <code>' + esc(t.source) + "</code></p>"
-          : "") +
-        "</div>"
-    );
+    if (!t.key) parts.push(tableHtml(t));
   });
   if (recs.length)
     parts.push("<div><h4>Records</h4>" + recsHtml(recs) + "</div>");
@@ -779,6 +752,40 @@ function trailHtml(id, r) {
     '</span></summary><div class="trail-body">' +
     parts.join("") +
     "</div></details>"
+  );
+}
+// A data read (read endpoint or SQL on a local run): what the server stored, beside what the screen showed.
+function tableHtml(t) {
+  return (
+    "<div><h4>" +
+        esc(t.title || "Data read") +
+        '</h4><div class="tbl-wrap"><table class="dt"><thead><tr>' +
+        (t.cols || [])
+          .map(function (c) {
+            return "<th>" + esc(c) + "</th>";
+          })
+          .join("") +
+        "</tr></thead><tbody>" +
+        (t.rows || [])
+          .map(function (row) {
+            return (
+              "<tr>" +
+              row
+                .map(function (v) {
+                  return (
+                    '<td class="mono">' + esc(v == null ? "" : v) + "</td>"
+                  );
+                })
+                .join("") +
+              "</tr>"
+            );
+          })
+          .join("") +
+        "</tbody></table></div>" +
+        (t.source
+          ? '<p class="cap">Read from <code>' + esc(t.source) + "</code></p>"
+          : "") +
+        "</div>"
   );
 }
 function evHtml(s) {
@@ -853,6 +860,10 @@ function evHtml(s) {
     return x.key;
   });
   if (keyHttp.length) h += httpHtml(keyHttp);
+  // Data reads marked key prove the step; they sit with the proof, not in the folded trail.
+  (r.tables || []).forEach(function (t) {
+    if (t.key) h += tableHtml(t);
+  });
   return h + trailHtml(s.id, r) + "</div>";
 }
 
@@ -1163,6 +1174,20 @@ function renderResults() {
       ? ""
       : '<p class="cap">Nothing. Every step passed or was skipped.</p>') +
     "</div></div>";
+  // Expectations the run corrected: the page was wrong, the app was right. Listed so the page can be fixed.
+  var corr = [];
+  steps.forEach(function (s) {
+    ((RS[s.id] || {}).checks || []).forEach(function (c) {
+      if (c.pageSaid != null) corr.push({ s: s, c: c });
+    });
+  });
+  if (corr.length)
+    right +=
+      '<div class="sec"><h2>Where the page was corrected <span class="cap">' + corr.length +
+      '</span></h2><p class="cap">The app did what the AC asks; the page had a detail wrong. These checks used the corrected value.</p><ul class="rec-list">' +
+      corr.map(function (x) {
+        return '<li>' + chip(x.s.id) + " " + fill(x.c.what || "") + ': page said <code>' + esc(x.c.pageSaid) + '</code>, app shows <code>' + esc(x.c.actual) + "</code>" + (x.c.why ? ' <span class="cap">' + esc(x.c.why) + "</span>" : "") + "</li>";
+      }).join("") + "</ul></div>";
   if ((R.records || []).length)
     right +=
       '<div class="sec"><h2>Data the run created</h2><p class="cap">Open any of these in the app to see the result for yourself.</p>' +

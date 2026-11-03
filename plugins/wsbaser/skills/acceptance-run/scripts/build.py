@@ -177,6 +177,16 @@ def validate_results(res, ids, fields, out_dir, published, errors, warnings, ste
             errors.append(f"{where}: cause '{r['cause']}' is not one of {sorted(CAUSES)}")
         if st in ("fail", "blocked", "manual") and not (r.get("summary") or r.get("failure")):
             errors.append(f"{where}: a {st} step needs a summary or failure that says why")
+        step_def = next((s for s in steps_all if s.get("id") == sid), {})
+        if st == "blocked":
+            need = r.get("needs")
+            needed = (res.get("steps") or {}).get(need) if need else None
+            if not need:
+                errors.append(f"{where}: blocked needs 'needs' = the earlier step whose failure makes it impossible; otherwise do the step")
+            elif not needed or needed.get("status") not in ("fail", "blocked"):
+                errors.append(f"{where}: blocked on '{need}', which did not fail; do the step")
+        if st == "manual" and not step_def.get("human"):
+            errors.append(f"{where}: manual is only for a step the page marks 'human'; do the step yourself")
         if st == "fail" and not r.get("cause"):
             errors.append(f"{where}: a failed step needs a cause (product, run, env or known)")
         for a, v in (r.get("acs") or {}).items():
@@ -193,6 +203,8 @@ def validate_results(res, ids, fields, out_dir, published, errors, warnings, ste
         for c in checks:
             if "ok" not in c or "actual" not in c:
                 errors.append(f"{where}: every check needs 'actual' and 'ok'")
+            if c.get("pageSaid") is not None and not (c.get("why") or "").strip():
+                errors.append(f"{where}: check '{c.get('what')}' corrects the page's expectation without 'why'")
         if st == "pass" and any(not c.get("ok") for c in checks):
             errors.append(f"{where}: passes although a check does not hold")
         if st in ("pass", "fail") and not r.get("shots") and not r.get("http"):

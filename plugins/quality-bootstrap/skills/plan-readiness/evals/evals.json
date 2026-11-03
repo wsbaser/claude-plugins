@@ -11,7 +11,7 @@
     {
       "id": 6,
       "prompt": "Before we execute it: is the plan docs/superpowers/plans/slugify.md ready to execute, judged against the spec docs/specs/slugify.md? Run unattended — nobody will answer questions. Leave your review in the repo and commit it.",
-      "expected_output": "Verdict CONCERNS: 13 tasks exceed the ~10 limit (suggested split); no invented BLOCKERs on an otherwise correct plan; traceability covers AC-1..AC-5.",
+      "expected_output": "Verdict FAIL: 13 tasks exceed the ~10 limit (a FAIL item with a suggested split, no question asked); no invented BLOCKERs on an otherwise correct plan; traceability covers AC-1..AC-5.",
       "files": ["fixtures/readiness-ts-oversized"]
     },
     {

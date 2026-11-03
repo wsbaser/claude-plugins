@@ -22,7 +22,7 @@ Read the project's `CLAUDE.md` and `CLAUDE.local.md`, including files they impor
 - **Sibling repos** and their paths (e.g. `## Sibling Repos` with BE, FE, AI).
 - **App URL, login and default tenant/company** for the test environment.
 
-If the app URL or login is missing, ask once. When nobody can answer (you run as a subagent or unattended), take them from the ticket's or linked bugs' repro steps, say so in the report, and go on. Offer to save the answers in `CLAUDE.local.md` under `## Acceptance Testing`, for example:
+If you cannot proceed without the app URL or login, ask the user. Offer to save the answers in `CLAUDE.local.md` under `## Acceptance Testing`, for example:
 
 ```markdown
 ## Acceptance Testing
@@ -118,6 +118,7 @@ Write **one continuous scenario**. Each step uses data that earlier steps create
 - **Fields:** any value the tester only learns during the run (a created id, a document number) gets a field on that step. Later steps refer to it.
 - **Deviations:** where the build differs from the ticket, put a `head` on the step it affects and also list it under `how.deviations`.
 - **Expected failures:** a step that fails today because of an open bug gets `known` naming it ("S7C1-5074: raw error code until the mapping ships"). The page says "Expected to fail", the summary lists the bug, and a runner classifies the failure as `known` rather than new.
+- **Automatable by default:** an agent will run this page with the same login and access as the tester. Write every step so it can be done in the browser or the API, set-up included. Mark a step `human` only when it needs something outside both (a real inbox or phone, paper, a device), and first look for a way around it (the sent message in the app's log, an API read).
 - **Coverage:** every AC has at least one step; check this in `ac`. Include the negative and "added later" cases from step 3. Include one step proving that already-saved or posted data does not change, whenever the feature changes rules that act on data.
 
 Draw diagrams only where they show a mechanism the prose can't. Follow the `artifact-diagramming` skill, and use the template's SVG classes.

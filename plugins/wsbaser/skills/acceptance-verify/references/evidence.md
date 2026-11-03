@@ -22,7 +22,7 @@ What to collect at each step, how to collect it with the browser tools (Chrome D
 | Step recording | The step was really done, start to finish | One clip per UI step, in real time | Next to the proof screenshot and "Watch this step" on the step; Evidence tab |
 | Action trail | Exactly what was clicked, typed and opened | Every step | Folded "Full trail"; timestamps jump into the step's recording |
 | API exchange | What the server was asked and answered | API steps; the call behind a UI action | Key call under the screenshots; all calls in the trail and the Evidence tab |
-| Data reads (tables) | A server-side effect the screen doesn't show (ledger rows, stock entries) | When an Expect is about stored data | Small table in the trail |
+| Data reads (tables) | A server-side effect the screen doesn't show (ledger rows, stock entries) | When an Expect is about stored data: read endpoint on the test environment, SQL (read-only) on a local run | Small table in the trail; SQL checks in the step's check table |
 | Console | No hidden client errors | Errors and warnings per step | Trail; totals on Results |
 | Records | The reader can open what the run made | Every created or changed record | Trail; "Data the run created" on Results |
 | Values | Ids and numbers found during the run, e.g. a journal number | Steps that have `fields` | Prefilled into Test data, so routes and later steps resolve |
@@ -54,7 +54,7 @@ The short version, which `step.py` turns into the step file: `screencast_start`,
   - When an error status is the expected outcome (a 409 for a refused action), set `"ok": true`. The status then shows green.
 - **Write checks on the response:** `{ "what": "status", "expected": "409", "actual": "409", "ok": true, "how": "HTTP status" }` and one per JSON field the Expect names (`how: "$.code"`).
 - **Screenshot only if a screen shows the result.** A pure API step can pass without one. The page then leads with the checks and the key call.
-- **Effects the response can't show** (rows written elsewhere): read them back through a read endpoint, or SQL if the config gives read-only DB access. Record them as a `tables` entry with its `source`.
+- **Effects the response can't show** (rows written elsewhere): read them back through a read endpoint, or on a local run with SQL (`SELECT` only, scoped to the run's records). Record them as a `tables` entry with its `source`.
 
 ## Mixed steps (UI action, server-side effect)
 

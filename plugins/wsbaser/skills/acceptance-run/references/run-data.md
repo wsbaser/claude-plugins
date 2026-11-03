@@ -94,6 +94,7 @@ Below the figures come two columns of cards. `main` carries the narrative (probl
 | `optional` | Marks the step optional |
 | `assume` | List of things the Expect relies on that preparation did not see in the app (text shown only after an action, server-side effects inferred from code). Shown as "Not confirmed in the app yet" |
 | `known` | An open issue the step is expected to fail on, e.g. `"S7C1-5074: raw error code"`. Shown as "Expected to fail" |
+| `human` | Only for a step no agent can do because it needs something outside the browser and the API (a real inbox or phone, paper, a device, another company's system). The reason, e.g. `"the SMS arrives on the tester's phone"`. Design around it first: read a sent message through the app's log or API instead |
 | `code` | Snippets with a Copy button: HTTP requests, curl, SQL |
 
 ## data

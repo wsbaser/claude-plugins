@@ -9,13 +9,32 @@ One review pass that answers a single question: **if this plan is executed exact
 
 ## Inputs
 
-- **Spec** and **plan** paths — from the arguments or the task. If either is missing, look for it (the plans directory, the spec the plan names); if you still cannot find it, ask the user (see Asking) for the path rather than stopping.
+- **Spec** and **plan** paths — from the arguments or the task. If either is missing, look for it (the plans directory, the spec the plan names); if you still cannot find it, ask the user for the path (AskUserQuestion) rather than stopping — a missing input is the one question that needs no bar.
 - **Plans directory** — read `docs/quality/toolchain.md` → "Repo facts" → plans directory. If the repo does not record one, use the plan file's own directory.
 - **`DECISIONS.md`** in the plans directory (create it on first use, see below).
 
-## Asking
+## Deciding and asking
 
-Never stop, end the review or hand back an unfinished verdict because you need a human's input — also not when a workflow invoked you. Ask with the **AskUserQuestion** tool instead, then continue: say what you found and the evidence, put your recommendation first, and offer concrete options. Ask only what you cannot decide technically (see Verdict), and ask after the review is done, never mid-review, so every question comes with the full picture. Log each answer in `DECISIONS.md` (by: human) and judge the plan again with it.
+The review should run to a verdict without a human. Every question you put to the owner stops their work and often a whole workflow, so a question has to be worth more than that stop. Decide everything you can; ask only what only the owner can answer.
+
+**The bar.** Ask a human only when all three hold:
+
+1. **Product, not implementation.** The answer changes what the product does or promises — scope users will notice, behaviour they see, data or contracts other people rely on, cost, legal, security or privacy posture. How the code delivers it — APIs, structure, task order, phasing, test approach, tooling, error handling, which later phase picks up a deferred piece — is yours, however important.
+2. **Costly to reverse.** Undoing the choice later means migrating persisted data, breaking a published API or contract, taking back something users already saw or relied on, or undoing an action outside the repository. A choice the next plan or commit can change is cheap, even when it deviates from the spec for this phase.
+3. **No clear winner after research.** You researched it (below) and two or more options are still about equally good. If the evidence favours one, that one wins.
+
+**Research before every decision that the plan's correctness depends on — whether you will decide it or ask it.**
+
+- Read what the repo already records — the spec, `DECISIONS.md`, ADRs, the docs, the existing conventions — as input, not as authority: they tell you the context and what was chosen before, not that it was right.
+- Always look up current best practice and industry standards on the web — official documentation, standards, widely adopted references — instead of answering from memory, also when a recorded decision or ADR already covers the point.
+- If an installed skill or agent covers the decision's domain (UI and UX design, API and interface design, security, data modelling, accessibility, …), apply it: a specialist's method beats a generalist's guess. Choose it from what this session offers; if nothing fits, research alone is enough.
+
+**Then act.**
+
+- **The bar is not met** (an implementation question, a reversible choice, or a clear winner): decide. Take the best option, log it in `DECISIONS.md` (by: review) with the reason and the evidence — the sources and skills it rests on — and continue. If the decision means the plan must change, it is a FAIL item for the planner, not a question.
+- **The bar is met:** ask with the **AskUserQuestion** tool after the review is done, never mid-review, so each question comes with the full picture. Say what you found and why it is the owner's call (how it meets each of the three conditions, one line each), give the options with their tradeoffs and the evidence, and put your recommendation first — or say plainly that the research gives none. Log the answer in `DECISIONS.md` (by: human) and judge the plan again with it.
+
+**Recorded decisions and ADRs can be overridden.** Always pick the best option for the issue. When the research shows a better option than one recorded in `DECISIONS.md` or an ADR, override it the same way you decide anything else — never by asking again what was already asked: log a new entry that supersedes the old one (with the evidence that tips it), make the plan change a FAIL item, and when the old choice is an ADR, add to that item that the planner writes a superseding ADR. Overriding an answer a human gave (by: human) is allowed only on evidence that was not available when they answered; list each such override first in the report so the owner sees it. Never stop, end the review or hand back an unfinished verdict because you want a human's input — also not when a workflow invoked you.
 
 ## Fresh context
 
@@ -23,9 +42,9 @@ The author of a plan reads what they meant, not what they wrote. If you wrote or
 
 ## Steps
 
-### 1. Load closed decisions
+### 1. Load recorded decisions
 
-Read `DECISIONS.md`. Every logged decision is **closed**: do not raise it again, in any wording, unless its "revisit if" condition is now demonstrably true — then cite the decision id and the evidence. A reviewer that reopens settled questions makes the two-round limit meaningless.
+Read `DECISIONS.md` and the ADRs the plan touches. They are the starting point, not the verdict: check each one the plan relies on against the research (Deciding and asking) and override it when a better option exists. What you must not do is churn — re-raise the same point without new evidence, or reopen a choice that is still the best one in different wording. That makes the two-round limit meaningless.
 
 ### 2. Acceptance criteria as EARS with ids
 
@@ -35,7 +54,7 @@ Find the acceptance criteria of the part of the spec this plan implements (a spe
 AC-<n>: WHEN <trigger> THE system SHALL <response>
 ```
 
-(also `WHILE <state> …`, `IF <unwanted condition> THEN THE system SHALL …`, `WHERE <feature> …`, or plain `THE system SHALL …`). If ids are missing, add them in the spec — the repo's planning rules require ids, and the plan, the review and the verify stage all cite them — numbering in document order and continuing any existing numbering; add the id and EARS form next to each existing criterion rather than writing a new section, so the spec's structure stays as its author left it. Restate a criterion in EARS form only when the meaning is unambiguous; otherwise give it an id, keep its wording and record a CONCERN ("AC-7 is ambiguous: …"). Never invent, drop or strengthen a requirement. Commit the spec change alone (`git commit -- <spec>`), before the report.
+(also `WHILE <state> …`, `IF <unwanted condition> THEN THE system SHALL …`, `WHERE <feature> …`, or plain `THE system SHALL …`). If ids are missing, add them in the spec — the repo's planning rules require ids, and the plan, the review and the verify stage all cite them — numbering in document order and continuing any existing numbering; add the id and EARS form next to each existing criterion rather than writing a new section, so the spec's structure stays as its author left it. Restate a criterion in EARS form only when the meaning is unambiguous; otherwise give it an id and keep its wording. Then settle the ambiguity as Deciding and asking says: usually the spec's context and the research make one reading the clear winner — log it in `DECISIONS.md` and review the plan against it; ask only when the readings differ in a way that meets the bar. Never invent, drop or strengthen a requirement. Commit the spec change alone (`git commit -- <spec>`), before the report.
 
 ### 3. Traceability table
 
@@ -74,7 +93,7 @@ Every check you ran goes into the report's evidence column, so the planner can t
 
 **Budget — spend the time where defects are most likely.** Order checks by risk: the starting state and the verify commands first, then the steps whose correctness depends on runtime behaviour, then everything else. Stop experimenting after about 15 minutes of checks (a few dozen commands) and list what you did not get to. Once a defect class already fails the plan, note further instances briefly instead of proving each one.
 
-Every BLOCKER must name a **concrete failure scenario** — the input or state, what the plan's code does, and what the spec requires instead (e.g. "amount 2.345 → `Math.Round(x, 2)` gives 2.34 (banker's rounding); AC-4 requires 2.35"). If you cannot construct one, it is not a BLOCKER: drop it, or record it as a CONCERN only if it needs a human decision.
+Every BLOCKER must name a **concrete failure scenario** — the input or state, what the plan's code does, and what the spec requires instead (e.g. "amount 2.345 → `Math.Round(x, 2)` gives 2.34 (banker's rounding); AC-4 requires 2.35"). If you cannot construct one, it is not a BLOCKER: drop it, or raise it as a question only if it meets the bar in Deciding and asking.
 
 ### 6. Review Focus coverage
 
@@ -82,38 +101,39 @@ Plans written with superpowers carry a "Review Focus" section: the input classes
 
 ### 7. Plan size
 
-Count the tasks. More than ~10 means the phase should be split into vertical slices — report it with a suggested split. Compare the plan's length with the part of the spec it implements: a plan many times longer (roughly > 5×, excluding the spec's own code samples) is usually pasting implementation instead of planning it — report it.
+Count the tasks. More than ~10 means the phase should be split into vertical slices — a FAIL item with a suggested split (which slice goes first is the planner's call: the next slices follow, so nothing is lost). Compare the plan's length with the part of the spec it implements: a plan many times longer (roughly > 5×, excluding the spec's own code samples) is usually pasting implementation instead of planning it — report it.
 
 ### 8. Verdict
 
 | Verdict | When | What happens next |
 | ------- | ---- | ----------------- |
-| **FAIL** | any BLOCKER, any AC with no task or no test, or any task without an automated verify command | The planner fixes these — they need no human judgement. |
-| **CONCERNS** | no FAIL item, but something needs a human: an ambiguous or conflicting AC, a product or business decision the plan makes without a logged decision, a plan over the size limit (splitting changes scope) | Ask each concern now (see Asking), log the answers in `DECISIONS.md`, then judge again: PASS, or FAIL when an answer means the plan must change. CONCERNS stays the final verdict only when the user declines to answer. |
+| **FAIL** | any BLOCKER, any AC with no task or no test, any task without an automated verify command, a plan over the size limit, or a decision you took that the plan must follow | The planner fixes these — they need no human judgement. |
+| **CONCERNS** | no FAIL item, but a question that meets the bar in Deciding and asking | Ask it now, log the answer in `DECISIONS.md`, then judge again: PASS, or FAIL when the answer means the plan must change. CONCERNS stays the final verdict only when the user declines to answer. |
 | **PASS** | none of the above | Execute. |
 
-Do not soften FAIL into CONCERNS to be polite, or raise CONCERNS for things you could decide technically: decide them, and log the decision.
+Do not soften FAIL into CONCERNS to be polite, and do not turn a decision you can make into a question: a reviewer that asks what it could have decided has not finished its job.
 
 ### 9. Rounds
 
-A plan gets **at most two rounds**. The round number comes only from the previous readiness report for this plan (see Output): none → round 1; its round 1 → round 2. Decision log entries do not count as rounds. If this would be round 3 — the plan already failed twice — and the caller sets no round budget of its own, do not stop: ask the user (see Asking) with the open items from round 2 and the options "review one more round" (recommended when the open items shrank) and "stop here"; on the first, review it as a further round; on the second, write a short report with verdict CONCERNS, "round limit reached", and those open items. A caller that sets its own round budget (a workflow's `## Review round N of M`) decides the limit instead; follow it.
+A plan gets **at most two rounds**. The round number comes only from the previous readiness report for this plan (see Output): none → round 1; its round 1 → round 2. Decision log entries do not count as rounds. If this would be round 3 — the plan already failed twice — and the caller sets no round budget of its own, decide it yourself rather than asking: when round 2 left fewer open items than round 1, review it as a further round; otherwise write a short report with verdict CONCERNS, "round limit reached — the revisions are not converging", and those open items. A caller that sets its own round budget (a workflow's `## Review round N of M`) decides the limit instead; follow it.
 
 ### 10. DECISIONS.md
 
-Log only questions this review actually had to settle — points a careful reviewer would otherwise raise again next round: an interpretation of an ambiguous requirement you chose, a tradeoff you weighed and accepted, or a human's answer to a CONCERN. Do not log the plan's ordinary choices you simply agree with (that rubber-stamps the plan on the owner's behalf), and do not log product decisions yourself — ask them (see Asking) and log the human's answer. Most reviews log zero to three entries.
+Log only questions this review actually had to settle — points a careful reviewer would otherwise raise again next round: an interpretation of an ambiguous requirement you chose, a tradeoff or product choice below the bar that you decided, or a human's answer to a question. Do not log the plan's ordinary choices you simply agree with (that rubber-stamps the plan on the owner's behalf). Mark product choices you took without asking "owner may revisit", so the owner can find them. Most reviews log zero to three entries.
 
 ```markdown
 # Decisions
 
-Closed decisions for the plans in this directory. Reviews do not reopen them unless "Revisit if" holds.
+Decisions for the plans in this directory. A later entry may supersede an earlier one when research shows a better option.
 
 ## D-<n>: <the decision, one line>
-- Reason: <why>
+- Reason: <why, with the evidence: sources, skills applied>
 - Revisit if: <the observable condition that would reopen it>
+- Supersedes: <D-<m> or ADR-<k>, and what changed — only when it overrides one>
 - Logged: <YYYY-MM-DD>, <plan file>, readiness round <r> (<by: review | human>)
 ```
 
-Append, never rewrite earlier entries. Commit it alone with the report.
+Append, never rewrite earlier entries; to override one, append a superseding entry and add "Superseded by D-<n>" under the old one. Commit it alone with the report.
 
 ## Output
 
@@ -132,8 +152,8 @@ Spec: <path> (phase / section) · Round: <1|2> · Verdict: **PASS | CONCERNS | F
 ## Review Focus coverage
 ## Plan size
 <n tasks; plan ≈ k× the spec section>
-## CONCERNS (asked — question, answer, decision id)
-## Decisions logged this round
+## Questions asked (question, why it met the bar, answer, decision id)
+## Decisions logged this round (taken by the review; owner may revisit)
 ## Next: ordered edits for the planner
 1. <the smallest change that clears each FAIL item, in the order the planner should make them>
 ```

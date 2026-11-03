@@ -7,7 +7,19 @@
   const SECRET =
     /^(password|passwd|secret|token|access_?token|refresh_?token|client_?secret|api_?key|apikey)$/i;
   const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
-  const MAX = 20000;
+  const MAX = 200000;
+  // The app's own Authorization header, kept in this closure only: api() reuses it, nothing returns or stores it.
+  let auth = null;
+  const grabAuth = (h) => {
+    try {
+      if (!h) return;
+      let v = null;
+      if (typeof Headers !== "undefined" && h instanceof Headers) v = h.get("Authorization");
+      else if (Array.isArray(h)) { const e = h.find((x) => /^authorization$/i.test(x[0])); v = e && e[1]; }
+      else for (const k of Object.keys(h)) if (/^authorization$/i.test(k)) v = h[k];
+      if (v) auth = v;
+    } catch (e) {}
+  };
   const redact = (text) => {
     if (typeof text !== "string" || !text) return text || "";
     let out;
@@ -52,6 +64,8 @@
   window.fetch = async function (input, init) {
     const url = typeof input === "string" ? input : input.url;
     const method = ((init && init.method) || (input && input.method) || "GET").toUpperCase();
+    grabAuth(init && init.headers);
+    if (input && typeof input !== "string" && input.headers) grabAuth(input.headers);
     const t0 = performance.now();
     const res = await origFetch.apply(this, arguments);
     if (isApi(url)) {
@@ -73,6 +87,11 @@
   };
   const XO = XMLHttpRequest.prototype.open,
     XS = XMLHttpRequest.prototype.send;
+  const XH = XMLHttpRequest.prototype.setRequestHeader;
+  XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
+    if (/^authorization$/i.test(k) && v) auth = v;
+    return XH.apply(this, arguments);
+  };
   XMLHttpRequest.prototype.open = function (m, u) {
     this.__av = { method: String(m).toUpperCase(), url: String(u) };
     return XO.apply(this, arguments);
@@ -140,7 +159,67 @@
 
   window.__av = {
     // API calls since the last take(); call it right after the action you want the evidence for.
-    take: () => log.splice(0, log.length),
+    take: (o) => (o && o.keep ? log.slice() : log.splice(0, log.length)),
+    // An API request as the logged-in user: same Authorization header as the app's last request.
+    // path is relative to the API base the app uses (pass a full URL, or a path the app itself calls).
+    // Returns { status, ms, body } and logs the call like any other; the header itself never leaves the page.
+    api: async (method, path, body) => {
+      if (!auth) return { status: 0, error: "no app request seen yet: open any screen that loads data, then retry" };
+      const headers = { Authorization: auth, Accept: "application/json" };
+      if (body !== undefined) headers["Content-Type"] = "application/json";
+      const t0 = performance.now();
+      const res = await window.fetch(path, { method: (method || "GET").toUpperCase(), headers, body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body) });
+      let text = "";
+      try { text = await res.text(); } catch (e) {}
+      let parsed = text;
+      try { parsed = JSON.parse(text); } catch (e) {}
+      return { status: res.status, ms: Math.round(performance.now() - t0), body: parsed };
+    },
+    // Where the app sends its API calls, read from the calls seen so far, so api() paths can be built.
+    apiBase: () => {
+      const u = log.concat([]).map((c) => c.url).find((x) => /^https?:/.test(x));
+      return u ? new URL(u).origin : location.origin;
+    },
+    // Type into a dropdown and click the option whose visible text is exactly `text` (options often render
+    // in a portal outside the accessibility tree). Retries while the list redraws. Returns the option text or an error.
+    pick: async (inputSelector, text, opts) => {
+      opts = opts || {};
+      const OPT = opts.option || ".input-select__list-item, .dxbl-listbox-item, [role='option'], .dxbl-text-edit-dropdown-list-item";
+      const input = typeof inputSelector === "string" ? document.querySelector(inputSelector) : inputSelector;
+      if (!input) return { error: "input not found: " + inputSelector };
+      const typeIn = (v) => {
+        input.focus();
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+        setter.call(input, v);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: v.slice(-1) || " " }));
+      };
+      const deadline = Date.now() + (opts.timeout || 15000);
+      while (Date.now() < deadline) {
+        typeIn(opts.search || text);
+        for (let i = 0; i < 15; i++) {
+          await new Promise((r) => setTimeout(r, 200));
+          const o = [...document.querySelectorAll(OPT)].find((n) => norm(n.innerText || n.textContent) === norm(text) || (opts.contains && norm(n.innerText).includes(norm(text))));
+          if (o) {
+            o.scrollIntoView({ block: "nearest" });
+            for (const t of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"])
+              o.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+            await new Promise((r) => setTimeout(r, 300));
+            return { picked: norm(o.innerText || o.textContent), value: input.value };
+          }
+        }
+        typeIn("");
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      return { error: "no option with text " + JSON.stringify(text) + " appeared; check the option selector with text()" };
+    },
+    // Drop a check recorded by mistake (index from the list check() built, 0-based).
+    uncheck: (i) => {
+      const s = store.get() || { checks: [] };
+      const gone = (s.checks || []).splice(i, 1);
+      store.set(s);
+      return gone[0] || null;
+    },
     // A small clock in the corner while a step is recorded. The screencast stores a frame only when the
     // screen changes, so without it a recording plays back as a time-lapse; with it, in real time.
     tickStart: (label) => {
@@ -183,6 +262,8 @@
         (mode === "equals" ? a === e : mode === "regex" ? new RegExp(expected).test(a) : a.includes(e));
       const c = { what, expected: String(expected), actual: a.length > 300 && mode !== "equals" ? (ok ? e : a.slice(0, 300) + "…") : a, ok, how: opts.how || (typeof target === "string" ? "DOM text of " + target : "DOM text") };
       if (opts.ac) c.ac = opts.ac;
+      // A corrected expectation: what the page said, and the evidence for the correction.
+      if (opts.pageSaid != null) { c.pageSaid = String(opts.pageSaid); c.why = opts.why || ""; }
       const s = store.get() || { checks: [] };
       s.checks = (s.checks || []).concat([c]);
       store.set(s);

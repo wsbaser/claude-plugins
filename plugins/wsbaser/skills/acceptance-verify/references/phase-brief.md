@@ -23,12 +23,15 @@ The orchestrator fills in the angle brackets. Send one phase at a time and wait 
 > 4. `__av.end()` with `filePath` = `<workdir>/results/raw/<id>.json`, then `screencast_stop`. Never open another tab while recording.
 > 5. Write `results/drafts/<id>.json` with only what a script can't know (summary, cause, failure, issue, captions, actions, records, values, console), then run `python <skill-dir>/scripts/step.py <workdir> <run id> <id> --key N`. Fix what it prints under `needs:`.
 >
-> Steps failing for one shared reason get the same `issue` title. A failure on something listed in the step's `assume` is cause `run` unless the code shows the app is wrong; a failure the step's `known` predicts is cause `known`.
+> When the app differs from the page, judge before failing (SKILL.md, "Judge, don't just compare"): if the app does what the AC asks and only the page's detail is off, record the check with the corrected `expected`, the page's text as `pageSaid` and the evidence as `why`, and go on. Fail only when the AC's behaviour is missing, or when you truly can't tell.
+>
+> Steps failing for one shared reason get the same `issue` title. Something listed in the step's `assume` that turns out different is a correction like any other when the app meets the AC; a failure the step's `known` predicts is cause `known`.
 >
 > On a step that does not hold:
 > - look once more;
 > - if it still fails, record the failure with its cause (`product`, `known`, `run` or `env`);
-> - mark the later steps that cannot run `blocked`, with the reason, and keep going with the ones that can.
+> - if a later step needs what the failed step should have made, produce it another way (API with `__av.api`, another screen, a fresh record) and continue; `blocked` only with `needs` naming the failed step, when no other way exists.
+> - a control, popup or request that resists is yours to solve: work down "When the app resists" in SKILL.md (accessibility snapshot, DOM + `__av.pick`, the repo's E2E tests for that component, the component source). Never return a step undone with "needs a manual check"; never substitute existing data for the run's own records.
 >
 > Rules:
 > - Change only the data this run creates, i.e. the `AT …` records, plus what a step explicitly names.
