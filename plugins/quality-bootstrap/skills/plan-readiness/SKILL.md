@@ -1,165 +1,112 @@
 ---
 name: plan-readiness
-description: Decide whether an implementation plan is ready to execute against its spec — one fresh-context pass that produces an acceptance-criterion → task → test traceability table, the tasks without an automated verify command, BLOCKERs each tied to a concrete failure scenario, Review Focus coverage, a plan-size check and a PASS / CONCERNS / FAIL verdict, while keeping DECISIONS.md so settled questions stay closed. Use after a plan is written and before anyone executes it — whenever someone asks "is this plan ready?", "check the plan against the spec", "readiness review", "gate the plan", or a workflow stage must decide whether execution may start — even if they only say "look over the plan before we run it".
+description: Decide whether an implementation plan is ready to execute against its spec by hunting the defects implementation will not catch on its own — behaviour wrong against the spec (org/tenant isolation, security, concurrency, money and billing, data safety, packaging) and acceptance criteria whose planned tests cannot actually fail — ending in a PASS / CONCERNS / FAIL verdict, and patching small plan defects itself instead of looping back. Use after a plan is written and before anyone executes it — whenever someone asks "is this plan ready?", "check the plan against the spec", "readiness review", "gate the plan", or a workflow stage must decide whether execution may start — even if they only say "look over the plan before we run it".
 ---
 
 # Plan readiness
 
-One review pass that answers a single question: **if this plan is executed exactly as written, will the result meet the spec?** It is a gate, not a design review. Plans fail in execution for a small set of reasons — a requirement no task delivers, a task nobody can verify automatically, a step that is wrong for a concrete input, or a plan too big to execute coherently. Everything else (style, naming, alternative designs, extra tests nobody asked for) costs a round of rework and buys nothing, so it is left out entirely.
+One review pass, one question: **if this plan is executed exactly as written, will the result do what the spec says where it matters?**
+
+The review is narrow by design. Evidence from 54 reviewed plans: about two thirds of all findings were mechanical — wrong paths, missing commands, task sizing, wave order — and when implementation hit each of them it fixed it in minutes; meanwhile the findings that paid for the review were the ~27 silent behaviour defects (a cross-tenant cache leak, a volume billed twice, a smoke step aimed at live data, a package missing from the shipped image) that no planned test would have failed on and that would have shipped. So this review spends all of its effort on what implementation cannot save, and none on what implementation fixes for free.
+
+## In scope — only these two checks
+
+1. **Behaviour against the spec.** Does any step of the plan, executed as written, produce behaviour the spec forbids — or omit behaviour the spec requires — in a way no planned test would catch? Hunt deliberately in the classes where silent defects live:
+   - **Isolation** — org/tenant/user data crossing a boundary (caches and maps keyed too narrowly, shared singletons, paths without the owner in the key).
+   - **Security** — secrets or tokens exposed to the wrong party, unvalidated input reaching a sensitive sink, an admission check the spec requires that no task implements.
+   - **Concurrency** — races, lost or duplicated items, cross-node clock comparisons, lock keys that don't match the resource.
+   - **Money** — double billing, rounding, units, a numeric type the storage layer will reject.
+   - **Data safety** — a step that can touch live data or delete user state; environment variables that override the plan's own isolation (e.g. a `cross-env VAR=` that beats the caller's).
+   - **Packaging** — a new module missing from the shipped image, bundle or installer; platform differences (path separators, case sensitivity, signals).
+2. **AC coverage that can fail.** Every acceptance criterion in scope has a task that implements it and a test that would go red if the behaviour were wrong. A test that merely exercises the code, measures something unrelated, or passes on a defective implementation does not count — say why it cannot fail.
+
+## Out of scope — implementation fixes these for free
+
+Wrong file paths, symbol names or signatures (the first compile finds them); missing or weak per-task verify commands; task count, plan length, style or formatting; wave ordering; the wording of planned tests; alternative designs; hardening the spec does not ask for. If you notice one of these incidentally, give it one line under **Notes** in the report — it never becomes a BLOCKER, never changes the verdict, and you never spend verification effort hunting for more of them.
 
 ## Inputs
 
-- **Spec** and **plan** paths — from the arguments or the task. If either is missing, look for it (the plans directory, the spec the plan names); if you still cannot find it, ask the user for the path (AskUserQuestion) rather than stopping — a missing input is the one question that needs no bar.
-- **Plans directory** — read `docs/quality/toolchain.md` → "Repo facts" → plans directory. If the repo does not record one, use the plan file's own directory.
-- **`DECISIONS.md`** in the plans directory (create it on first use, see below).
-
-## Deciding and asking
-
-The review should run to a verdict without a human. Every question you put to the owner stops their work and often a whole workflow, so a question has to be worth more than that stop. Decide everything you can; ask only what only the owner can answer.
-
-**The bar.** Ask a human only when all three hold:
-
-1. **Product, not implementation.** The answer changes what the product does or promises — scope users will notice, behaviour they see, data or contracts other people rely on, cost, legal, security or privacy posture. How the code delivers it — APIs, structure, task order, phasing, test approach, tooling, error handling, which later phase picks up a deferred piece — is yours, however important.
-2. **Costly to reverse.** Undoing the choice later means migrating persisted data, breaking a published API or contract, taking back something users already saw or relied on, or undoing an action outside the repository. A choice the next plan or commit can change is cheap, even when it deviates from the spec for this phase.
-3. **No clear winner after research.** You researched it (below) and two or more options are still about equally good. If the evidence favours one, that one wins.
-
-**Research before every decision that the plan's correctness depends on — whether you will decide it or ask it.**
-
-- Read what the repo already records — the spec, `DECISIONS.md`, ADRs, the docs, the existing conventions — as input, not as authority: they tell you the context and what was chosen before, not that it was right.
-- Always look up current best practice and industry standards on the web — official documentation, standards, widely adopted references — instead of answering from memory, also when a recorded decision or ADR already covers the point.
-- If an installed skill or agent covers the decision's domain (UI and UX design, API and interface design, security, data modelling, accessibility, …), apply it: a specialist's method beats a generalist's guess. Choose it from what this session offers; if nothing fits, research alone is enough.
-
-**Then act.**
-
-- **The bar is not met** (an implementation question, a reversible choice, or a clear winner): decide. Take the best option, log it in `DECISIONS.md` (by: review) with the reason and the evidence — the sources and skills it rests on — and continue. If the decision means the plan must change, it is a FAIL item for the planner, not a question.
-- **The bar is met:** ask with the **AskUserQuestion** tool after the review is done, never mid-review, so each question comes with the full picture. Say what you found and why it is the owner's call (how it meets each of the three conditions, one line each), give the options with their tradeoffs and the evidence, and put your recommendation first — or say plainly that the research gives none. Log the answer in `DECISIONS.md` (by: human) and judge the plan again with it.
-
-**Recorded decisions and ADRs can be overridden.** Always pick the best option for the issue. When the research shows a better option than one recorded in `DECISIONS.md` or an ADR, override it the same way you decide anything else — never by asking again what was already asked: log a new entry that supersedes the old one (with the evidence that tips it), make the plan change a FAIL item, and when the old choice is an ADR, add to that item that the planner writes a superseding ADR. Overriding an answer a human gave (by: human) is allowed only on evidence that was not available when they answered; list each such override first in the report so the owner sees it. Never stop, end the review or hand back an unfinished verdict because you want a human's input — also not when a workflow invoked you.
+- **Spec** and **plan** paths — from the arguments or the task. If either is missing, look for it (the plans directory, the spec the plan names); if you still cannot find it, ask the user for the path (AskUserQuestion) rather than stopping.
 
 ## Fresh context
 
-The author of a plan reads what they meant, not what they wrote. If you wrote or edited this plan in the current session, dispatch one subagent to do the review with only the spec, the plan, `DECISIONS.md`, this skill and the repository; relay its report. In a fresh session (e.g. a workflow stage) do it yourself.
+The author of a plan reads what they meant, not what they wrote. If you wrote or edited this plan in the current session, dispatch one subagent to do the review with only the spec, the plan, this skill and the repository; relay its report. In a fresh session (e.g. a workflow stage) do it yourself.
 
 ## Steps
 
-### 1. Load recorded decisions
+### 1. Acceptance criteria as EARS with ids
 
-Read `DECISIONS.md` and the ADRs the plan touches. They are the starting point, not the verdict: check each one the plan relies on against the research (Deciding and asking) and override it when a better option exists. What you must not do is churn — re-raise the same point without new evidence, or reopen a choice that is still the best one in different wording. That makes the two-round limit meaningless.
-
-### 2. Acceptance criteria as EARS with ids
-
-Find the acceptance criteria of the part of the spec this plan implements (a spec may cover several phases; criteria of other phases are out of scope). Each must read as an EARS requirement with an id:
+Find the acceptance criteria of the part of the spec this plan implements (criteria of other phases are out of scope). Each needs an id and EARS form:
 
 ```
 AC-<n>: WHEN <trigger> THE system SHALL <response>
 ```
 
-(also `WHILE <state> …`, `IF <unwanted condition> THEN THE system SHALL …`, `WHERE <feature> …`, or plain `THE system SHALL …`). If ids are missing, add them in the spec — the repo's planning rules require ids, and the plan, the review and the verify stage all cite them — numbering in document order and continuing any existing numbering; add the id and EARS form next to each existing criterion rather than writing a new section, so the spec's structure stays as its author left it. Restate a criterion in EARS form only when the meaning is unambiguous; otherwise give it an id and keep its wording. Then settle the ambiguity as Deciding and asking says: usually the spec's context and the research make one reading the clear winner — log it in `DECISIONS.md` and review the plan against it; ask only when the readings differ in a way that meets the bar. Never invent, drop or strengthen a requirement. Commit the spec change alone (`git commit -- <spec>`), before the report.
+(also `WHILE <state> …`, `IF <unwanted condition> THEN THE system SHALL …`, `WHERE <feature> …`, or plain `THE system SHALL …`). If ids are missing, add them in the spec next to each existing criterion — numbering in document order, continuing any existing numbering, keeping the author's structure. Restate in EARS form only when the meaning is unambiguous; otherwise keep the wording and note the ambiguity. Never invent, drop or strengthen a requirement. Commit the spec change alone (`git commit -- <spec>`), before the report.
 
-### 3. Traceability table
+### 2. Traceability
 
-For every AC in scope: which tasks implement it, which test proves it, and a status. Read the plan's tasks for their AC references; where a task does not name its AC ids, infer them and note that the task should name them.
+For every AC in scope: which tasks implement it, which test proves it, and whether that test can actually fail.
 
 | AC | Tasks | Test(s) | Status |
 | -- | ----- | ------- | ------ |
 | AC-1 | 2, 3 | `orders.test.ts` "rejects expired cart" | covered |
 | AC-2 | — | — | **no task** |
 | AC-3 | 4 | — | **no test** |
+| AC-4 | 5 | p95 latency assertion | **cannot fail** — measures successful runs; a stall never enters the sample |
 
-A test counts only if it asserts the behaviour the AC states (not merely that code runs).
+### 3. Hunt behaviour defects
 
-### 4. Verify commands
+Walk the plan's steps and code samples against the spec's constraints, class by class from **In scope**. Reading is not enough for the risky ones — the defects that ship are the ones nobody tried:
 
-List every task without an **automated verify command** — a command that exits non-zero when the task is not done (a test run, typecheck, build, script). "Check in the browser", "confirm it looks right" or "run the app" are not automated. Name the task and what command would do.
+- For each step whose correctness depends on runtime behaviour — key construction, cache sharing, rounding, encoding, ordering, env-var precedence, a library's defaults — check it with a few lines in a scratch file or REPL against the plan's own code, rather than reasoning from memory.
+- **Targeted experiments only — never whole-repo gates.** Do not run the repo's full test suite, build, typecheck or quality gate: the workflow's own gate stage runs them anyway, they take minutes to tens of minutes, and a red result tells you about the tree, not the plan. Compile or run only the code in question — a single file, a scratch copy of one module, a REPL probe. If a claim can only be checked by a whole-repo command, record it as "not verified — needs <what>" instead.
+- **Containment — experiments leave no trace.** Work in one temporary directory you create; install dependencies only inside it, never globally or per-user; start no services, bind no ports; delete it at the end. If a check needs a runtime or service that is not already available, record "not verified — needs <what>"; an unverified claim is a CONCERN at most, never a BLOCKER.
+- **Budget.** Order checks by risk and stop experimenting after about 15 minutes; list what you did not get to. Once a defect class already fails the plan, note further instances briefly instead of proving each one.
 
-### 5. BLOCKERs
+Every BLOCKER names a **concrete failure scenario** — the input or state, what the plan's code does, and what the spec requires instead (e.g. "org A and org B both request `deploy`; the in-flight map is keyed by `name`, so B gets A's promise; AC-1 requires each org its own content"). If you cannot construct one, it is not a BLOCKER — drop it or put it in Notes.
 
-A BLOCKER is a defect in the plan that makes the executed result wrong against a stated requirement or simply incorrect: a wrong algorithm or API use, a step that contradicts the spec, a dependency on code that does not exist, a task order that cannot work, a missing migration the next task assumes, a verify command that cannot run or cannot fail.
+### 4. Patch small defects yourself
 
-Reading is not enough — the defects that sink executions are the ones nobody tried. Spend the effort here:
+A plan defect you can fix in a few lines **without changing the design or the behaviour** — a wrong path the correct file is obvious for, a typo in a command, a missing environment prefix, a task that forgot to name its AC ids — you fix in the plan directly, commit, and list under **Patched** in the report. This replaces a whole plan→review round that would change nothing else. Never patch behaviour, coverage or design: those belong to the planner, through the verdict.
 
-- **Starting state.** Run the repo's build and the test command the plan's verify steps rely on, as the tree is now (install dependencies in a scratch copy or with the lockfile if they are missing; never change tracked files). A plan whose first verify step cannot run on today's tree is blocked, whatever its tasks say.
-- **Claims about code.** Open every file, symbol, signature and path the plan says exists and compare; a call with the wrong arguments is a compile error waiting.
-- **Risky steps.** For each step whose correctness depends on runtime behaviour — rounding, encoding, normalisation, regexes, ordering, process and signal handling, file-system edge cases (symlinks, sizes), shell quoting on each target OS, a library's defaults, what a tool prints or exits with — check it with a few lines in a scratch file or REPL against the plan's own code, rather than reasoning from memory.
-- **Verify commands.** Make sure each would fail when its task is not done (a filtered test run that matches nothing usually exits 0) and that the counts and names it relies on are right.
-- **Spec constraints the plan must honour** (security rules, limits, platform rules): trace each to the code that enforces it.
-
-Every check you ran goes into the report's evidence column, so the planner can trust the finding without re-deriving it.
-
-**Containment — experiments must leave no trace outside the review.** A review often runs unattended (a workflow stage), on a developer's machine or a shared server, so:
-
-- Work in one temporary directory you create (a scratch copy of the repo, or a scratch project). Install dependencies only inside it, from the lockfile or already-installed tools; never globally, per-user, in WSL or another OS, or with a system package manager. Start no long-running services and bind no ports. Delete the directory at the end.
-- If a check needs a runtime, OS or service that is not already available, do not set it up: record the claim as "not verified — needs <what>" in the report. An unverified risky claim is a CONCERN at most, never a BLOCKER.
-
-**Budget — spend the time where defects are most likely.** Order checks by risk: the starting state and the verify commands first, then the steps whose correctness depends on runtime behaviour, then everything else. Stop experimenting after about 15 minutes of checks (a few dozen commands) and list what you did not get to. Once a defect class already fails the plan, note further instances briefly instead of proving each one.
-
-Every BLOCKER must name a **concrete failure scenario** — the input or state, what the plan's code does, and what the spec requires instead (e.g. "amount 2.345 → `Math.Round(x, 2)` gives 2.34 (banker's rounding); AC-4 requires 2.35"). If you cannot construct one, it is not a BLOCKER: drop it, or raise it as a question only if it meets the bar in Deciding and asking.
-
-### 6. Review Focus coverage
-
-Plans written with superpowers carry a "Review Focus" section: the input classes or failure modes the spec implies that are most likely to bite users. For each line, find the test in the owning task. Report lines without a test, and inputs the spec clearly implies that the section misses. A missing section is a finding.
-
-### 7. Plan size
-
-Count the tasks. More than ~10 means the phase should be split into vertical slices — a FAIL item with a suggested split (which slice goes first is the planner's call: the next slices follow, so nothing is lost). Compare the plan's length with the part of the spec it implements: a plan many times longer (roughly > 5×, excluding the spec's own code samples) is usually pasting implementation instead of planning it — report it.
-
-### 8. Verdict
+### 5. Verdict
 
 | Verdict | When | What happens next |
 | ------- | ---- | ----------------- |
-| **FAIL** | any BLOCKER, any AC with no task or no test, any task without an automated verify command, a plan over the size limit, or a decision you took that the plan must follow | The planner fixes these — they need no human judgement. |
-| **CONCERNS** | no FAIL item, but a question that meets the bar in Deciding and asking | Ask it now, log the answer in `DECISIONS.md`, then judge again: PASS, or FAIL when the answer means the plan must change. CONCERNS stays the final verdict only when the user declines to answer. |
-| **PASS** | none of the above | Execute. |
+| **FAIL** | a behaviour BLOCKER, or an AC with no task, no test, or a test that cannot fail | The planner fixes these; the report's **Next** section lists the smallest edits in order. |
+| **CONCERNS** | no FAIL item, but a question only the owner can answer (below) | Ask it now, then judge again: PASS, or FAIL when the answer changes the plan. CONCERNS stays final only when the user declines to answer. |
+| **PASS** | none of the above — including when you patched small defects | Execute. |
 
-Do not soften FAIL into CONCERNS to be polite, and do not turn a decision you can make into a question: a reviewer that asks what it could have decided has not finished its job.
+Do not soften FAIL into CONCERNS to be polite, and do not fail a plan for anything in **Out of scope**.
 
-### 9. Rounds
+### 6. Asking
 
-A plan gets **at most two rounds**. The round number comes only from the previous readiness report for this plan (see Output): none → round 1; its round 1 → round 2. Decision log entries do not count as rounds. If this would be round 3 — the plan already failed twice — and the caller sets no round budget of its own, decide it yourself rather than asking: when round 2 left fewer open items than round 1, review it as a further round; otherwise write a short report with verdict CONCERNS, "round limit reached — the revisions are not converging", and those open items. A caller that sets its own round budget (a workflow's `## Review round N of M`) decides the limit instead; follow it.
+The review runs to a verdict without a human. Ask the owner only when all three hold: the answer changes what the product does or promises (not how the code delivers it); the choice is costly to reverse (migrations, published contracts, actions outside the repo); and after research no option is clearly better. Everything below that bar you decide yourself and record in the report. Ask with AskUserQuestion after the review is done, never mid-review — state what you found, the options with evidence, your recommendation first. Record the answer under **Questions** in the report. Never stop, end the review or hand back an unfinished verdict because you want a human's input — also not when a workflow invoked you.
 
-### 10. DECISIONS.md
+### 7. Rounds
 
-Log only questions this review actually had to settle — points a careful reviewer would otherwise raise again next round: an interpretation of an ambiguous requirement you chose, a tradeoff or product choice below the bar that you decided, or a human's answer to a question. Do not log the plan's ordinary choices you simply agree with (that rubber-stamps the plan on the owner's behalf). Mark product choices you took without asking "owner may revisit", so the owner can find them. Most reviews log zero to three entries.
-
-```markdown
-# Decisions
-
-Decisions for the plans in this directory. A later entry may supersede an earlier one when research shows a better option.
-
-## D-<n>: <the decision, one line>
-- Reason: <why, with the evidence: sources, skills applied>
-- Revisit if: <the observable condition that would reopen it>
-- Supersedes: <D-<m> or ADR-<k>, and what changed — only when it overrides one>
-- Logged: <YYYY-MM-DD>, <plan file>, readiness round <r> (<by: review | human>)
-```
-
-Append, never rewrite earlier entries; to override one, append a superseding entry and add "Superseded by D-<n>" under the old one. Commit it alone with the report.
+A plan gets **at most two rounds**; the round number comes from the previous readiness report for this plan (none → round 1). Because small defects are patched in place (step 4), a second round should exist only when round 1 found behaviour or coverage FAILs. If this would be round 3 and the caller sets no round budget of its own: when round 2 left fewer open items than round 1, review it as a further round; otherwise report CONCERNS, "round limit reached — the revisions are not converging", with the open items. A caller that sets its own round budget (a workflow's `## Review round N of M`) decides instead.
 
 ## Output
 
-Write the report next to the plan as `<plan-name>.readiness.md` (overwrite the previous round's report; the round history lives in its header and in git):
+Write the report next to the plan as `<plan-name>.readiness.md` (overwrite the previous round's report; history lives in git):
 
 ```markdown
 # Readiness: <plan file>
 Spec: <path> (phase / section) · Round: <1|2> · Verdict: **PASS | CONCERNS | FAIL**
 
 ## Traceability
-<table from step 3>
+<table from step 2>
 
-## Tasks without an automated verify command
 ## BLOCKERs
 - B1 — <task n>: <defect>. Failure scenario: <input/state → actual → required>. Fix: <one line>.
-## Review Focus coverage
-## Plan size
-<n tasks; plan ≈ k× the spec section>
-## Questions asked (question, why it met the bar, answer, decision id)
-## Decisions logged this round (taken by the review; owner may revisit)
+
+## Patched (edits this review made to the plan)
+## Notes (out-of-scope nits, not verdict items; unverified claims)
+## Questions (question, why it met the bar, answer)
 ## Next: ordered edits for the planner
 1. <the smallest change that clears each FAIL item, in the order the planner should make them>
 ```
 
-Leave a section with "none" rather than deleting it, so readers know it was checked. Commit the report. End your reply with the verdict and the report path on the last line — `Verdict: FAIL — docs/plans/foo.readiness.md` — so a workflow can read it.
-
-## Not in scope
-
-Style, naming, formatting, code organisation preferences, alternative architectures, performance or security hardening the spec does not ask for, and "would be nice" tests. If you notice one that will cause a real defect, it is a BLOCKER with a failure scenario; otherwise it does not appear in the report.
+Leave a section with "none" rather than deleting it, so readers know it was checked. Commit the report (and any step-4 plan patches) together. End your reply with the verdict and the report path on the last line — `Verdict: FAIL — docs/plans/foo.readiness.md` — so a workflow can read it.
