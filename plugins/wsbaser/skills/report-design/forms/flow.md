@@ -16,7 +16,7 @@ Block: `{ "form": "flow", "caption": "...", "steps": [ { "label": "HttpSyncTrans
 - `mark` is optional: `hot` for the steps the issue is about, `bad` for the wrong result. Mark the hot steps with numbered pins when the prose refers to them by number.
 - `caption` is one plain sentence describing the whole path; it becomes the picture's `aria-label`.
 
-On the page: an inline SVG with `role="img"` and the caption as `aria-label`, inside `<figure class="fig">` (background `--page`, border 1px `--line`, radius 8px). Boxes are rounded rectangles: normal steps fill `--surface`, stroke `--line-strong`; hot steps fill `--warn-soft`, stroke `--warn-line`; the bad result fills `--fail-soft`, stroke `--fail`. Arrows are 1.5px `--muted` lines with small heads. Labels use `--font-body` 12px in `--fg`, details in `--muted`, code names in `--font-mono`. Pins are small `--warn` circles with a white number. Colour every SVG part through CSS classes that read tokens, never fixed hex, so dark mode works.
+Markup: an inline SVG with `role="img"` and the caption as `aria-label`, inside `<figure class="fig">` (background `--page`, border 1px `--line`, radius 8px). Boxes are rounded rectangles: normal steps fill `--surface`, stroke `--line-strong`; hot steps fill `--warn-soft`, stroke `--warn-line`; the bad result fills `--fail-soft`, stroke `--fail`. Arrows are 1.5px `--muted` lines with small heads. Labels use `--font-body` 12px in `--fg`, details in `--muted`, code names in `--font-mono`. Pins are small `--warn` circles with the number in `--surface` (white fails contrast on the dark-mode `--warn`). Colour every SVG part through CSS classes that read tokens, never fixed hex, so dark mode works.
 
 ## On the page
 

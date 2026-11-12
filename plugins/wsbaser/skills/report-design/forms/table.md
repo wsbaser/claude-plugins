@@ -16,7 +16,7 @@ Block: `{ "form": "table", "caption": "...", "columns": ["If issue 1 is", "Recom
 - Order rows so the answer stands out: the failing case first, the current case marked, or the total last.
 - Numbers keep their units and real values.
 
-On the page: a `<table>` inside a wrapper with border 1px `--line`, radius 8px, background `--page` and `overflow-x: auto`. Header cells `--fs-xs`, weight 500, `--muted`; body cells `--fs-sm`; 1px `--line` between rows. Numeric columns are right aligned with tabular numerals. A highlighted row (the case that applies now) uses background `--accent-soft`; a total row uses weight 600.
+Markup: a `<table>` inside a wrapper with border 1px `--line`, radius 8px, background `--page` and `overflow-x: auto`. Header cells `--fs-xs`, weight 500, `--muted`; body cells `--fs-sm`; 1px `--line` between rows. Numeric columns are right aligned with tabular numerals. A highlighted row (the case that applies now) uses background `--accent-soft`; a total row uses weight 600.
 
 ## On the page
 

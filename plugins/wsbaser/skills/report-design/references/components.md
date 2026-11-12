@@ -81,6 +81,13 @@ All colours, fonts and sizes come from the tokens in `assets/tokens.css` (`--pag
 - The selected option (`.sel`, set by the script on decision pages) gets `--accent-soft` and an inset 1px `--accent-2` ring. The recommended one is preselected and carries a small tag (`.rec`: `--accent` text, 1px `--accent-2` border, check icon).
 - Example: issues 1, 2, 7, 8, 9.
 
+## Recommendation
+
+- Every recommendation shows its reason where the choice is made: a short block (`.why`) right under the decision question, `--fs-sm`, starting with "Recommended: <option>" in weight 600, then the reason in plain words, then a confidence chip and the sources (`file:line` in `<code>`, links). Agent-decided issues get it too, so the owner can check the agent.
+- A claim the agent could not verify is said in this block, as its own sentence ("Not checked: ..."), in `--warn`. Never move it to a footnote.
+- One line is enough when the reason is short. When the explanation above already argues the case, the reason still gets its one line here.
+- Example: `.why` in issues 1, 7, 8 and 9.
+
 ## Verdict buttons
 
 - One real option: a row of buttons (`.seg`) such as Accept / Reject / Discuss, labels chosen to fit the issue (Decline comment / Add the check anyway / Discuss for a comment judged not valid). Each button carries `aria-pressed`; the pressed one shows a check icon and its tone: yes `--pass-soft`/`--pass`, no `--fail-soft`/`--fail`, talk `--warn-soft`/`--warn`.

@@ -127,6 +127,18 @@ test('non-recommended choice on a dependent is not stale when the parent did not
   assert.deepStrictEqual([s['2'].choice, s['2'].status, s['2'].stale], ['B', 'decided', false]);
 });
 
+test('saved entry from an earlier round is ignored when the issue was reworked in a later round', () => {
+  const issues = reduced();
+  issues[3].round = 2;
+  const s = R.createState(issues, { '4': { choice: 'reject', status: 'disputed', by: 'owner', note: 'x', round: 1 } });
+  assert.deepStrictEqual([s['4'].status, s['4'].by, s['4'].choice, s['4'].note], ['decided', 'agent', 'accept', '']);
+  issues[0].round = 2;
+  const s2 = R.createState(issues, { '1': { choice: 'C', status: 'disputed', by: 'owner', note: 'x', round: 1 } });
+  assert.deepStrictEqual([s2['1'].status, s2['1'].choice], ['undecided', 'A']);
+  const s3 = R.createState(issues, { '1': { choice: 'C', status: 'decided', by: 'owner', note: 'kept', round: 2 } });
+  assert.deepStrictEqual([s3['1'].choice, s3['1'].note], ['C', 'kept']);
+});
+
 test('saved agent decision does not become an owner decision when the issue now needs the owner', () => {
   const issues = reduced();
   const saved = R.createState(issues, {});

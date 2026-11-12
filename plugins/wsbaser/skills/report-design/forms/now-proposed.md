@@ -16,7 +16,7 @@ Block: `{ "form": "now-proposed", "now": [ ...blocks ], "proposed": [ ...blocks 
 - `changes` lists the differences in a few words each. When the sides are pictures, number the differences with pins on the proposed side and give the list as the pin legend.
 - When there are several proposals, the current state is shown once in the explanation and each proposal sits in its own option.
 
-On the page: a two-column grid (`grid-template-columns: repeat(2, minmax(0, 1fr))`, gap 12px), "Now" on the left and "Proposed" on the right, each headed by a small label (`--fs-xs`, weight 600, `--muted` for Now, `--accent` for Proposed). The columns use the same blocks at the same scale. Below 900px the grid becomes one column with Now on top.
+Markup: a two-column grid (`grid-template-columns: repeat(2, minmax(0, 1fr))`, gap 12px), "Now" on the left and "Proposed" on the right, each headed by a small label (`--fs-xs`, weight 600, `--muted` for Now, `--accent` for Proposed). The columns use the same blocks at the same scale. Below 900px the grid becomes one column with Now on top.
 
 ## On the page
 

@@ -231,6 +231,12 @@ main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"] .nowtag::
 main:has(#issue-1 input[value="C"]:checked) #issue-2 tr[data-when="C"] .nowtag::after{content:"Applies now"}
 .stale{display:flex;gap:8px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--warn-line);background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm);border-radius:0 0 8px 8px}
 
+.why{font-size:var(--fs-sm);line-height:1.7;max-width:none}
+.why>b{font-weight:600}
+.why .chip{margin-inline:4px}
+.why .unchecked{display:block;color:var(--warn)}
+.decide>.stale{border:1px solid var(--warn-line);border-radius:8px}
+
 /* fold */
 details.fold{border:1px solid var(--line);border-radius:8px;background:var(--page);min-width:0}
 details.fold summary{display:flex;gap:8px;align-items:center;padding:8px 12px;font-size:var(--fs-sm);font-weight:500;cursor:pointer;list-style:none;color:var(--accent)}
@@ -396,6 +402,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q1">Which layer logs the Error?</h3>
+    <p class="why"><b>Recommended: A.</b> The session is the one layer that knows a sync was given up, so one Error there gives one page per outage without touching the ops rule. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>SyncSession.cs:114</code>, <code>HttpSyncTransport.cs:68</code>, alert rule <code>sync-errors</code>.</p>
     <div class="opts" role="radiogroup" aria-labelledby="q1">
       <label class="opt">
         <input type="radio" name="opt-1" value="A">
@@ -438,6 +445,10 @@ textarea:hover{border-color:var(--accent-2)}
       </label>
     </div>
     <a class="deplink" href="#issue-2"><svg class="i" aria-hidden="true"><use href="#i-link"/></svg>Issue 2 follows from this answer. If you change it, the recommendation there changes with it.</a>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
+    </div>
     <div class="foot">
       <textarea data-note name="note-1" aria-label="Note to the agent for issue 1" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
@@ -580,6 +591,10 @@ textarea:hover{border-color:var(--accent-2)}
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
       <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
     </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
+    </div>
     <div class="foot">
       <textarea data-note name="note-3" aria-label="Note to the agent for issue 3" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
@@ -615,6 +630,10 @@ textarea:hover{border-color:var(--accent-2)}
     <div class="seg" role="group" aria-labelledby="q4">
       <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
+    </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
     </div>
     <div class="foot">
       <textarea data-note name="note-4" aria-label="Note to the agent for issue 4" placeholder="Note to the agent (optional)"></textarea>
@@ -674,6 +693,10 @@ textarea:hover{border-color:var(--accent-2)}
       <button type="button" data-choice="decline" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decline comment</button>
       <button type="button" data-choice="apply" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Add the check anyway</button>
       <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
     </div>
     <div class="foot">
       <textarea data-note name="note-5" aria-label="Note to the agent for issue 5" placeholder="Note to the agent (optional)"></textarea>
@@ -770,6 +793,10 @@ textarea:hover{border-color:var(--accent-2)}
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
       <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
     </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
+    </div>
     <div class="foot">
       <textarea data-note name="note-6" aria-label="Note to the agent for issue 6" placeholder="Note to the agent (optional), for example: templates yes, level changes no"></textarea>
       <div class="state">
@@ -805,6 +832,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q7">What does the line say about the customer?</h3>
+    <p class="why"><b>Recommended: A.</b> It removes personal data from the log for one line of code, and support keeps a way to find the order. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>OrderImporter.cs:88</code>, ticket SUP-812. <span class="unchecked">Not checked: whether support's admin search accepts a customer id; their ticket only mentions email.</span></p>
     <div class="opts" role="radiogroup" aria-labelledby="q7">
       <label class="opt">
         <input type="radio" name="opt-7" value="A">
@@ -843,6 +871,10 @@ textarea:hover{border-color:var(--accent-2)}
         </div>
       </label>
     </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
+    </div>
     <div class="foot">
       <textarea data-note name="note-7" aria-label="Note to the agent for issue 7" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
@@ -877,6 +909,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q8">Which level do client disconnects get?</h3>
+    <p class="why"><b>Recommended: A.</b> A client hanging up is not our failure, and nobody asked to watch for it. <span class="chip"><span class="cl">Confidence:</span>high</span> Source: staging Error lines, last 7 days.</p>
     <div class="opts" role="radiogroup" aria-labelledby="q8">
       <label class="opt">
         <input type="radio" name="opt-8" value="A">
@@ -900,6 +933,10 @@ textarea:hover{border-color:var(--accent-2)}
           </dl>
         </div>
       </label>
+    </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
     </div>
     <div class="foot">
       <textarea data-note name="note-8" aria-label="Note to the agent for issue 8" placeholder="Note to the agent (optional)"></textarea>
@@ -946,6 +983,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q9">How does the Clients screen show a client that is behind?</h3>
+    <p class="why"><b>Recommended: A.</b> Support already opens the client row when a customer calls, so the chip is seen where it is needed and costs no screen space. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>ClientsTable.tsx:40</code>, <code>ClientRegistry.cs:58</code>, SUP-840.</p>
     <div class="opts" role="radiogroup" aria-labelledby="q9">
       <label class="opt">
         <input type="radio" name="opt-9" value="A">
@@ -999,6 +1037,10 @@ textarea:hover{border-color:var(--accent-2)}
           </dl>
         </div>
       </label>
+    </div>
+    <div class="stale" data-stale-notice hidden>
+      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
+      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
     </div>
     <div class="foot">
       <textarea data-note name="note-9" aria-label="Note to the agent for issue 9" placeholder="Note to the agent (optional)"></textarea>
@@ -1347,7 +1389,10 @@ textarea:hover{border-color:var(--accent-2)}
       var st = agent
         ? { choice: issue.agentChoice, note: '', status: 'decided', by: 'agent', stale: false }
         : { choice: issue.recommended != null && findOption(issue, issue.recommended) ? issue.recommended : null, note: '', status: 'undecided', by: null, stale: false };
+      st.round = issue.round;
       var sv = has(saved, issue.id) && saved[issue.id] && typeof saved[issue.id] === 'object' ? saved[issue.id] : null;
+      /* An issue reworked in a later round starts fresh; a saved entry without a round counts as round 1. */
+      if (sv && issue.round > (typeof sv.round === 'number' ? sv.round : 1)) sv = null;
       if (sv) {
         if (typeof sv.note === 'string') st.note = sv.note;
         var decidedBefore = sv.status === 'decided' || sv.status === 'disputed';

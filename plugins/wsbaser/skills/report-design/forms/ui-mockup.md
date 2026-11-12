@@ -19,7 +19,7 @@ Block: `{ "form": "ui-mockup", "screen": "Clients", "source": "src/Admin/Clients
 - Mark every difference from the current screen with a numbered pin on the mockup and explain each number in a legend under it (`pins`). This is the pattern of the owner's Unauthorized Page Decision page.
 - When the project has a design system (a project override of this file, or its tokens in the code), use its look. Otherwise build from the house tokens: frame `--surface`, borders `--line`, text `--fg`, secondary text `--muted`.
 
-On the page: a frame (`.mock`: border 1px `--line-strong`, radius 8px, background `--surface`, `overflow-x: auto`) with a slim title bar naming the screen. Pins are small circles (18px, background `--warn`, white `--font-mono` number, `aria-hidden`), placed inline next to the element they mark. The legend is an ordered list under the frame, `--fs-sm`, each item starting with the same pin.
+Markup: a frame (`.mock`: border 1px `--line-strong`, radius 8px, background `--surface`, `overflow-x: auto`) with a slim title bar naming the screen. Pins are small circles: 18px, background `--warn`, the number in `--surface` and `--font-mono` (white fails contrast on the dark-mode `--warn`), `aria-hidden`, placed inline next to the element they mark. The legend is an ordered list under the frame, `--fs-sm`, each item starting with the same pin.
 
 ## On the page
 

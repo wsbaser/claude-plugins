@@ -17,7 +17,7 @@ Block: `{ "form": "fold", "label": "Full diff", "size": "48 lines", "blocks": [ 
 - The validator counts only the `text` and `code` fields inside a fold toward the 600 characters. Put long prose in `text` and long code or diffs in `code`; a fold holding only a table or a picture is rejected, so show those inline.
 - Before folding, show the gist inline: one representative hunk above a folded full diff, one sentence above folded background.
 
-On the page: `<details class="fold">` with a `<summary>` that shows a chevron icon (inline SVG, rotated 90 degrees when open), the label and the size, for example "Full diff, 48 lines". Summary text `--fs-sm`, weight 500, colour `--accent`; border 1px `--line`, radius 8px, background `--page`. Hide the default marker (`list-style: none` and `::-webkit-details-marker { display: none }`). A code frame inside loses its own border.
+Markup: `<details class="fold">` with a `<summary>` that shows a chevron icon (inline SVG, rotated 90 degrees when open), the label and the size, for example "Full diff, 48 lines". Summary text `--fs-sm`, weight 500, colour `--accent`; border 1px `--line`, radius 8px, background `--page`. Hide the default marker (`list-style: none` and `::-webkit-details-marker { display: none }`). A code frame inside loses its own border.
 
 ## On the page
 

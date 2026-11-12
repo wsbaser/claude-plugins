@@ -71,7 +71,10 @@
       var st = agent
         ? { choice: issue.agentChoice, note: '', status: 'decided', by: 'agent', stale: false }
         : { choice: issue.recommended != null && findOption(issue, issue.recommended) ? issue.recommended : null, note: '', status: 'undecided', by: null, stale: false };
+      st.round = issue.round;
       var sv = has(saved, issue.id) && saved[issue.id] && typeof saved[issue.id] === 'object' ? saved[issue.id] : null;
+      /* An issue reworked in a later round starts fresh; a saved entry without a round counts as round 1. */
+      if (sv && issue.round > (typeof sv.round === 'number' ? sv.round : 1)) sv = null;
       if (sv) {
         if (typeof sv.note === 'string') st.note = sv.note;
         var decidedBefore = sv.status === 'decided' || sv.status === 'disputed';

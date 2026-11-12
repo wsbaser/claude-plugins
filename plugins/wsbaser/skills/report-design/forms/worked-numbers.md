@@ -17,7 +17,7 @@ Block: `{ "form": "worked-numbers", "caption": "Worked numbers, last rollout", "
 - `total: true` marks the result row. `plain` is one sentence in plain words that says what the result means.
 - When explaining "why this value", add rows for candidate formulas and show each one failing to reach the observed value before the one that does.
 
-On the page: the table frame (border 1px `--line`, radius 8px, background `--page`), three columns (step, value, source), the value column right aligned with tabular numerals, the total row in weight 600. The plain sentence follows the table as normal prose.
+Markup: the table frame (border 1px `--line`, radius 8px, background `--page`), three columns (step, value, source), the value column right aligned with tabular numerals, the total row in weight 600. The plain sentence follows the table as normal prose.
 
 ## On the page
 

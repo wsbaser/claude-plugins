@@ -18,7 +18,7 @@ Block: `{ "form": "prose", "text": "..." }`. `text` holds one or more paragraphs
 - Say what was not checked in the sentence that makes the claim, not in a footnote.
 - Use backticks for identifiers; the page renders them as inline `<code>`.
 
-On the page each paragraph is a `<p>` in the body font (`--font-body`, `--fs-md`), colour `--fg`, line length capped near 78 characters (`max-width: 78ch`). A side remark goes in a caption paragraph (`--fs-sm`, `--muted`).
+Markup: each paragraph is a `<p>` in the body font (`--font-body`, `--fs-md`), colour `--fg`, line length capped near 78 characters (`max-width: 78ch`). A side remark goes in a caption paragraph (`--fs-sm`, `--muted`).
 
 ## On the page
 

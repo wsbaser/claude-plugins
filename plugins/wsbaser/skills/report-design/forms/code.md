@@ -16,7 +16,7 @@ Block: `{ "form": "code", "file": "src/Sync.Client/SyncSession.cs", "start": 112
 - Copy the lines from the file you read. Never retype or tidy them.
 - The sentence before the block gives `file:line`.
 
-On the page: a `<figure class="code">` with a `<figcaption>` (file on the left, note on the right, `--font-mono`, `--fs-xs`, `--muted`) and a `<pre>` holding one `<span class="l">` per line. Each line starts with its number in a `<span class="n">` (right aligned, `--muted`, `user-select: none`). A highlighted line gets class `hl`: background `--warn-soft` and a 2px inset left shadow in `--warn-line`. Background `--page`, border 1px `--line`, radius 8px, font `--font-mono` at 12px. Escape `<`, `>` and `&` in the code.
+Markup: a `<figure class="code">` with a `<figcaption>` (file on the left, note on the right, `--font-mono`, `--fs-xs`, `--muted`) and a `<pre>` holding one `<span class="l">` per line. Each line starts with its number in a `<span class="n">` (right aligned, `--muted`, `user-select: none`). A highlighted line gets class `hl`: background `--warn-soft` and a 2px inset left shadow in `--warn-line`. Background `--page`, border 1px `--line`, radius 8px, font `--font-mono` at 12px. Escape `<`, `>` and `&` in the code.
 
 ## On the page
 

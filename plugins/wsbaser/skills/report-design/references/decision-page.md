@@ -20,15 +20,17 @@ A decision page shows a list of issues, lets the owner decide each one, and copi
 
 Every issue has the same three parts, whether the agent decided it or the owner must:
 
-1. **Header**: id badge, title (`h2`, the record's `title`), then one row of markers and chips, then the main `file:line`.
+1. **Header** (`<article id="issue-<id>" data-issue="<id>">`; the `id` is needed for parent links and for the `:has()` dependency rows): id badge, title (`h2`, the record's `title`), then one row of markers and chips, then the main `file:line`.
    - A small marker: "Needs you" (needs-owner) or "Agent decided", plus "New in round N" when `issue.round > 1` (N is `issue.round`; the copied text marks the same issues).
    - Chips for the issue's `attributes` (label and value), and for a needs-owner issue its reason ("Why you: costly to reverse").
 2. **Body**: the explanation blocks in the order the explainer gave them, each rendered as its form file says. An `origin` comes first as a quote with its verdict chip. The body of a simple issue may be one sentence; never pad it to match the others.
 3. **Decision block** (`.decide`, separated by a 1px top border):
    - The question as `h3`.
+   - **Recommendation** (`.why`), directly under the question: which option the agent recommends and why, from the record's `recommendation`: the `reason` in plain words, the `confidence` as a chip, the `sources` as links or `file:line` in `<code>`. Each `unverified` claim is stated in the same place, as a sentence that says what was not checked. One line is enough when the reason is short; never leave it out, also not on agent-decided issues. For a pure preference question (`recommendation` is `null`) say so: "No recommendation: this is your preference." For a dependent issue, the reason for each parent answer is in the dependency table and this line names the current one.
    - `mode: radio`: a radio group, one `<label>` per real option with its title, Recommended tag, description, option blocks and attribute rows. `mode: buttons`: one button per option (the real one first, then the dispute options).
    - Dispute options of a radio issue, if any, as buttons under the radios.
    - For a parent issue: a line linking to the dependent issue ("Issue 2 follows from this answer").
+   - A `[data-stale-notice]` holding a `use-recommendation` button, on every issue (a dependent issue may place it in its dependency panel instead). Generic wording: "The agent's recommendation changed after you answered. Your answer is kept." The script shows it only when needed.
    - The note field, the status line, and the action buttons: Confirm and Reopen on needs-owner issues, Restore the agent's choice on agent-decided ones.
 
 ## `#review-data`
@@ -70,7 +72,7 @@ The script finds everything through these attributes. Anything not listed is fre
 | `button[data-act="confirm"]` | needs-owner issues | Confirms the preselected choice. Shown only while the issue is undecided and has a choice. |
 | `button[data-act="reopen"]` | needs-owner issues | Back to undecided with the recommendation preselected. Shown only on a needs-owner issue that is decided or disputed. |
 | `button[data-act="restore"]` | agent-decided issues | Puts back the agent's choice. Shown only when the issue has an agent choice and the owner changed it. |
-| `[data-stale-notice]` | dependent issues | Shown when the owner's kept decision no longer matches the recommendation. The script sets `data-recommended="<option id>"` on it. |
+| `[data-stale-notice]` | yes, one per issue | Shown when the owner's kept decision is stale: its recommendation moved since the owner answered (a parent changed, or a republish changed it) and the kept choice differs from the new recommendation. The script sets `data-recommended="<option id>"` on it. |
 | `button[data-act="use-recommendation"]` | inside the stale notice | Chooses the current recommendation. The script shows it whenever a recommendation exists, so it must sit inside `[data-stale-notice]`, which hides it. |
 | `textarea[data-note]` | yes, one per issue | Typing saves the note; the value is restored on load. Give it a `name` (`note-<id>`). |
 | `[data-progress]` | yes | Text set to `<decided> of <total> decided`. |
@@ -83,7 +85,7 @@ Required nesting:
 - **Recommended tag.** The script reads the option of a `[data-rec-tag]` from its closest `button[data-choice]`, `[data-option]` or `label`, and from a `label` it takes the value of the radio inside it. So put the tag and the radio inside the same `<label>`, or put both inside an element with `data-option="<option id>"`. A tag in a sibling element of the radio is never shown.
 - **Selected option.** `.sel` goes on the closest `label` or `[data-option]` around the radio; style that element.
 - **Hidden things.** The script hides through the `hidden` attribute. Your CSS must include `[hidden] { display: none !important }`.
-- **Issue scope.** Every control must be inside its `article[data-issue]`; the script finds the issue from the closest article.
+- **Issue scope.** Every control must be inside its `article[data-issue]`; the script finds the issue from the closest article. Give each article `id="issue-<id>"` when you use parent links or the `:has()` dependency rows.
 
 Optional hooks the script provides for CSS:
 
@@ -93,7 +95,8 @@ Optional hooks the script provides for CSS:
 ## State, storage and the copied text
 
 - Initial state: an agent-decided issue is decided, by the agent, with `agentChoice`. A needs-owner issue is undecided with its recommendation preselected, or nothing selected when there is none.
-- State is saved in `localStorage` under `review:<review.id>` after every change and restored on load, so decisions survive a reload and a republish to the same link. Keep `review.id`, issue ids and option ids stable across rounds. Saved state for an id the page no longer has is ignored; a saved choice that no longer exists falls back to the recommendation. If a republish moves the recommendation of an issue the owner already decided, the owner's choice is kept and flagged stale.
+- State is saved in `localStorage` under `review:<review.id>` after every change and restored on load, so decisions survive a reload and a republish to the same link. Keep `review.id`, issue ids and option ids stable across rounds. Saved state for an id the page no longer has is ignored; a saved choice that no longer exists falls back to the recommendation. If a republish moves the recommendation of an issue the owner already decided, the owner's choice is kept; it is flagged stale (and the stale notice shows) only when that choice differs from the new recommendation.
+- Rounds: every saved entry records the issue's `round`. When a republish raises an issue's `round` (the issue was reworked, for example after a dispute), its saved entry from the earlier round is ignored: the issue starts fresh, needs-owner issues undecided with the recommendation preselected, agent-decided issues decided by the agent, and the old note dropped (the agent already read it). A saved entry without a round counts as round 1. So to reopen a reworked issue, set its `round` to the new review round; to keep the owner's decision, leave its `round` as it was.
 - The copied text is the format in the `review` skill's `references/decision-text.md`. Line breaks in titles, labels and outcomes become spaces; in notes they become ` / `.
 
 ## Counting
@@ -112,11 +115,12 @@ When `dependsOn` is set, the recommendation of the dependent issue follows the p
 - On the dependent, in its body: a panel "Follows from issue M" with a table of the map: each parent answer, what is recommended here, and why. Mark the row that applies now with CSS `:has()` on the parent's checked radio, for example `main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"] { background: var(--accent-soft) }`.
 - At the bottom of that panel: the `[data-stale-notice]` with a sentence ("You answered this before issue 1 changed. Your answer is kept; the Recommended tag shows what the agent suggests now.") and the `use-recommendation` button.
 - Behaviour, from the script: while the dependent is undecided, its preselected option and Recommended tag move with the parent. Once the owner decided it, the choice is kept; if it now differs from the new recommendation the stale notice appears.
-- The copied text adds `Depends on: issue M = [<choice>] (confirmed|not confirmed)` under the dependent.
+- The copied text adds `Depends on: issue M = [<choice>] (confirmed|not confirmed)` under the dependent, or `Depends on: issue M = no choice yet (not confirmed)` when the parent has no choice (a parent with no recommendation that the owner has not answered).
 
 ## Before publishing
 
 - `tokens.css` and `review-page.js` are present byte for byte.
 - `#review-data` parses, and every issue and option id in it has its article, radio or button.
 - Each radio issue has its Recommended tag inside the option's `label`.
+- Every issue states its recommendation's reason (or that there is none), and every issue has a stale notice.
 - Open the page: the preselected options and tags are right, progress reads as expected, Copy decisions fills the preview, light and dark both read well, and the body does not scroll sideways at laptop or phone width.

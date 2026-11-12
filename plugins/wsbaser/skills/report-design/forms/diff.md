@@ -16,7 +16,7 @@ Block: `{ "form": "diff", "file": "src/Sync.Gateway/Middleware/RequestLogMiddlew
 - Take it from `git diff` or write it against the file you read; do not reformat unchanged lines.
 - When the change repeats across many places, show one hunk inline with a note such as "1 of 6", and put the full diff in a fold.
 
-On the page: the same `<figure class="code">` frame as code. Each line is a `<span class="l">` with a gutter `<span class="g">` holding `+`, `-` or a space. Added lines get class `add` (background `--pass-soft`, gutter `--pass`), removed lines class `del` (background `--fail-soft`, gutter `--fail`), hunk headers class `hunk` (`--muted`). Escape `<`, `>` and `&`.
+Markup: the same `<figure class="code">` frame as code. Each line is a `<span class="l">` with a gutter `<span class="g">` holding `+`, `-` or a space. Added lines get class `add` (background `--pass-soft`, gutter `--pass`), removed lines class `del` (background `--fail-soft`, gutter `--fail`), hunk headers class `hunk` (`--muted`). Escape `<`, `>` and `&`.
 
 ## On the page
 

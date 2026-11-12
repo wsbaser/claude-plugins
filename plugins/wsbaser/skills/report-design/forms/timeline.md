@@ -17,7 +17,7 @@ Block: `{ "form": "timeline", "caption": "...", "lanes": ["Request A", "Request 
 - Mark the event where the outcome goes wrong with `bad: true`, and give the outcome in `result`.
 - When the fix changes the order, add a second timeline with the fixed order rather than describing it.
 
-On the page: an inline SVG (`role="img"`, caption as `aria-label`) in `<figure class="fig">`. Lanes are horizontal rows with the actor name at the left (`--font-body` 12px, weight 500) and a thin `--line-strong` track. Events are small rounded boxes on their lane (`--surface` fill, `--line-strong` stroke); a bad event fills `--fail-soft` with a `--fail` stroke; arrows between lanes are `--muted`. The result sits at the right end in `--fail`. Use CSS classes that read tokens, not fixed hex.
+Markup: an inline SVG (`role="img"`, caption as `aria-label`) in `<figure class="fig">`. Lanes are horizontal rows with the actor name at the left (`--font-body` 12px, weight 500) and a thin `--line-strong` track. Events are small rounded boxes on their lane (`--surface` fill, `--line-strong` stroke); a bad event fills `--fail-soft` with a `--fail` stroke; arrows between lanes are `--muted`. The result sits at the right end in `--fail`. Use CSS classes that read tokens, not fixed hex.
 
 ## On the page
 
