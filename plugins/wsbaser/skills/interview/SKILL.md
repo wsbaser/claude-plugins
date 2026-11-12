@@ -85,7 +85,7 @@ The open points are not asked one by one. `wsbaser:review` researches each point
 
    Write each point so the reader needs no other context. For a point about an internal mechanism, explore it first and say in the point what it is and why it exists. Track which categories have points or are clearly covered.
 
-2. **Hand the points to review.** Invoke `wsbaser:review` through the `Skill` tool (`Skill({ skill: "wsbaser:review", args: "..." })`) with the feature name, the context gathered in Step 1 (conversation, sources, files with paths, the reuse map when `--scout` ran) and the list of points. This is review's supplied-issues intake: one point becomes one issue, in your order. Pass a pure preference point as it is; it appears on the page with nothing preselected. Never use the `Agent` tool for this.
+2. **Hand the points to review.** Invoke `wsbaser:review` through the `Skill` tool (`Skill({ skill: "wsbaser:review", args: "..." })`) with the feature name, the context gathered in Step 1 (conversation, sources, files with paths, the reuse map when `--scout` ran) and the list of points. Also pass `specs/{slug}/` as the folder for `review-<id>/review.json`, with `{slug}` made by the rule in Step 4, so the record outlives the session. Tell `review` that you announce the page and collect the owner's answer yourself: it returns the link and the "n of m need you" line, then takes your answer as the paste. This is review's supplied-issues intake: one point becomes one issue, in your order. Every round after the first passes the existing `review.json` and only the new points. Pass a pure preference point as it is; it appears on the page with nothing preselected. Never use the `Agent` tool for this.
 
 3. **Announce the page.** When `review` has published, it gives you the link and the count of points that need the user. Call `AskUserQuestion` once:
 
@@ -103,9 +103,9 @@ The open points are not asked one by one. `wsbaser:review` researches each point
 
    Pass the user's answer back to `review` as its paste. A decision text pasted through the free-text answer is used directly. For `I'll paste the decisions next`, wait for the next turn and pass that paste. `Accept all recommendations` goes to `review` as "Accept all recommendations". `Stop here` tells `review` to stop.
 
-   If `review` replies that points are still undecided and waits, call `AskUserQuestion` again with the same options and the question naming those ids. If `review` reworks disputed points and republishes the page, announce it the same way.
+   If `review` replies that points are still undecided and waits, call `AskUserQuestion` again with the same options and the question naming those ids. After `Accept all recommendations`, preference points stay undecided; name them in the question and say a decision for them must be pasted, because choosing `Accept all recommendations` again changes nothing. If `review` reworks disputed points and republishes the page, announce it the same way.
 
-4. **Apply the returned decisions.** `review` returns `Review settled: <n> decisions`, the decision text, and the path to `review.json`. Treat each decision as an answer from the user. A decision whose note only adds detail is detail for the spec. If `review` returns `Review not settled`, do not act on the points it lists as undecided or disputed; tell the user which are open, list them under `open items` in the solution summary, and go on to the wrap-up question. If the decisions expose new open points, invoke `wsbaser:review` again for the same review with the path to `review.json` and only the new points (the next round), and announce it with the same `AskUserQuestion`.
+4. **Apply the returned decisions.** `review` returns `Review settled: <n> decisions`, the decision text, and the path to `review.json`. Treat each decision as an answer from the user. A decision whose note only adds detail is detail for the spec. When a decision exposes a gap in your understanding of the code, explore it first. Turn a vague or only partly answering note into a follow-up point for the next round. If `review` returns `Review not settled`, do not act on the points it lists as undecided or disputed; tell the user which are open, list them under `open items` in the solution summary, skip `wsbaser:architecture-fit` while open items remain, and go on to the wrap-up question. If the decisions expose new open points, invoke `wsbaser:review` again for the same review with the path to `review.json` and only the new points (the next round), and announce it with the same `AskUserQuestion`.
 
 5. **Check the architecture.** When nothing is open, use the `Skill` tool to invoke `wsbaser:architecture-fit` (`Skill({ skill: "wsbaser:architecture-fit", args: "..." })`) on the proposed approach. **Never use the `Agent` tool for this.** If the verdict is **FITS**, print the response to output and go on. If the verdict is **REFACTOR FIRST**, turn the violations into new points and run a further round with `wsbaser:review` until the approach is adjusted or the user accepts it.
 
@@ -156,7 +156,7 @@ Then offer to wrap up, referencing the summary:
 }
 ```
 
-- If the user wants to continue or deep-dive, list the new points and run another round from step 1 of this step.
+- If the user wants to continue or deep-dive, list the new points and run another round from step 1 of this step; the round passes the existing `review.json` and only the new points.
 - Repeat until the user confirms readiness.
 
 ## Step 4: Generate the Spec
@@ -263,7 +263,7 @@ Write the spec with the following structure:
 
 ## Open Questions
 
-{Any unresolved items that need external input — omit section if none. Only include questions that CANNOT be answered by the user in this interview (e.g., require stakeholder input, team decisions, external API verification).}
+{Any unresolved items that need external input — omit section if none. Only include questions that CANNOT be answered by the user in this interview (e.g., require stakeholder input, team decisions, external API verification). Also include every point left undecided or disputed after `Review not settled`, marked "unsettled".}
 
 - {Question}
 ...
@@ -281,7 +281,7 @@ This step runs only when the `--plan` flag was provided. The goal is to produce 
 
 ### 5a. Deep codebase exploration
 
-Launch **up to 3 Task-tool subagents** in parallel to gather codebase context for the plan. Tailor exploration to the feature — common topics: design system (colors, theme maps, SCSS), component patterns (file conventions, base classes, namespaces), icon system, similar existing components, story/test patterns, build commands, API/service patterns, and routing conventions.
+Launch **up to 3 subagents** (via the `Agent` tool) in parallel to gather codebase context for the plan. Tailor exploration to the feature — common topics: design system (colors, theme maps, SCSS), component patterns (file conventions, base classes, namespaces), icon system, similar existing components, story/test patterns, build commands, API/service patterns, and routing conventions.
 
 Each agent should return **actual code snippets** from the codebase, not just descriptions. The plan must contain enough real code context that a developer with zero prior knowledge of this codebase can implement correctly.
 
