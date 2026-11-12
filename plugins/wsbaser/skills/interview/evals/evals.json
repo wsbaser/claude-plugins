@@ -1,0 +1,16 @@
+{
+  "skill_name": "wsbaser:interview",
+  "evals": [
+    {
+      "id": "mark-all-read",
+      "name": "mark-all-read",
+      "prompt": "/wsbaser:interview Spec the feature in evals/files/mark-all-read/feature.md: a mark-all-as-read action for the notifications panel.\n\n[Eval harness: first copy evals/files/mark-all-read/ to a new folder in the scratchpad and treat the copy as the project root, so the spec and review files land there and the fixture stays clean. Nobody clicks the page. When the Decisions question asks how to continue, answer with the contents of evals/files/mark-all-read/owner-answer.txt. If review then names points still undecided (pure preference points), answer 'Stop here'. At the wrap-up question choose 'Looks good — wrap up'.]",
+      "expected_output": "Context is gathered from feature.md and src/notifications.py before any point is listed. The open points are not asked one by one: wsbaser:review is invoked through the Skill tool with the list of points (for example whether the action marks only the filtered kind or everything, how notifications that arrive while it runs are treated, whether there is an undo, a bulk store method against a loop over mark_read) and specs/<slug>/ as the folder for review-<id>/review.json. Review publishes one page and returns the link and an 'n of m need you' line; interview announces it with one AskUserQuestion carrying that link and line, and passes the answer back to review as the paste. After 'Accept all recommendations' every point with a recommendation is settled; a pure preference point stays undecided and, when the run stops, is listed under open items and in the spec's Open Questions marked unsettled, and architecture-fit is skipped. Otherwise architecture-fit runs through the Skill tool. A solution summary text block precedes the wrap-up question, and the spec is written under specs/ with the decisions as Design Decisions. No decision is invented that the review did not return.",
+      "files": [
+        "evals/files/mark-all-read/feature.md",
+        "evals/files/mark-all-read/owner-answer.txt",
+        "evals/files/mark-all-read/src/notifications.py"
+      ]
+    }
+  ]
+}

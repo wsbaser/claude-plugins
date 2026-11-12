@@ -72,6 +72,16 @@
         "evals/files/half-paste/decisions-full.txt",
         "evals/files/sync-client/src/sync_client.py"
       ]
+    },
+    {
+      "id": "find-issues-sync-client",
+      "name": "find-issues-sync-client",
+      "prompt": "Review this module before release: evals/files/sync-client/src/sync_client.py. Treat evals/files/sync-client/ as the project root. Find the issues yourself, have each decided and explained, and give me one page to sign off.\n\n[Eval harness: offline, no outside services. Nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/find-issues-sync-client/owner-answer.txt as the owner's answer.]",
+      "expected_output": "No intake file matches, so the skill reads the module in full and lists the issues itself (intake step 4), each with origin null, and writes review-<id>/ in the session scratchpad, not in the fixture. The issues include the real defects of sync_client.py: one transport failure logged as Error twice (Transport.send and SyncSession.push), request.identity.name crashing when there is no identity, each retry attempt logged at Warning, and 'Retrying' logged at Information right before the final raise. The record passes check_record.py --stage ready, the page is valid (tokens.css and review-page.js pasted unchanged, #review-data parses and matches the articles, record text escaped), and every issue shows its recommendation reason. The skill waits, then after 'Accept all recommendations' returns 'Review settled: <n> decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names its id as undecided and waits instead of returning. Nothing is implemented.",
+      "files": [
+        "evals/files/sync-client/src/sync_client.py",
+        "evals/files/find-issues-sync-client/owner-answer.txt"
+      ]
     }
   ]
 }
