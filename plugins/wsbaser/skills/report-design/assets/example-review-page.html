@@ -110,7 +110,7 @@ h1{font-size:var(--fs-xl);line-height:1.3;font-weight:600;margin:0;letter-spacin
 h2{font-size:var(--fs-lg);line-height:1.35;font-weight:600;margin:0;text-wrap:balance}
 h3{font-size:var(--fs-md);line-height:1.4;font-weight:600;margin:0}
 p{margin:0;max-width:78ch}
-a{color:var(--accent);text-underline-offset:3px}
+a{color:var(--accent);text-underline-offset:3px;overflow-wrap:anywhere}
 code{font-family:var(--font-mono);font-size:12.5px}
 :not(pre)>code{background:var(--chip);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
 svg.i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
@@ -231,7 +231,7 @@ main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"] .nowtag::
 main:has(#issue-1 input[value="C"]:checked) #issue-2 tr[data-when="C"] .nowtag::after{content:"Applies now"}
 .stale{display:flex;gap:8px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--warn-line);background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm);border-radius:0 0 8px 8px}
 
-.why{font-size:var(--fs-sm);line-height:1.7;max-width:none}
+.why{font-size:var(--fs-sm);line-height:1.7;max-width:none;overflow-wrap:anywhere}
 .why>b{font-weight:600}
 .why .chip{margin-inline:4px}
 .why .unchecked{display:block;color:var(--warn)}

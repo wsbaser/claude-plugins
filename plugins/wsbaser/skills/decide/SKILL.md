@@ -122,6 +122,7 @@ An issue depends on another when its best answer changes with the other's answer
 ## 9. Record honestly
 
 - Every claim traces to something you read. `sources` lists links and `file:line` references.
+- Cite only pages you opened. A claim taken from a search-result summary goes in `unverified`, marked "from search summaries, pages not opened", and its links stay out of `sources`.
 - What you could not verify goes in `recommendation.unverified`, one claim per entry.
 - `confidence` is one short word (`high`, `medium`, `low`) that matches what you found.
 

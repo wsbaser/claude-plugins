@@ -17,7 +17,7 @@ Always, for any page:
 For a decision page (the owner confirms, changes or disputes items and copies the result back):
 
 - `references/decision-page.md`: the issue anatomy, the DOM contract, `#review-data`, counting and dependency rules.
-- `assets/review-page.js`: paste it unchanged at the end of `<body>`.
+- `assets/review-page.js`: paste it unchanged at the end of the page.
 
 The worked example of all of it is `assets/example-review-page.html`. Open it when a rule is unclear; copy its patterns, not its content.
 

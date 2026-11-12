@@ -4,8 +4,9 @@ A decision page shows a list of issues, lets the owner decide each one, and copi
 
 ## Paste the assets unchanged
 
-- `assets/tokens.css` goes byte for byte into the first `<style>` in `<head>`. Page CSS goes in a second `<style>` after it.
-- `assets/review-page.js` goes byte for byte into a `<script>` at the end of `<body>`, after `#review-data`.
+- The published page has no `<!DOCTYPE>`, `<html>`, `<head>` or `<body>` tags: the Artifact tool adds the skeleton and the viewport. Drop them when publishing, even when you copied the worked example, which keeps them so it can be served for viewing.
+- `assets/tokens.css` goes byte for byte into the first `<style>` of the page, after the `<title>` and font links. Page CSS goes in a second `<style>` after it.
+- `assets/review-page.js` goes byte for byte into a `<script>` at the end of the page, after `#review-data`.
 - Never edit, trim, reformat or wrap either one, and never add page-specific script. If the page needs a behaviour the script does not have, build it with CSS (for example `:has()` and the `data-state` attributes below) or leave it out. The copied decision text must come from the shared script so the parser can read it.
 
 ## Page structure

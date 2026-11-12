@@ -6,17 +6,17 @@ All colours, fonts and sizes come from the tokens in `assets/tokens.css` (`--pag
 
 ## Page shell
 
-- `<!DOCTYPE html>`, `lang`, `<meta name="viewport" content="width=device-width, initial-scale=1">`, a two-to-four-word `<title>`.
+- A page published with the Artifact tool has no `<!DOCTYPE>`, `<html>`, `<head>` or `<body>` tags: the tool adds the document skeleton and the viewport meta. Start the file with the two-to-four-word `<title>`, then the font links and the styles below. A local page served for viewing on its own (such as `assets/example-review-page.html`) keeps the full skeleton: `<!DOCTYPE html>`, `lang`, `<meta name="viewport" content="width=device-width, initial-scale=1">`.
 - Fonts: Inter (400, 500, 600) and JetBrains Mono (400, 500, 600) from `fonts.googleapis.com`; the token stacks fall back to system fonts.
-- First `<style>`: `tokens.css` pasted unchanged. Second `<style>`: the page's own CSS.
-- `body`: `background: var(--page)`, `color: var(--fg)`, `font: 400 var(--fs-md)/1.55 var(--font-body)`, `font-variant-numeric: tabular-nums` so figures line up in tables and counters.
+- First `<style>`, with or without the skeleton: `tokens.css` pasted unchanged. Second `<style>`: the page's own CSS.
+- `body` (the CSS selector, which still applies when the tool adds the tag): `background: var(--page)`, `color: var(--fg)`, `font: 400 var(--fs-md)/1.55 var(--font-body)`, `font-variant-numeric: tabular-nums` so figures line up in tables and counters.
 - Always include `[hidden] { display: none !important }`: component rules such as `display: grid` otherwise beat the `hidden` attribute, and the review script shows and hides things through it.
 - Example: page head (`.top`) with an `h1` at `--fs-xl`, a muted sub-line, and one paragraph saying how to use the page.
 
 ## One reading column
 
 - One column, `max-width: 1040px`, centred, `padding-inline: 16px` (`.col`). No side panes, no master and detail, no stepper.
-- The body never scrolls sideways at any width. Wide content (code, tables, pictures, mockups) scrolls inside its own frame with `overflow-x: auto`; give grid and flex children `min-width: 0` so they can shrink.
+- The body never scrolls sideways at any width. Wide content (code, tables, pictures, mockups) scrolls inside its own frame with `overflow-x: auto`; give grid and flex children `min-width: 0` so they can shrink. Links and `<code>` in running text carry `overflow-wrap: anywhere`, so a long URL or path breaks instead of widening the page.
 - Prose paragraphs are capped near `78ch`.
 - Below 900px: two-column grids become one column, attribute rows drop to two columns, card padding shrinks to 16px.
 
@@ -83,7 +83,7 @@ All colours, fonts and sizes come from the tokens in `assets/tokens.css` (`--pag
 
 ## Recommendation
 
-- Every recommendation shows its reason where the choice is made: a short block (`.why`) right under the decision question, `--fs-sm`, starting with "Recommended: <option>" in weight 600, then the reason in plain words, then a confidence chip and the sources (`file:line` in `<code>`, links). Agent-decided issues get it too, so the owner can check the agent.
+- Every recommendation shows its reason where the choice is made: a short block (`.why`) right under the decision question, `--fs-sm`, starting with "Recommended: <option>" in weight 600, then the reason in plain words, then a confidence chip and the sources (`file:line` in `<code>`, links). The block carries `overflow-wrap: anywhere`: a source URL has no break points and would otherwise push the body wider than a phone screen. Agent-decided issues get it too, so the owner can check the agent.
 - A claim the agent could not verify is said in this block, as its own sentence ("Not checked: ..."), in `--warn`. Never move it to a footnote.
 - One line is enough when the reason is short. When the explanation above already argues the case, the reason still gets its one line here.
 - Example: `.why` in issues 1, 7, 8 and 9.

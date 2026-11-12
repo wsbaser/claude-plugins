@@ -58,7 +58,7 @@ Invoke `wsbaser:explain` through the Skill tool in embedded mode with `<record>`
 
 ## 6. Hand over and wait
 
-Give the owner the link and one line of what needs them: the count of issues with `needsOwner: true` against the total ("2 of 9 need you"), or "None need you; confirm or change any of them". Then stop and wait for the pasted decisions. Always wait, even when no issue needs the owner.
+Give the owner the link and one line of what needs them. Count only issues still waiting on the owner (`needsOwner: true` and `decision.status` not `decided` in `<record>`) against the total ("2 of 9 need you"), or say "None need you; confirm or change any of them". In a later round, also name the issues reworked this round: "1 reworked, 0 waiting on you". Then stop and wait for the pasted decisions. Always wait, even when no issue needs the owner.
 
 When the caller announces the page and collects the owner's answer itself, give the caller the link and that line instead, and take the answer it passes back as the paste.
 
