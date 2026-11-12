@@ -1,40 +1,98 @@
 ---
 name: wsbaser:explain
-description: Explains how something actually works — where a value is computed, which layer owns a decision, how data flows end to end, and why a bug appeared. Sizes the answer to the question and publishes the longer ones as a Claude artifact with diagrams. Use whenever the user asks how or where something works, says a flow is a black box, asks whether logic lives in the frontend or the backend, wants a data flow or pipeline traced, asks why a bug appeared or what changed, or says "explain", "walk me through" or "help me understand" — even when they frame it as a quick question rather than a request for a document.
+description: Explains how something actually works — where a value is computed, which layer owns a decision, how data flows end to end, and why a bug appeared. Sizes the answer to the question and publishes the longer ones as a Claude artifact with diagrams. Use whenever the user asks how or where something works, says a flow is a black box, asks whether logic lives in the frontend or the backend, wants a data flow or pipeline traced, asks why a bug appeared or what changed, or says "explain", "walk me through" or "help me understand" — even when they frame it as a quick question rather than a request for a document. Also writes the per-issue explanations inside a review page when called by wsbaser:review.
 ---
 
 # Explain
 
-Explain how something actually works, to someone who did not write it.
+Explain how something actually works, to someone who did not write it, at the size the subject needs: one sentence when that is enough, ground-up when the reader lacks the background.
 
-## Size the answer to the question
+Before writing anything longer than a few lines, read `references/writing-rules.md`. It holds the writing rules with one example each: lead with the answer, size to the subject, today before the change, define terms, show the code with `file:line`, judge each part of someone else's claim, state unknowns at the claim, put sources inline, no fixed section template.
 
-Two judgements, and the request itself carries both.
+In this file, `<skills>` means the folder that holds this skill's folder (the parent of this skill's base directory). The sibling skills used below live there.
 
-**How much.** A question with a one-line answer deserves one line. Publish an artifact when the explanation is worth returning to, is meant for someone else, or carries enough structure that prose alone would lose it.
+## 1. Pick the mode
 
-**How deep.** The words someone chooses reveal what they already hold. "It's a black box" asks for the ground up, including what the pieces are and where each one lives. A precise symptom from someone already naming the right files asks only for the piece they are missing — re-explaining the rest wastes their time and buries the answer in it.
+| Mode | When | What you produce |
+|---|---|---|
+| Short answer | A question whose answer fits in a few lines. | The answer in the terminal. No artifact. |
+| Explainer page | The explanation is worth returning to, is meant for someone else, or carries structure (order, comparison, several layers) that prose in a terminal would lose. | A page styled by `wsbaser:report-design`, published with the Artifact tool. |
+| Embedded | The caller gives you the path to a `review.json`. | Explanation blocks written into that file. See section 6. |
 
-When the request is genuinely ambiguous, pick a level, say which one you picked, and offer the other.
+Two judgements decide between the first two, and the request carries both:
 
-## Answer what was asked
+- **How much.** A one-fact question gets a few lines, even when it is phrased as "explain".
+- **How deep.** "It's a black box" asks for the ground up: what the pieces are and where each one lives. A precise symptom from someone already naming the right files asks only for the piece they are missing; re-explaining the rest buries the answer.
 
-Lead with the answer, in their terms, including when the honest answer rejects the premise. "Is it the frontend or the backend" is often answered by "neither", and nothing else lands until that does.
+When the request is ambiguous, pick a level, say which one you picked, and offer the other.
 
-## Follow the mechanism
+## 2. Trace before writing
 
-Wherever it goes, including other repositories, services and packages. A trace that stops at the working directory is the one that misleads.
+Follow the mechanism wherever it goes: other repositories, services, packages. A trace that stops at the working directory is the one that misleads.
 
-Separate the code that computes from the code that decides what to compute. Where one is shared and the other is not, that gap is usually the whole answer.
+- Separate the code that computes from the code that decides what to compute. Where one is shared and the other is not, that gap is usually the whole answer.
+- For anything regression-shaped, establish what changed and when, and check the versions of shared dependencies, not only the repo's own history.
+- Every claim traces to something you read. Plausible-sounding architecture is the failure mode of this task: it looks like the real thing until someone acts on it.
+- What you could not confirm, you say, in the sentence that makes the claim: "checked by reading the code, not by running it".
 
-For anything regression-shaped, establish what changed and when — and check the versions of shared dependencies, not only the repo's own history. Behaviour moves because a library shipped at least as often as because the code did.
+Keep the `file:line` of everything you will cite while you trace; the explanation needs them.
 
-## Ground it
+## 3. Choose the form per subject
 
-Every claim traces to something you read. Plausible-sounding architecture is the failure mode of this task, and it is indistinguishable from the real thing until someone acts on it. Where you could not confirm something, say so rather than smoothing over it.
+A form is one way of showing something. Forms live in a slot, one file per form, each opening with a `when:` line that says when it fits. The set grows by adding files, so never assume which forms exist: list them.
 
-## When you publish
+1. List `<skills>/report-design/forms/` and, if it exists, `.claude/review/forms/` in the project being worked on.
+2. Read only the frontmatter `when:` line of each file. A project file with the same name replaces the plugin's.
+3. Load only the files whose `when:` matches the subject in front of you, and build each block the way its file says.
 
-The artifact is the deliverable: reply with the link and the finding, not a second copy of the explanation. A new artifact is visible only to its author, and these are usually written for other people, so say so when handing over the link.
+Plain prose is the default. Pick another form only when its `when:` line fits the subject better than sentences would, typically when structure, order or comparison is the point. Choose per subject, not per kind of request: two subjects rarely need the same shape.
 
-Use diagrams where structure or sequence is the point, and confirm they render — a broken one fails silently and takes the explanation with it.
+In the terminal nothing renders, so use the plain-text equivalent of the form you would pick: Markdown, numbered steps, excerpts with their `file:line`.
+
+## 4. Decide what is visible
+
+- Short content is always visible. Never make the reader click to read a few sentences or a few lines.
+- Fold only long extra depth the reader can decide without: multi-paragraph background, a long full listing, rejected options argued at length. A fold holds 600 characters or more, counted over the `text` and `code` fields inside it.
+- A fold's label says how much is behind it, in a unit the reader feels: "Background, 3 paragraphs", "Full listing, 48 lines".
+- Show the gist above any fold. Never nest folds, and keep them to a few per item.
+
+## 5. Explainer page
+
+1. Load `wsbaser:report-design` (and `artifact-design`, as the Artifact tool requires). Follow its tokens, components and before-publishing checks.
+2. Write the page freehand: one reading column, the answer at the top, then only the parts this subject needs.
+3. Publish with the Artifact tool. Confirm each picture renders; a broken one fails silently and takes the explanation with it.
+4. Reply with the link and the finding in a few lines, not a second copy of the explanation. A new artifact is private to its author; say so when the page is meant for other people.
+
+## 6. Embedded mode
+
+`wsbaser:review` gives you the path to a `review.json` that has reached stage `decided`. The record's contract is `<skills>/review/references/record.md`; read it first.
+
+**What you change.** Only each issue's `explanation` and, where needed, its options' `blocks`. Every other field belongs to another skill; leave it as it is.
+
+**What the page already shows.** The title, attribute chips, the `origin` quote with its verdict chip, each option's `label`, and the recommendation with its reason, confidence, sources and unverified claims are rendered from the record. Do not repeat them in the explanation; explain what the reader needs in order to judge them.
+
+**Per issue.** Read what the decision step recorded (kind, origin, options, recommendation, sources), trace what you need yourself, then write blocks sized to that issue:
+
+- A one-line issue gets one sentence in one prose block. Do not pad it to match its neighbours.
+- An issue the owner cannot judge without background gets that background: how it works today, the terms it uses, the picture its subject calls for, the code with `file:line`.
+- An issue with `origin` leads with the claim: quote each part of it and give the verdict on that part with its evidence, so the overall verdict on the page is earned.
+
+**Option blocks.** Give an option its own `blocks` when choosing between the options needs more than the label, for example what each one produces: its output, its screen, its change to the code. Build them the same way across the options of one issue so they compare side by side. Otherwise leave `blocks` out.
+
+**Block shape.** A block is `{ "form": "<form file name without .md>", ... }`; the other keys are the ones the form's file defines. A fold carries `label`, `size` and its inner `blocks`, and obeys section 4.
+
+**Check and hand back.**
+
+1. Write the file back as UTF-8 JSON.
+2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage ready`.
+3. Fix every line it prints and run it again until it exits 0 with no output.
+4. Tell the caller the record is ready, with one line per issue saying the shape you gave it (for example "issue 3: one sentence").
+
+## 7. Self-check before handing over
+
+- Is anything short folded? Is any fold missing its size?
+- Is any term used before it is defined?
+- Is any claim about code made without the code or a `file:line`?
+- Is anything unverified stated somewhere other than at the claim?
+- Do two issues of different weight look the same length or the same shape? Then one of them is padded or starved.
+- Does the first sentence of each explanation give the answer?

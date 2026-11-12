@@ -20,6 +20,27 @@
         "Told the user the artifact is private and needs sharing"
       ],
       "files": []
+    },
+    {
+      "id": "embedded-mixed-depth",
+      "name": "embedded-mixed-depth",
+      "prompt": "You are called by wsbaser:review in embedded mode. The record is at review-pr-88-estimates/review.json and has reached stage decided. It holds three issues: issue 1 is a one-line issue (a log message says 'Retrying' where the code gives up); issue 2 is a race condition, two requests that save the same estimate concurrently so one update to the total is lost; issue 3 is a UI question with two options for what a user without permission sees on the estimate page. Write the explanation for every issue, and option blocks where choosing needs them, then hand the record back.",
+      "expected_output": "Three explanations of clearly different length and form: one sentence for issue 1; for issue 2 the background, a picture of both orderings including the failing one, and the code with file:line; for issue 3 the current screen first and option blocks that show what each option produces. The record passes check_record.py --stage ready, and no fold holds fewer than 600 characters.",
+      "files": []
+    },
+    {
+      "id": "short-question-stays-short",
+      "name": "short-question-stays-short",
+      "prompt": "quick one: which file sets the default page size for the invoice list?",
+      "expected_output": "A terminal answer of a few lines naming the file with file:line and the value. No artifact is published.",
+      "files": []
+    },
+    {
+      "id": "reviewer-claim",
+      "name": "reviewer-claim",
+      "prompt": "a reviewer left this on my PR: \"UserStore.Find can return null here and there is no test covering it, so this will blow up in production.\" is he right? explain.",
+      "expected_output": "The answer quotes the comment, splits it into its separate claims (can return null, no test, will fail in production) with a verdict and evidence for each, and shows the relevant code with file:line in the sentence before it.",
+      "files": []
     }
   ]
 }
