@@ -1,0 +1,17 @@
+Decisions for PR #2317 "Normalize log levels", review round 2
+Review: pr-2317-log-levels
+2 of 4 decided
+
+1. One transport failure is logged as Error in two layers
+   Decision: [B] Error once in the transport, SyncSession logs Debug (owner chose)
+2. Client older than the gateway: Warning or Information? [new in round 2]
+   UNDECIDED. Agent recommends [C] Warning for one release, then Information.
+   Depends on: issue 1 = [B] (confirmed)
+3. Request logging crashes when the request has no identity
+   Decision: [accept] Accept - apply the null guard (agent decided, owner left it)
+4. Retry attempts are logged too loud
+   DISPUTED: [reject] Reject (owner chose)
+   Note: Ops still wants these at Warning during the migration
+
+Undecided: 2. Do not act on these yet.
+Disputed: 4. Re-think these using the notes.
