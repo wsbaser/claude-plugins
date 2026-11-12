@@ -1,6 +1,6 @@
 ---
 name: wsbaser:interview
-description: Interview user to capture feature requirements, write spec to specs/. Add --plan for phased implementation plan, --scout to run pattern-scout reuse analysis. Trigger: spec a feature, share a ticket/doc/design link, or say "plan this out".
+description: Interview user to capture feature requirements, write spec to specs/. Open points are researched, decided and presented on one review page instead of asked one by one. Add --plan for phased implementation plan, --scout to run pattern-scout reuse analysis. Trigger: spec a feature, share a ticket/doc/design link, or say "plan this out".
 ---
 
 Interview the user in depth about a feature or requirement from the current conversation, then produce a structured specification document.
@@ -74,74 +74,42 @@ Interview will cover: {Category1}, {Category2}, {Category3}
 (Based on feature type: {classification})
 ```
 
-## Step 3: Conduct the Interview
+## Step 3: Settle the open points
 
-Use `AskUserQuestion` for each question. Provide **3 options** per question (the tool automatically adds an "Other" option for custom input).
+The open points are not asked one by one. `wsbaser:review` researches each point, recommends a decision, and shows all of them on one review page where the user confirms or changes each.
 
-### Questioning Techniques (rotate between these)
+1. **List the open points.** From the categories selected in Step 2, list every non-obvious open point. Skip anything already clear from the conversation or easily inferred from the codebase; never list "what framework?" when it is obvious. Use these techniques to find points, not to phrase questions:
+   - **Devil's Advocate**: challenge assumptions ("what if we took the opposite approach?", "why not just a simpler solution?").
+   - **Scenario-Based**: explore real usage ("what happens when a user does X and then Y?", "how should an unexpected action behave?").
+   - **Tradeoff Forcing**: clarify priorities ("if A and B conflict, which matters more?", "what degradation is acceptable if a constraint hits?").
 
-1. **Devil's Advocate** — Challenge assumptions:
-   - "What if we took the opposite approach — [alternative]?"
-   - "What would break if we did X instead of Y?"
-   - "Why not just [simpler solution]?"
+   Write each point so the reader needs no other context. For a point about an internal mechanism, explore it first and say in the point what it is and why it exists. Track which categories have points or are clearly covered.
 
-2. **Scenario-Based** — Explore real usage:
-   - "Imagine a user doing X, what happens when Y?"
-   - "Walk me through what happens when [edge case]?"
-   - "If someone [unexpected action], how should it behave?"
+2. **Hand the points to review.** Invoke `wsbaser:review` through the `Skill` tool (`Skill({ skill: "wsbaser:review", args: "..." })`) with the feature name, the context gathered in Step 1 (conversation, sources, files with paths, the reuse map when `--scout` ran) and the list of points. This is review's supplied-issues intake: one point becomes one issue, in your order. Pass a pure preference point as it is; it appears on the page with nothing preselected. Never use the `Agent` tool for this.
 
-3. **Tradeoff Forcing** — Clarify priorities:
-   - "If you had to choose between A and B, which matters more?"
-   - "Would you sacrifice X for better Y?"
-   - "What's the acceptable degradation if [constraint]?"
+3. **Announce the page.** When `review` has published, it gives you the link and the count of points that need the user. Call `AskUserQuestion` once:
 
-### Interview Rules
+   ```json
+   {
+     "question": "Review page is ready: <url>. <n> of <m> points need you. Go through it, click Copy decisions, then choose how to continue.",
+     "header": "Decisions",
+     "options": [
+       {"label": "I'll paste the decisions next", "description": "I will paste the copied decisions in the terminal on my next turn"},
+       {"label": "Accept all recommendations", "description": "Treat every recommended option as confirmed"},
+       {"label": "Stop here", "description": "End without settling the remaining points"}
+     ]
+   }
+   ```
 
-- **Non-obvious questions only.** Do not ask about things already clear from the conversation or easily inferred from the codebase. Never ask "what framework?" when it's already obvious.
-- **Push until clear.** If an answer is vague, follow up:
-  - "Can you be more specific about [aspect]?"
-  - "Give me a concrete example of that scenario."
-  - "What exactly do you mean by [term]?"
-- **Embed codebase context in questions.** For any question referencing an internal mechanism, explore it first if needed, then explain what it is and why it exists in the question text. Do not assume the user knows the internals.
+   Pass the user's answer back to `review` as its paste. A decision text pasted through the free-text answer is used directly. For `I'll paste the decisions next`, wait for the next turn and pass that paste. `Accept all recommendations` goes to `review` as "Accept all recommendations". `Stop here` tells `review` to stop.
 
-  Bad: "Should the unified dialog always run `migrateModelId()` on the initial model?"
-  Good: "The codebase has a `migrateModelId()` function that converts old short model names
-  ('opus') to canonical prefixed names ('claude-opus') — this exists because older feature.json files may still contain the short format. In create mode the store default is already migrated, but in edit mode the value comes from disk. Should the dialog always run migration defensively, or only in edit mode?"
-- **Mid-interview exploration.** If an answer reveals a gap in your codebase understanding, pause to explore:
-  - "Let me check how [related feature] is implemented..."
-  - Then return with an informed follow-up question.
-- **Visual aids for UI/UX.** Use ASCII diagrams when clarifying layouts or interactions:
-  ```
-  Current:              Proposed:
-  +--------+            +--------+
-  | Item A |            | Item A |
-  | Item B |            | Item B |
-  +--------+            | Item C |
-                        +--------+
-  ```
-- **Track coverage.** Mentally track which categories have been adequately covered.
+   If `review` replies that points are still undecided and waits, call `AskUserQuestion` again with the same options and the question naming those ids. If `review` reworks disputed points and republishes the page, announce it the same way.
 
-### Question Format Example
+4. **Apply the returned decisions.** `review` returns `Review settled: <n> decisions`, the decision text, and the path to `review.json`. Treat each decision as an answer from the user. A decision whose note only adds detail is detail for the spec. If `review` returns `Review not settled`, do not act on the points it lists as undecided or disputed; tell the user which are open, list them under `open items` in the solution summary, and go on to the wrap-up question. If the decisions expose new open points, invoke `wsbaser:review` again for the same review with the path to `review.json` and only the new points (the next round), and announce it with the same `AskUserQuestion`.
 
-```json
-{
-  "question": "For the notification feature, how should it handle the case where a user has notifications disabled at the OS level?",
-  "header": "OS disabled",
-  "options": [
-    {"label": "Silent fallback", "description": "Fall back to in-app notifications without alerting the user"},
-    {"label": "Prompt to enable", "description": "Show a one-time prompt explaining they're missing notifications"},
-    {"label": "Badge only", "description": "Only update the badge count, no toasts or banners"}
-  ]
-}
-```
+5. **Check the architecture.** When nothing is open, use the `Skill` tool to invoke `wsbaser:architecture-fit` (`Skill({ skill: "wsbaser:architecture-fit", args: "..." })`) on the proposed approach. **Never use the `Agent` tool for this.** If the verdict is **FITS**, print the response to output and go on. If the verdict is **REFACTOR FIRST**, turn the violations into new points and run a further round with `wsbaser:review` until the approach is adjusted or the user accepts it.
 
-### Turn Management
-
-- Continue the interview until all categories are covered AND all clarifying questions are resolved.
-- Do NOT offer to wrap up if there are unanswered questions that could be resolved by asking the user.
-- If a question arises that you need answered, ask it rather than deferring to the spec.
-- When coverage is complete and no questions remain, use the `Skill` tool to invoke `wsbaser:architecture-fit` (`Skill({ skill: "wsbaser:architecture-fit", args: "..." })`) on the proposed approach before wrapping up. **Never use the `Agent` tool for this — it must be the `Skill` tool.** If the verdict is **FITS**, print the response to output and proceed to the solution summary. If the verdict is **REFACTOR FIRST**, surface the violations as follow-up questions and continue the interview until the approach is adjusted or explicitly accepted.
-- When the approach passes architecture fit (or the user accepts it), synthesize the interview into a solution summary and display it as a **text block** (before the `AskUserQuestion` call). Use the brutalist text-block format below. Only include sections for categories actually covered.
+6. **Show the solution summary and the wrap-up question.** Synthesize the decisions into a solution summary and display it as a **text block** (before the `AskUserQuestion` call). Use the brutalist text-block format below. Only include sections for categories actually covered.
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -188,8 +156,8 @@ Then offer to wrap up, referencing the summary:
 }
 ```
 
-- If user wants to continue or deep-dive, resume the interview.
-- Continue checking periodically until the user confirms readiness.
+- If the user wants to continue or deep-dive, list the new points and run another round from step 1 of this step.
+- Repeat until the user confirms readiness.
 
 ## Step 4: Generate the Spec
 
