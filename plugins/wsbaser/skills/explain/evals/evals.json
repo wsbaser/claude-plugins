@@ -24,9 +24,9 @@
     {
       "id": "embedded-mixed-depth",
       "name": "embedded-mixed-depth",
-      "prompt": "You are called by wsbaser:review in embedded mode. The record is at review-pr-88-estimates/review.json and has reached stage decided. It holds three issues: issue 1 is a one-line issue (a log message says 'Retrying' where the code gives up); issue 2 is a race condition, two requests that save the same estimate concurrently so one update to the total is lost; issue 3 is a UI question with two options for what a user without permission sees on the estimate page. Write the explanation for every issue, and option blocks where choosing needs them, then hand the record back.",
+      "prompt": "You are called by wsbaser:review in embedded mode. The record is at evals/files/review-decided.json and has reached stage decided; work against that file. It holds three issues: issue 1 is a one-line issue (a log message says 'Retrying' where the code gives up); issue 2 is a race condition, two requests that save the same estimate concurrently so one update to the total is lost; issue 3 is a UI question with two options for what a user without permission sees on the estimate page. Write the explanation for every issue, and option blocks where choosing needs them, then hand the record back.",
       "expected_output": "Three explanations of clearly different length and form: one sentence for issue 1; for issue 2 the background, a picture of both orderings including the failing one, and the code with file:line; for issue 3 the current screen first and option blocks that show what each option produces. The record passes check_record.py --stage ready, and no fold holds fewer than 600 characters.",
-      "files": []
+      "files": ["evals/files/review-decided.json"]
     },
     {
       "id": "short-question-stays-short",

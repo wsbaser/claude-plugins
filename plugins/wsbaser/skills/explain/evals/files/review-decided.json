@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "review": { "id": "pr-88-estimates", "title": "PR #88 \"Recalculate estimate totals on save\"", "round": 1 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "Log message says Retrying when the save gives up",
+      "round": 1,
+      "kind": "code fix",
+      "needsOwner": false,
+      "needsOwnerReason": "",
+      "origin": null,
+      "attributes": [ { "label": "Effort", "value": "1 line" } ],
+      "explanation": [],
+      "mode": "buttons",
+      "options": [
+        { "id": "accept", "label": "Change the text to \"Giving up after 3 attempts\"", "attributes": [] },
+        { "id": "reject", "label": "Leave it", "attributes": [], "dispute": true }
+      ],
+      "recommendation": { "option": "accept", "reason": "The message describes the opposite of what the code does after the last attempt.", "confidence": "high", "sources": ["src/Estimates.Api/Persistence/RetryPolicy.cs:31"], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "agent", "choice": "accept", "note": "", "status": "decided" }
+    },
+    {
+      "id": "2",
+      "title": "Two saves of the same estimate can lose an update to the total",
+      "round": 1,
+      "kind": "concurrency",
+      "needsOwner": true,
+      "needsOwnerReason": "costly to reverse: the fix changes the save contract the frontend relies on",
+      "origin": null,
+      "attributes": [ { "label": "Severity", "value": "High" }, { "label": "Confidence", "value": "Medium" } ],
+      "explanation": [],
+      "mode": "radio",
+      "options": [
+        { "id": "A", "label": "Optimistic concurrency: add a RowVersion to Estimate and return 409 on conflict", "attributes": [ { "label": "Effort", "value": "1 day" }, { "label": "Frontend change", "value": "handle 409, reload and reapply" } ] },
+        { "id": "B", "label": "Recalculate the total in SQL inside the save transaction", "attributes": [ { "label": "Effort", "value": "half a day" }, { "label": "Frontend change", "value": "none" } ] }
+      ],
+      "recommendation": { "option": "A", "reason": "B fixes the total but still lets the second save overwrite the first save's line edits; A stops both.", "confidence": "medium", "sources": ["src/Estimates.Api/Services/EstimateService.cs:74", "src/Estimates.Api/Services/EstimateService.cs:92", "src/Estimates.Api/Domain/Estimate.cs:18"], "unverified": ["The frontend's retry behaviour after a 409 was read in the code, not run."] },
+      "dependsOn": null,
+      "decision": { "by": null, "choice": null, "note": "", "status": "undecided" }
+    },
+    {
+      "id": "3",
+      "title": "What a user without estimate permission sees on the estimate page",
+      "round": 1,
+      "kind": "UI/UX",
+      "needsOwner": true,
+      "needsOwnerReason": "a product decision only the owner can make",
+      "origin": null,
+      "attributes": [ { "label": "Reversibility", "value": "easy" } ],
+      "explanation": [],
+      "mode": "radio",
+      "options": [
+        { "id": "A", "label": "Redirect to the estimates list with a toast \"You do not have access to this estimate\"", "attributes": [ { "label": "Effort", "value": "2 hours" } ] },
+        { "id": "B", "label": "Show an in-page \"No access\" panel with the estimate number and a Request access button", "attributes": [ { "label": "Effort", "value": "1 day" } ] }
+      ],
+      "recommendation": { "option": "B", "reason": "Users arrive from shared links; a redirect loses which estimate they were sent and why it failed.", "confidence": "medium", "sources": ["src/Estimates.Web/src/routes/AppRoutes.tsx:88", "src/Estimates.Web/src/pages/EstimatePage.tsx:23"], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": null, "choice": null, "note": "", "status": "undecided" }
+    }
+  ]
+}

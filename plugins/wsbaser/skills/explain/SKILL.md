@@ -7,9 +7,9 @@ description: Explains how something actually works — where a value is computed
 
 Explain how something actually works, to someone who did not write it, at the size the subject needs: one sentence when that is enough, ground-up when the reader lacks the background.
 
-Before writing anything longer than a few lines, read `references/writing-rules.md`. It holds the writing rules with one example each: lead with the answer, size to the subject, today before the change, define terms, show the code with `file:line`, judge each part of someone else's claim, state unknowns at the claim, put sources inline, no fixed section template.
+Read `references/writing-rules.md` first: always in the page and embedded modes, and for a terminal answer longer than a few lines.
 
-In this file, `<skills>` means the folder that holds this skill's folder (the parent of this skill's base directory). The sibling skills used below live there.
+In this file, `<skills>` is the plugin's skills folder: the parent of this skill's base directory, where the sibling skills used below live.
 
 ## 1. Pick the mode
 
@@ -24,7 +24,7 @@ Two judgements decide between the first two, and the request carries both:
 - **How much.** A one-fact question gets a few lines, even when it is phrased as "explain".
 - **How deep.** "It's a black box" asks for the ground up: what the pieces are and where each one lives. A precise symptom from someone already naming the right files asks only for the piece they are missing; re-explaining the rest buries the answer.
 
-When the request is ambiguous, pick a level, say which one you picked, and offer the other.
+When the request is ambiguous, pick a level and go ahead. State the level you chose in one line, and what the other level would add. Do not wait for an answer.
 
 ## 2. Trace before writing
 
@@ -41,8 +41,8 @@ Keep the `file:line` of everything you will cite while you trace; the explanatio
 
 A form is one way of showing something. Forms live in a slot, one file per form, each opening with a `when:` line that says when it fits. The set grows by adding files, so never assume which forms exist: list them.
 
-1. List `<skills>/report-design/forms/` and, if it exists, `.claude/review/forms/` in the project being worked on.
-2. Read only the frontmatter `when:` line of each file. A project file with the same name replaces the plugin's.
+1. List `<skills>/report-design/forms/` and, if it exists, `.claude/review/forms/` under the root of the project being worked on.
+2. Read only the frontmatter `when:` line of each file. When both folders hold a file with the same name, the project's file replaces the plugin's.
 3. Load only the files whose `when:` matches the subject in front of you, and build each block the way its file says.
 
 Plain prose is the default. Pick another form only when its `when:` line fits the subject better than sentences would, typically when structure, order or comparison is the point. Choose per subject, not per kind of request: two subjects rarely need the same shape.
@@ -53,6 +53,7 @@ In the terminal nothing renders, so use the plain-text equivalent of the form yo
 
 - Short content is always visible. Never make the reader click to read a few sentences or a few lines.
 - Fold only long extra depth the reader can decide without: multi-paragraph background, a long full listing, rejected options argued at length. A fold holds 600 characters or more, counted over the `text` and `code` fields inside it.
+- Blocks without `text` or `code` (a table, a picture) count as 0, so a fold holding only those is rejected by the validator. Put long prose in `text` and long code in `code`; show tables and pictures inline.
 - A fold's label says how much is behind it, in a unit the reader feels: "Background, 3 paragraphs", "Full listing, 48 lines".
 - Show the gist above any fold. Never nest folds, and keep them to a few per item.
 
@@ -67,15 +68,17 @@ In the terminal nothing renders, so use the plain-text equivalent of the form yo
 
 `wsbaser:review` gives you the path to a `review.json` that has reached stage `decided`. The record's contract is `<skills>/review/references/record.md`; read it first.
 
+Before writing, run `python <skills>/review/scripts/check_record.py <path to review.json> --stage decided`. If it prints anything, stop, write nothing, and tell the caller what it printed.
+
 **What you change.** Only each issue's `explanation` and, where needed, its options' `blocks`. Every other field belongs to another skill; leave it as it is.
 
-**What the page already shows.** The title, attribute chips, the `origin` quote with its verdict chip, each option's `label`, and the recommendation with its reason, confidence, sources and unverified claims are rendered from the record. Do not repeat them in the explanation; explain what the reader needs in order to judge them.
+**What the page already shows.** The title, attribute chips, the whole `origin` quote with its verdict chip, each option's `label`, and the recommendation with its reason, confidence, sources and unverified claims are rendered from the record. Do not repeat them in the explanation; explain what the reader needs in order to judge them. Quoting a single part of the claim in order to judge it is not repeating it.
 
-**Per issue.** Read what the decision step recorded (kind, origin, options, recommendation, sources), trace what you need yourself, then write blocks sized to that issue:
+**Per issue.** Read what the decision step recorded (kind, origin, options, recommendation, sources), trace what you need yourself, then write blocks sized to that issue. Size by the subject, never by who decides: an issue the agent decided is explained as fully as its subject needs, not less than one that needs the owner.
 
 - A one-line issue gets one sentence in one prose block. Do not pad it to match its neighbours.
 - An issue the owner cannot judge without background gets that background: how it works today, the terms it uses, the picture its subject calls for, the code with `file:line`.
-- An issue with `origin` leads with the claim: quote each part of it and give the verdict on that part with its evidence, so the overall verdict on the page is earned.
+- An issue with `origin` leads with the claim. The page already shows the whole quote; the explanation quotes only the individual parts it judges, each with its verdict and evidence, so the overall verdict on the page is earned.
 
 **Option blocks.** Give an option its own `blocks` when choosing between the options needs more than the label, for example what each one produces: its output, its screen, its change to the code. Build them the same way across the options of one issue so they compare side by side. Otherwise leave `blocks` out.
 
