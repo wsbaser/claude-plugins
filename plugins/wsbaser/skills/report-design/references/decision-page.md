@@ -11,11 +11,19 @@ A decision page shows a list of issues, lets the owner decide each one, and copi
 
 ## Page structure
 
-1. Page head: title (`h1`), one muted line of context (what is reviewed, review round, issue count), one paragraph on how to use the page.
+1. Page head: title (`h1`), one muted line of context (what is reviewed, review round, issue count), one paragraph on how to use the page. When an issue has no recommendation (a preference question), the paragraph says that a note alone answers it: the owner may write the answer in the note and pick no option.
 2. Sticky bar: filter buttons, progress text, Copy decisions.
 3. `<main>`: one `<article>` per issue, in the order the review chose, all fully visible.
 4. A preview section under the issues: "What Copy decisions puts on your clipboard" and a `<pre data-preview>`. Keep it visible, not folded.
 5. `<script type="application/json" id="review-data">`, then the pasted script.
+
+## Escaping record text
+
+The record holds text from other people (a reviewer's quote, a ticket) and code excerpts full of `<T>`, `<Component>` and `&&`. Written raw into the page, it breaks the layout or injects markup.
+
+- Every record string put into markup is escaped: `&` as `&amp;`, `<` as `&lt;`, `>` as `&gt;`, and inside attribute values also `"` as `&quot;`. That covers titles, quotes, explanation text, code lines, table cells, labels, reasons, sources and captions.
+- The only raw HTML on the page is a mockup block's `html`, which the agent writes itself. Never copy markup from `origin` or from sources into it.
+- `#review-data` has its own rule, below.
 
 ## Issue anatomy
 
@@ -41,7 +49,8 @@ Every issue has the same three parts, whether the agent decided it or the owner 
 { "review": { "id": "pr-2317-log-levels", "title": "PR #2317 \"Normalize log levels\"", "round": 2 },
   "issues": [ { "id": "1", "title": "...", "round": 1, "needsOwner": true, "mode": "radio",
                 "options": [ { "id": "A", "label": "...", "dispute": false }, ... ],
-                "recommended": "A", "agentChoice": null, "dependsOn": null } ] }
+                "recommended": "A", "agentChoice": null, "dependsOn": null,
+                "decision": { "by": "owner", "choice": "B", "status": "decided" } } ] }
 </script>
 ```
 
@@ -54,9 +63,10 @@ Build it from the record, one entry per issue, in page order:
 | `options[]` | each option's `id`, `label`, `outcome` (when present) and `dispute` (`true` or `false`); leave out `attributes` and `blocks` |
 | `recommended` | `recommendation.option`, or `null` when `recommendation` is `null` |
 | `agentChoice` | `recommendation.option` when `needsOwner` is `false`, else `null` |
+| `decision` | `{ by, choice, status }` from the issue's `decision` when `decision.by` is `owner`, else `null`. Leave out the note. |
 
 - Write `label` and `outcome` short and on one line: they are copied into the decision text.
-- Escape `</` as `<\/` inside the JSON so a title or label cannot end the script tag.
+- Escape every `<` inside the JSON as `\u003c` (not only `</`), so no title, label or quote can end the script tag or open a comment. `JSON.parse` reads `\u003c` back as `<`.
 - The `id` of every issue and option must match the attributes in the markup exactly.
 
 ## DOM contract
@@ -95,8 +105,8 @@ Optional hooks the script provides for CSS:
 
 ## State, storage and the copied text
 
-- Initial state: an agent-decided issue is decided, by the agent, with `agentChoice`. A needs-owner issue is undecided with its recommendation preselected, or nothing selected when there is none.
-- State is saved in `localStorage` under `review:<review.id>` after every change and restored on load, so decisions survive a reload and a republish to the same link. Keep `review.id`, issue ids and option ids stable across rounds. Saved state for an id the page no longer has is ignored; a saved choice that no longer exists falls back to the recommendation. If a republish moves the recommendation of an issue the owner already decided, the owner's choice is kept; it is flagged stale (and the stale notice shows) only when that choice differs from the new recommendation.
+- Initial state: an agent-decided issue is decided, by the agent, with `agentChoice`. A needs-owner issue is undecided with its recommendation preselected, or nothing selected when there is none. An issue whose `decision` is set starts with the owner's decision instead, as if this browser had saved it in the issue's round, so a republished page keeps the record's owner decisions in a browser with no saved state.
+- State is saved in `localStorage` under `review:<review.id>` after every change and restored on load (an owner answer saved in this browser wins over `decision`; a saved agent entry does not), so decisions survive a reload and a republish to the same link. Keep `review.id`, issue ids and option ids stable across rounds. Saved state for an id the page no longer has is ignored; a saved choice that no longer exists falls back to the recommendation. If a republish moves the recommendation of an issue the owner already decided, the owner's choice is kept; it is flagged stale (and the stale notice shows) only when that choice differs from the new recommendation.
 - Rounds: every saved entry records the issue's `round`. When a republish raises an issue's `round` (the issue was reworked, for example after a dispute), its saved entry from the earlier round is ignored: the issue starts fresh, needs-owner issues undecided with the recommendation preselected, agent-decided issues decided by the agent, and the old note dropped (the agent already read it). A saved entry without a round counts as round 1. So to reopen a reworked issue, set its `round` to the new review round; to keep the owner's decision, leave its `round` as it was.
 - The copied text is the format in the `review` skill's `references/decision-text.md`. Line breaks in titles, labels and outcomes become spaces; in notes they become ` / `.
 
@@ -115,7 +125,7 @@ When `dependsOn` is set, the recommendation of the dependent issue follows the p
 - On the parent: a link line under its options, "Issue N follows from this answer. If you change it, the recommendation there changes with it."
 - On the dependent, in its body: a panel "Follows from issue M" with a table of the map: each parent answer, what is recommended here, and why. Mark the row that applies now with CSS `:has()` on the parent's checked radio, for example `main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"] { background: var(--accent-soft) }`.
 - At the bottom of that panel: the `[data-stale-notice]` with a sentence ("You answered this before issue 1 changed. Your answer is kept; the Recommended tag shows what the agent suggests now.") and the `use-recommendation` button.
-- Behaviour, from the script: while the dependent is undecided, its preselected option and Recommended tag move with the parent. Once the owner decided it, the choice is kept; if it now differs from the new recommendation the stale notice appears.
+- Behaviour, from the script: while the dependent is undecided, its preselected option and Recommended tag move with the parent. An agent-decided dependent follows the parent too: its choice becomes the option the map gives for the parent's current choice, and it stays decided by the agent. Once the owner decided it, the choice is kept; if it now differs from the new recommendation the stale notice appears.
 - The copied text adds `Depends on: issue M = [<choice>] (confirmed|not confirmed)` under the dependent, or `Depends on: issue M = no choice yet (not confirmed)` when the parent has no choice (a parent with no recommendation that the owner has not answered).
 
 ## Before publishing
@@ -124,4 +134,5 @@ When `dependsOn` is set, the recommendation of the dependent issue follows the p
 - `#review-data` parses, and every issue and option id in it has its article, radio or button.
 - Each radio issue has its Recommended tag inside the option's `label`.
 - Every issue states its recommendation's reason (or that there is none), and every issue has a stale notice.
+- Record text is escaped: a `<T>` from a code excerpt shows on the page as text, and `#review-data` holds no raw `<`.
 - Open the page: the preselected options and tags are right, progress reads as expected, Copy decisions fills the preview, light and dark both read well, and the body does not scroll sideways at laptop or phone width.

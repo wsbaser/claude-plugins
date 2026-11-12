@@ -109,6 +109,11 @@ Write `verdictReason` with the evidence, `file:line` where it is code. A `not-va
 
 Apply `references/ask-rule.md`. It alone says when `needsOwner` is `true` and how to word `needsOwnerReason`. Read it every run; it changes.
 
+Two cases on a re-think come before the ask rule, because the owner has already spoken:
+
+- **The owner disputed the choice.** When the re-think keeps the choice the owner disputed, set `needsOwner: true` with `needsOwnerReason: "owner disputed in round <N>"`, N being the round the owner disputed in: one less than `review.round`, which the caller raised before calling you. Only the owner settles a dispute the agent did not give way on.
+- **The owner answered in a note** on an undecided issue. Map the note to an existing option, or add the owner's answer as a new real option; recommend that option and set `needsOwner: true` with a reason that says the answer came from the owner's note, so the owner confirms it on the page.
+
 ## 8. Find dependencies
 
 An issue depends on another when its best answer changes with the other's answer. For each such pair:
@@ -116,7 +121,7 @@ An issue depends on another when its best answer changes with the other's answer
 - Set `dependsOn` on the child: `{ "issue": "<parent id>", "map": { ... }, "note": "<what changes>" }`.
 - The map has a key for every option of the parent, dispute options included, and each value is an option of the child.
 - The value for the parent's recommended option is the child's recommendation. Every other real parent option maps to the child option that is best if the owner picks it. Each dispute option of the parent maps to the child's recommendation: a disputed parent leaves the child as it is.
-- When the parent needs the owner, so does the child: `needsOwner: true`, `needsOwnerReason: "follows issue <parent id>"`, decision undecided. The page then moves the child with the parent's answer; an agent-decided child would stay fixed.
+- When the parent needs the owner, so does the child: `needsOwner: true`, `needsOwnerReason: "follows issue <parent id>"`, decision undecided, so the owner confirms the pair together. The page moves the child with the parent's answer either way; an agent-decided child follows the map and stays decided by the agent.
 - No loops. When an issue seems to depend on two others, pick the one that decides it.
 
 ## 9. Record honestly

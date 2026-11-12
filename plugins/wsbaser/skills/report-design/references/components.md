@@ -4,6 +4,8 @@ Rules for the parts every report page is made of. Write the markup and CSS freeh
 
 All colours, fonts and sizes come from the tokens in `assets/tokens.css` (`--page`, `--surface`, `--fg`, `--muted`, `--line`, `--accent`, `--warn-soft`, `--font-body`, `--fs-sm` and the rest). Never write a hex colour in page CSS except `#fff` for text on `--btn` or `--navy`; anything else breaks dark mode.
 
+Every text that comes from the record or a source (titles, quotes, code lines, table cells, labels, reasons, captions) is HTML-escaped when it goes into markup: `&` as `&amp;`, `<` as `&lt;`, `>` as `&gt;`, and inside attribute values `"` as `&quot;`. A generic such as `Task<ImportResult>` in a code line is written `Task&lt;ImportResult&gt;` (issue 6 of the example). The only raw HTML is a mockup block's `html`, which the agent writes itself and never copies from `origin` or from sources.
+
 ## Page shell
 
 - A page published with the Artifact tool has no `<!DOCTYPE>`, `<html>`, `<head>` or `<body>` tags: the tool adds the document skeleton and the viewport meta. Start the file with the two-to-four-word `<title>`, then the font links and the styles below. A local page served for viewing on its own (such as `assets/example-review-page.html`) keeps the full skeleton: `<!DOCTYPE html>`, `lang`, `<meta name="viewport" content="width=device-width, initial-scale=1">`.
@@ -86,7 +88,7 @@ All colours, fonts and sizes come from the tokens in `assets/tokens.css` (`--pag
 - Every recommendation shows its reason where the choice is made: a short block (`.why`) right under the decision question, `--fs-sm`, starting with "Recommended: <option>" in weight 600, then the reason in plain words, then a confidence chip and the sources (`file:line` in `<code>`, links). The block carries `overflow-wrap: anywhere`: a source URL has no break points and would otherwise push the body wider than a phone screen. Agent-decided issues get it too, so the owner can check the agent.
 - A claim the agent could not verify is said in this block, as its own sentence ("Not checked: ..."), in `--warn`. Never move it to a footnote.
 - One line is enough when the reason is short. When the explanation above already argues the case, the reason still gets its one line here.
-- Example: `.why` in issues 1, 7, 8 and 9.
+- Example: `.why` in every issue of the example, 1 to 9; issue 2 shows the dependent form, naming the current answer and pointing to the table for the others.
 
 ## Verdict buttons
 
@@ -105,7 +107,7 @@ All colours, fonts and sizes come from the tokens in `assets/tokens.css` (`--pag
 
 ## Buttons, focus and selection
 
-- `.btn.primary`: background `--btn`, white text, hover darkened with `color-mix`. `.btn.ghost`: `--surface` background, 1px `--line-strong` border.
+- `.btn.primary`: background `--btn`, white text, hover darkened with `color-mix` toward `--navy` (`color-mix(in srgb, var(--btn) 80%, var(--navy))`), never toward a hex colour. `.btn.ghost`: `--surface` background, 1px `--line-strong` border.
 - Focus ring on everything focusable: `:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px }`.
 - Text selection: `::selection { background: var(--btn); color: #fff }`. Radios use `accent-color: var(--btn)`.
 - Respect `prefers-reduced-motion`: no transitions, no smooth scrolling.

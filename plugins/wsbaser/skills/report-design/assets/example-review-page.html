@@ -133,7 +133,7 @@ button{font:inherit;color:inherit}
 .count{font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:7px 14px;font-size:var(--fs-sm);font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap;transition:background .15s,border-color .15s}
 .btn.primary{background:var(--btn);color:#fff}
-.btn.primary:hover{background:color-mix(in srgb,var(--btn) 86%,#000)}
+.btn.primary:hover{background:color-mix(in srgb,var(--btn) 80%,var(--navy))}
 .btn.ghost{background:var(--surface);border-color:var(--line-strong);color:var(--fg);font-weight:500}
 .btn.ghost:hover{background:var(--hover)}
 
@@ -510,6 +510,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q2">Which level does the version line get?</h3>
+    <p class="why"><b>Recommended: follows issue 1.</b> With issue 1 at its recommended A, this is A, Information: the session's Error already carries both versions, so this line is not needed for alerting. The table above gives the recommendation and its reason for each answer to issue 1. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>VersionCheck.cs:47</code>, licence report (October), 4.1 rollout figures.</p>
     <div class="opts" role="radiogroup" aria-labelledby="q2">
       <label class="opt">
         <input type="radio" name="opt-2" value="A">
@@ -586,6 +587,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q3">Apply the null guard?</h3>
+    <p class="why"><b>Recommended: Accept.</b> The probe has no identity, and the null guard is the smallest change that stops the 500s. <span class="chip"><span class="cl">Confidence:</span>high</span> Sources: <code>RequestLogMiddleware.cs:32</code>, staging logs since Monday.</p>
     <div class="seg" role="group" aria-labelledby="q3">
       <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
@@ -627,6 +629,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q4">Lower retry attempts to Debug?</h3>
+    <p class="why"><b>Recommended: Accept.</b> An attempt that may still succeed is not a warning; the one Warning when the retries run out stays. <span class="chip"><span class="cl">Confidence:</span>high</span> Source: <code>RetryPolicy.cs:41</code>.</p>
     <div class="seg" role="group" aria-labelledby="q4">
       <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
@@ -689,6 +692,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q5">Decline the comment and post the reply?</h3>
+    <p class="why"><b>Recommended: Decline comment.</b> The generated body already checks the level before formatting, so an outer check would repeat it. <span class="chip"><span class="cl">Confidence:</span>high</span> Sources: <code>SyncLog.cs:17</code>, <code>SyncLog.g.cs:32</code>.</p>
     <div class="seg" role="group" aria-labelledby="q5">
       <button type="button" data-choice="decline" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decline comment</button>
       <button type="button" data-choice="apply" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Add the check anyway</button>
@@ -788,6 +792,7 @@ textarea:hover{border-color:var(--accent-2)}
   </div>
   <div class="decide">
     <h3 id="q6">Switch the six calls to message templates?</h3>
+    <p class="why"><b>Recommended: Accept.</b> Templates give the log store an <code>OrderId</code> field to filter on, and the two level changes match what each event means. <span class="chip"><span class="cl">Confidence:</span>high</span> Source: <code>OrderImporter.cs:39-83</code>.</p>
     <div class="seg" role="group" aria-labelledby="q6">
       <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
@@ -1097,7 +1102,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "A",
       "agentChoice": null,
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "2",
@@ -1132,7 +1138,8 @@ textarea:hover{border-color:var(--accent-2)}
           "C": "A"
         },
         "note": "If the transport owns the Error, this line is the only central record of client versions."
-      }
+      },
+      "decision": null
     },
     {
       "id": "3",
@@ -1160,7 +1167,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "accept",
       "agentChoice": "accept",
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "4",
@@ -1183,7 +1191,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "accept",
       "agentChoice": "accept",
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "5",
@@ -1211,7 +1220,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "decline",
       "agentChoice": "decline",
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "6",
@@ -1239,7 +1249,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "accept",
       "agentChoice": "accept",
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "7",
@@ -1266,7 +1277,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "A",
       "agentChoice": null,
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "8",
@@ -1288,7 +1300,8 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "A",
       "agentChoice": "A",
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     },
     {
       "id": "9",
@@ -1310,14 +1323,16 @@ textarea:hover{border-color:var(--accent-2)}
       ],
       "recommended": "A",
       "agentChoice": null,
-      "dependsOn": null
+      "dependsOn": null,
+      "decision": null
     }
   ]
 }
 </script>
 <script>
 /* Review page behaviour. Paste into each review page unchanged.
- * Reads <script type="application/json" id="review-data"> = { review, issues }.
+ * Reads <script type="application/json" id="review-data"> = { review, issues };
+ * an issue's optional `decision` is the record's owner decision ({ by, choice, status }).
  * Pure functions first (never mutate their input), then boot() for the DOM. */
 (function () {
   'use strict';
@@ -1354,7 +1369,8 @@ textarea:hover{border-color:var(--accent-2)}
     return issue.recommended != null && findOption(issue, issue.recommended) ? issue.recommended : null;
   }
 
-  /* Dependency sync: undecided dependents follow the parent; an owner decision
+  /* Dependency sync: undecided dependents follow the parent; so do agent-decided
+   * dependents (the agent's decision is "follow the map"); an owner decision
    * whose recommendation moved is kept and flagged stale. */
   function sync(state, issues) {
     var s = copyState(state);
@@ -1368,6 +1384,8 @@ textarea:hover{border-color:var(--accent-2)}
         } else if (st.by === 'owner') {
           var moved = st.rec !== undefined && st.rec !== rec;
           next = { choice: st.choice, stale: moved && st.choice !== rec };
+        } else if (issue.dependsOn && rec != null) {
+          next = { choice: rec, stale: false };
         } else {
           next = { choice: st.choice, stale: false };
         }
@@ -1393,6 +1411,12 @@ textarea:hover{border-color:var(--accent-2)}
       var sv = has(saved, issue.id) && saved[issue.id] && typeof saved[issue.id] === 'object' ? saved[issue.id] : null;
       /* An issue reworked in a later round starts fresh; a saved entry without a round counts as round 1. */
       if (sv && issue.round > (typeof sv.round === 'number' ? sv.round : 1)) sv = null;
+      /* The record's owner decision acts as a saved owner entry of the issue's round;
+       * only an owner answer saved in this browser is newer. */
+      var d = issue.decision;
+      if (d && d.by === 'owner' && !(sv && sv.by === 'owner' && (sv.status === 'decided' || sv.status === 'disputed'))) {
+        sv = { choice: d.choice, status: d.status, by: 'owner', round: issue.round, note: sv && typeof sv.note === 'string' ? sv.note : '' };
+      }
       if (sv) {
         if (typeof sv.note === 'string') st.note = sv.note;
         var decidedBefore = sv.status === 'decided' || sv.status === 'disputed';

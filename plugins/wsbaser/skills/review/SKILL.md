@@ -81,14 +81,14 @@ with both paths written out in full. It merges the decisions into `<record>`, wr
 - **Unreadable or missing issues.** For each problem, tell the owner in plain words which issue could not be read and why (cut off, missing, an option the issue does not have). The parser marks those issues undecided, so ask for a fresh, complete paste of Copy decisions and run step 7 again. Do not fill the gaps yourself.
 - **"Accept all recommendations"** instead of a paste: change only issues whose decision is `undecided` or `disputed`; leave every `decided` one, the owner's or the agent's, as it is. Set each changed issue that has a recommendation to `{ "by": "owner", "choice": <option>, "note": "", "status": "decided" }`, where `<option>` is the recommendation, or for a dependent issue the option its `dependsOn.map` gives for the parent's current choice. An issue with no recommendation stays undecided. Then write the decision text from the record in the format of `decision-text.md`, save it as above, and run it through the parser, so the summary is the parser's like any paste.
 
-Undecided issues with no problems mean the owner has not answered them yet: name their ids and wait for a new paste. Do not return.
+An undecided issue with a non-empty note is answered: a note alone is the owner's answer (that is how a preference question is answered), so rework it in step 8 with the note as input. Other undecided issues with no problems mean the owner has not answered them yet: name their ids and wait for a new paste. Do not return.
 
 ## 8. Settle disputes
 
-Rework every issue the summary lists as `disputed`, and every decided issue whose note argues against the choice (a note that only adds detail is not a dispute; it goes back to the caller with the decision).
+Rework every issue the summary lists as `disputed`, every decided issue whose note argues against the choice (a note that only adds detail is not a dispute; it goes back to the caller with the decision), and every undecided issue answered by its note (step 7).
 
 1. Raise `review.round` by one.
-2. Invoke `wsbaser:decide` with the list of those issue ids to re-think and each owner's note as new input. If a reworked issue's option ids change, add the issues that depend on it to the list, so their maps are redone. Validate at `decided`.
+2. Invoke `wsbaser:decide` with the list of those issue ids to re-think and each owner's note as new input. If a reworked issue's option ids change, add the issues that depend on it to the list, so their maps are redone. Validate at `decided`. Check what comes back: when the re-think keeps a choice the owner disputed, the issue has `needsOwner: true` with reason `owner disputed in round <N>` (the round of the dispute); an issue answered by its note recommends the option decide mapped the note to, or the owner's answer added as an option, with `needsOwner: true` so the owner confirms it. Send any issue that breaks this back to decide.
 3. Set the `round` of every issue on the list, and of any dependent whose map or recommendation decide redid, to the new `review.round`. This is what makes the page drop the owner's saved state for those issues only. Keep the ids. Leave every other issue's `round` and decision as they are, so their earlier decisions stay on the page and in the record.
 4. Invoke `wsbaser:explain` in embedded mode with the same list of ids.
 5. Validate at `ready`, rebuild the page, republish to `review.artifactUrl`, and go back to step 6. Say which issues were reworked and what changed in one line each.

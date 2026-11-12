@@ -1,5 +1,6 @@
 /* Review page behaviour. Paste into each review page unchanged.
- * Reads <script type="application/json" id="review-data"> = { review, issues }.
+ * Reads <script type="application/json" id="review-data"> = { review, issues };
+ * an issue's optional `decision` is the record's owner decision ({ by, choice, status }).
  * Pure functions first (never mutate their input), then boot() for the DOM. */
 (function () {
   'use strict';
@@ -36,7 +37,8 @@
     return issue.recommended != null && findOption(issue, issue.recommended) ? issue.recommended : null;
   }
 
-  /* Dependency sync: undecided dependents follow the parent; an owner decision
+  /* Dependency sync: undecided dependents follow the parent; so do agent-decided
+   * dependents (the agent's decision is "follow the map"); an owner decision
    * whose recommendation moved is kept and flagged stale. */
   function sync(state, issues) {
     var s = copyState(state);
@@ -50,6 +52,8 @@
         } else if (st.by === 'owner') {
           var moved = st.rec !== undefined && st.rec !== rec;
           next = { choice: st.choice, stale: moved && st.choice !== rec };
+        } else if (issue.dependsOn && rec != null) {
+          next = { choice: rec, stale: false };
         } else {
           next = { choice: st.choice, stale: false };
         }
@@ -75,6 +79,12 @@
       var sv = has(saved, issue.id) && saved[issue.id] && typeof saved[issue.id] === 'object' ? saved[issue.id] : null;
       /* An issue reworked in a later round starts fresh; a saved entry without a round counts as round 1. */
       if (sv && issue.round > (typeof sv.round === 'number' ? sv.round : 1)) sv = null;
+      /* The record's owner decision acts as a saved owner entry of the issue's round;
+       * only an owner answer saved in this browser is newer. */
+      var d = issue.decision;
+      if (d && d.by === 'owner' && !(sv && sv.by === 'owner' && (sv.status === 'decided' || sv.status === 'disputed'))) {
+        sv = { choice: d.choice, status: d.status, by: 'owner', round: issue.round, note: sv && typeof sv.note === 'string' ? sv.note : '' };
+      }
       if (sv) {
         if (typeof sv.note === 'string') st.note = sv.note;
         var decidedBefore = sv.status === 'decided' || sv.status === 'disputed';

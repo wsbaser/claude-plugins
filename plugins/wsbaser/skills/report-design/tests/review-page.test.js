@@ -147,3 +147,61 @@ test('saved agent decision does not become an owner decision when the issue now 
   assert.deepStrictEqual([s['3'].status, s['3'].by], ['undecided', null]);
   assert.doesNotMatch(R.buildText(record.review, issues, s), /owner confirmed/);
 });
+
+function agentPair() {
+  const issues = reduced();
+  issues[0].needsOwner = false; issues[0].agentChoice = 'A';
+  issues[1].needsOwner = false; issues[1].agentChoice = 'A';
+  return issues;
+}
+
+test('agent-decided dependent follows when the owner overrules its agent-decided parent', () => {
+  const issues = agentPair();
+  let s = R.choose(R.createState(issues, {}), issues, '1', 'B');
+  assert.deepStrictEqual([s['2'].choice, s['2'].by, s['2'].status, s['2'].stale], ['C', 'agent', 'decided', false]);
+  assert.match(R.buildText(record.review, issues, s), /2\. .*\n   Decision: \[C\] .*\(agent decided, owner left it\)/);
+  s = R.restoreAgent(s, issues, '1');
+  assert.deepStrictEqual([s['2'].choice, s['2'].by], ['A', 'agent']);
+});
+
+test('agent-decided dependent keeps its own recommendation when the parent choice is not in the map', () => {
+  const issues = agentPair();
+  issues[1].dependsOn = { issue: '1', map: { A: 'A', C: 'A' } };
+  const s = R.choose(R.createState(issues, {}), issues, '1', 'B');
+  assert.deepStrictEqual([s['2'].choice, s['2'].by], ['A', 'agent']);
+});
+
+test('fresh browser keeps the owner decisions carried in the data', () => {
+  const issues = agentPair();
+  issues[0].decision = { by: 'owner', choice: 'B', status: 'decided' };
+  issues[3].decision = { by: 'owner', choice: 'reject', status: 'disputed' };
+  const s = R.createState(issues, {});
+  assert.deepStrictEqual([s['1'].choice, s['1'].by, s['1'].status], ['B', 'owner', 'decided']);
+  assert.deepStrictEqual([s['2'].choice, s['2'].by], ['C', 'agent']);
+  assert.deepStrictEqual([s['4'].choice, s['4'].status], ['reject', 'disputed']);
+  assert.match(R.buildText(record.review, issues, s), /1\. .*\n   Decision: \[B\] .*\(owner chose\)/);
+});
+
+test('owner decision in the data beats a saved agent entry; a saved owner answer beats the data', () => {
+  const issues = agentPair();
+  const savedAgent = R.createState(agentPair(), {});
+  issues[0].decision = { by: 'owner', choice: 'B', status: 'decided' };
+  assert.strictEqual(R.createState(issues, savedAgent)['1'].choice, 'B');
+  const savedOwner = { '1': { choice: 'C', status: 'decided', by: 'owner', note: 'n', round: 1 } };
+  const s = R.createState(issues, savedOwner);
+  assert.deepStrictEqual([s['1'].choice, s['1'].note], ['C', 'n']);
+});
+
+test('needs-owner issue the owner confirmed stays decided in a fresh browser', () => {
+  const issues = reduced();
+  issues[0].decision = { by: 'owner', choice: 'A', status: 'decided' };
+  const s = R.createState(issues, {});
+  assert.deepStrictEqual([s['1'].status, s['1'].by, s['1'].choice], ['decided', 'owner', 'A']);
+});
+
+test('review data with every < escaped as \\u003c parses back to the same text', () => {
+  const data = { review: record.review, issues: [{ id: '1', title: 'Task<T> & <b>' }] };
+  const escaped = JSON.stringify(data).replace(/</g, '\\u003c');
+  assert.ok(!escaped.includes('<'));
+  assert.strictEqual(JSON.parse(escaped).issues[0].title, 'Task<T> & <b>');
+});
