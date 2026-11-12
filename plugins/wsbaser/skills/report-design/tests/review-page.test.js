@@ -120,3 +120,18 @@ test('single issue, single-solution review, line-end characters in text', () => 
   assert.match(t, /\n3\. a b c\n   Decision: \[accept\] Accept - apply the null guard \(agent decided, owner left it\)/);
   assert.ok(!/Undecided:|Disputed:/.test(t));
 });
+
+test('non-recommended choice on a dependent is not stale when the parent did not move', () => {
+  const issues = reduced();
+  const s = R.choose(R.createState(issues, {}), issues, '2', 'B');
+  assert.deepStrictEqual([s['2'].choice, s['2'].status, s['2'].stale], ['B', 'decided', false]);
+});
+
+test('saved agent decision does not become an owner decision when the issue now needs the owner', () => {
+  const issues = reduced();
+  const saved = R.createState(issues, {});
+  issues[2].needsOwner = true; issues[2].agentChoice = null;
+  const s = R.createState(issues, saved);
+  assert.deepStrictEqual([s['3'].status, s['3'].by], ['undecided', null]);
+  assert.doesNotMatch(R.buildText(record.review, issues, s), /owner confirmed/);
+});

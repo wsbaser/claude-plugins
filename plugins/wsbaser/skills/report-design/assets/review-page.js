@@ -48,7 +48,7 @@
         if (st.status === 'undecided') {
           next = { choice: rec, stale: false };
         } else if (st.by === 'owner') {
-          var moved = issue.dependsOn ? true : (st.rec !== undefined && st.rec !== rec);
+          var moved = st.rec !== undefined && st.rec !== rec;
           next = { choice: st.choice, stale: moved && st.choice !== rec };
         } else {
           next = { choice: st.choice, stale: false };
@@ -75,8 +75,8 @@
       if (sv) {
         if (typeof sv.note === 'string') st.note = sv.note;
         var decidedBefore = sv.status === 'decided' || sv.status === 'disputed';
-        if (decidedBefore && sv.by === 'agent' && issue.agentChoice != null) {
-          st.choice = issue.agentChoice; st.status = 'decided'; st.by = 'agent';
+        if (decidedBefore && sv.by === 'agent') {
+          if (issue.agentChoice != null) { st.choice = issue.agentChoice; st.status = 'decided'; st.by = 'agent'; }
         } else if (decidedBefore && findOption(issue, sv.choice)) {
           st.choice = sv.choice; st.by = 'owner';
           st.status = findOption(issue, sv.choice).dispute ? 'disputed' : 'decided';
