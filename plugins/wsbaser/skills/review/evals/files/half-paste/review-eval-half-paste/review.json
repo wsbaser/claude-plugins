@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "review": { "id": "eval-half-paste", "title": "Task \"Normalize log levels in the sync client\"", "round": 1 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "One transport failure is logged as Error in two layers",
+      "round": 1,
+      "kind": "code-design",
+      "needsOwner": true,
+      "needsOwnerReason": "no clear winner",
+      "origin": {
+        "quote": "Why Error here? The transport already logs this.",
+        "author": "reviewer",
+        "where": "src/sync_client.py:36",
+        "verdict": "valid",
+        "verdictReason": "Transport.send logs the failure at Error (src/sync_client.py:16) and SyncSession.push logs the same failure at Error again (src/sync_client.py:36)."
+      },
+      "attributes": [ { "label": "Confidence", "value": "Medium" }, { "label": "Effort", "value": "Small" } ],
+      "explanation": [
+        { "form": "prose", "text": "One failed push writes two Error lines today: the transport logs the OSError at `src/sync_client.py:16`, then SyncSession logs it again after the last retry at `src/sync_client.py:36`. Alerting counts both." }
+      ],
+      "mode": "radio",
+      "options": [
+        { "id": "A", "label": "Error once in SyncSession, transport logs Debug", "attributes": [ { "label": "Keeps context", "value": "retry count and request" } ], "blocks": [] },
+        { "id": "B", "label": "Error once in the transport, SyncSession logs Debug", "attributes": [ { "label": "Keeps context", "value": "socket error only" } ], "blocks": [] },
+        { "id": "C", "label": "Keep both, add a correlation id", "attributes": [ { "label": "Keeps context", "value": "both, but still two alerts" } ], "blocks": [] }
+      ],
+      "recommendation": {
+        "option": "A",
+        "reason": "SyncSession is the layer that knows the push finally failed after all retries; the transport only sees one attempt.",
+        "confidence": "medium",
+        "sources": [ "src/sync_client.py:16", "src/sync_client.py:36" ],
+        "unverified": [ "Whether other callers of Transport.send rely on its Error line was not checked; this fixture has no other callers." ]
+      },
+      "dependsOn": null,
+      "decision": { "by": null, "choice": null, "note": "", "status": "undecided" }
+    },
+    {
+      "id": "2",
+      "title": "Request logging crashes when the request has no identity",
+      "round": 1,
+      "kind": "code fix",
+      "needsOwner": false,
+      "needsOwnerReason": "",
+      "origin": null,
+      "attributes": [ { "label": "Severity", "value": "High" } ],
+      "explanation": [
+        { "form": "prose", "text": "`src/sync_client.py:29` reads `request.identity.name`; an anonymous request has no identity, so the log call raises before the push starts." }
+      ],
+      "mode": "buttons",
+      "options": [
+        { "id": "accept", "label": "Accept", "outcome": "apply the null guard", "attributes": [], "blocks": [] },
+        { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
+        { "id": "discuss", "label": "Discuss", "dispute": true, "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "accept", "reason": "A null guard is one line and removes a crash on every anonymous push.", "confidence": "high", "sources": [ "src/sync_client.py:29" ], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "agent", "choice": "accept", "note": "", "status": "decided" }
+    },
+    {
+      "id": "3",
+      "title": "Retry attempts are logged too loud",
+      "round": 1,
+      "kind": "code fix",
+      "needsOwner": false,
+      "needsOwnerReason": "",
+      "origin": null,
+      "attributes": [ { "label": "Severity", "value": "Low" } ],
+      "explanation": [
+        { "form": "prose", "text": "Every failed attempt is logged at Warning (`src/sync_client.py:34`), so one outage writes a Warning per attempt per push before the final Error." }
+      ],
+      "mode": "buttons",
+      "options": [
+        { "id": "accept", "label": "Accept", "outcome": "retry attempts go to Debug", "attributes": [], "blocks": [] },
+        { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
+        { "id": "discuss", "label": "Discuss", "dispute": true, "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "accept", "reason": "Only the final failure needs attention; single attempts recover on their own.", "confidence": "medium", "sources": [ "src/sync_client.py:34" ], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "agent", "choice": "accept", "note": "", "status": "decided" }
+    },
+    {
+      "id": "4",
+      "title": "The log says Retrying where the code gives up",
+      "round": 1,
+      "kind": "code fix",
+      "needsOwner": false,
+      "needsOwnerReason": "",
+      "origin": null,
+      "attributes": [ { "label": "Severity", "value": "Low" } ],
+      "explanation": [
+        { "form": "prose", "text": "`src/sync_client.py:37` logs \"Retrying\" right before the final `raise`, after the last attempt." }
+      ],
+      "mode": "buttons",
+      "options": [
+        { "id": "accept", "label": "Accept", "outcome": "remove the misleading line", "attributes": [], "blocks": [] },
+        { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
+        { "id": "discuss", "label": "Discuss", "dispute": true, "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "accept", "reason": "The Error line above already says the push failed; the extra line only misleads.", "confidence": "high", "sources": [ "src/sync_client.py:36", "src/sync_client.py:37" ], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "agent", "choice": "accept", "note": "", "status": "decided" }
+    }
+  ]
+}

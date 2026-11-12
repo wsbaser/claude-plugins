@@ -1,0 +1,12 @@
+Decisions for Task "Normalize log levels in the sync client", review round 1
+Review: eval-half-paste
+4 of 4 decided
+
+1. One transport failure is logged as Error in two layers
+   Decision: [A] Error once in SyncSession, transport logs Debug (owner confirmed)
+2. Request logging crashes when the request has no identity
+   Decision: [accept] Accept - apply the null guard (agent decided, owner left it)
+3. Retry attempts are logged too loud
+   Decision: [accept] Accept - retry attempts go to Debug (agent decided, owner left it)
+4. The log says Retrying where the code gives up
+   Decision: [accept] Accept - remove the misleading line (agent decided, owner left it)

@@ -1,0 +1,8 @@
+Decisions for Task "Normalize log levels in the sync client", review round 1
+Review: eval-half-paste
+4 of 4 decided
+
+1. One transport failure is logged as Error in two layers
+   Decision: [A] Error once in SyncSession, transport logs Debug (owner confirmed)
+2. Request logging crashes when the request has no identity
+   Decision: [accept] Accept - apply the nu

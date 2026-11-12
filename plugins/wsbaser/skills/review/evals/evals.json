@@ -1,0 +1,77 @@
+{
+  "skill_name": "wsbaser:review",
+  "evals": [
+    {
+      "id": "pr-comments-4421",
+      "name": "pr-comments-4421",
+      "prompt": "Review the comments in Azure DevOps pull request 4421 in the 7C_Frontend repository, check if they are valid, research each and propose the best solution.\n\n[Eval harness: this runs live against Azure DevOps and the 7C_Frontend checkout on the owner's machine; Task 9 may swap it for a captured fixture. Nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/pr-comments-4421/owner-answer.txt as the owner's answer.]",
+      "expected_output": "The azure-devops-pr intake file is loaded. A review page is published with the Artifact tool and its URL is stored in review.artifactUrl. Every unresolved, non-system comment thread of the PR is one issue whose origin holds the reviewer's quote, author and file:line, and the page shows a verdict for each. Issues with several real solutions use radios; issues with one use buttons plus dispute options. No fold holds under 600 characters. At least two issues have explanations of clearly different depth (for example one sentence against background, code and a picture). The skill waits for the answer, then returns 'Review settled: <n> decisions' with the decision text and the review.json path, or 'Review not settled' with the undecided ids if an issue has no recommendation. Nothing is posted to the PR.",
+      "files": [
+        "evals/files/pr-comments-4421/owner-answer.txt"
+      ]
+    },
+    {
+      "id": "pr-comments-4399",
+      "name": "pr-comments-4399",
+      "prompt": "Review the comments in Azure DevOps pull request 4399 in the 7C_Frontend repository, check if they are valid, research each and propose the best solution.\n\n[Eval harness: this runs live against Azure DevOps and the 7C_Frontend checkout on the owner's machine; Task 9 may swap it for a captured fixture. Nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/pr-comments-4399/owner-answer.txt as the owner's answer.]",
+      "expected_output": "The azure-devops-pr intake file is loaded. A review page is published with the Artifact tool and its URL is stored in review.artifactUrl. Every unresolved, non-system comment thread of the PR is one issue whose origin holds the reviewer's quote, author and file:line, and the page shows a verdict for each. Issues with several real solutions use radios; issues with one use buttons plus dispute options. No fold holds under 600 characters. At least two issues have explanations of clearly different depth. The skill waits for the answer, then returns 'Review settled: <n> decisions' with the decision text and the review.json path, or 'Review not settled' with the undecided ids if an issue has no recommendation. Nothing is posted to the PR.",
+      "files": [
+        "evals/files/pr-comments-4399/owner-answer.txt"
+      ]
+    },
+    {
+      "id": "task-analysis",
+      "name": "task-analysis",
+      "prompt": "Before I implement S7C1-4811, do a full analysis of it: read the ticket and everything linked from it, read the code it touches, and prepare the open questions for me, split into product, technical and UI/UX. Do not implement anything yet.\n\n[Eval harness: this runs live against the tracker and the 7C checkout on the owner's machine; Task 9 may swap it for a captured fixture. Nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/task-analysis/owner-answer.txt as the owner's answer.]",
+      "expected_output": "The task-ticket intake file is loaded; the ticket and its linked sources are read before any issue is listed, and every issue has origin null. Issues cover product, technical and UI/UX questions, found by the skill. At least one UI/UX issue is in radio mode with a ui-mockup block on each option. Most issues are decided by the agent; the ones that need the owner are product decisions or costly to reverse, each with its needsOwnerReason and still a recommendation unless it is a pure preference. The page is published and the skill waits. After the answer it returns 'Review settled: <n> decisions' (or 'Review not settled' with the ids of issues that had no recommendation) and implements nothing.",
+      "files": [
+        "evals/files/task-analysis/owner-answer.txt"
+      ]
+    },
+    {
+      "id": "two-issues",
+      "name": "two-issues",
+      "prompt": "I have two open points before merging the invoice discount; they are in evals/files/two-issues/issues.md. Treat evals/files/two-issues/ as the project root. Get them decided and give me a page to sign off.\n\n[Eval harness: nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/two-issues/owner-answer.txt as the owner's answer.]",
+      "expected_output": "The supplied-issues intake file is loaded; review.id is task-412-invoice-discount and the record holds exactly the two points with the caller's wording as titles, no added issues. The record passes check_record.py --stage ready before publishing. The page is valid: tokens.css and review-page.js pasted unchanged, #review-data parses and matches the articles, one column, no sideways scroll. The two explanations differ in size (the rounding fix is short; the cap question carries more). The skill waits, then returns 'Review settled: 2 decisions' with the decision text and the review.json path.",
+      "files": [
+        "evals/files/two-issues/issues.md",
+        "evals/files/two-issues/owner-answer.txt",
+        "evals/files/two-issues/src/billing.py"
+      ]
+    },
+    {
+      "id": "fifteen-issues",
+      "name": "fifteen-issues",
+      "prompt": "Here are the open points on PR 203 that I need settled: evals/files/fifteen-issues/issues.md. Treat evals/files/fifteen-issues/ as the project root. Have each one decided and explained, and give me one page to confirm them.\n\n[Eval harness: nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/fifteen-issues/owner-answer.txt as the owner's answer.]",
+      "expected_output": "The supplied-issues intake file is loaded; the record holds all fifteen points with the caller's wording, the four reviewer claims carry origin quote, author and where. The record passes check_record.py --stage ready and the page is valid. With fifteen issues the page stays one reading column with every issue fully visible, no panes, stepper or summary table, readable top to bottom; agent-decided issues are not shrunk or collapsed. The hand-over line counts the needs-owner issues against fifteen. The skill waits, then returns 'Review settled: 15 decisions' with the decision text and the review.json path, or 'Review not settled' with the ids of issues that had no recommendation.",
+      "files": [
+        "evals/files/fifteen-issues/issues.md",
+        "evals/files/fifteen-issues/owner-answer.txt",
+        "evals/files/fifteen-issues/src/notify.py"
+      ]
+    },
+    {
+      "id": "round-two",
+      "name": "round-two",
+      "prompt": "Continue the review at evals/files/round-two/review-eval-round-two/review.json. It is ready and has not been published yet. Treat evals/files/sync-client/ as the project root.\n\n[Eval harness: nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/round-two/decisions.txt as the owner's answer. It confirms issue 1, keeps the agent's decisions on 2 and 4, and disputes issue 3 with a note. When the skill republishes and waits again, the run ends.]",
+      "expected_output": "The skill sees the record passes stage ready with no artifactUrl and continues at build and publish; the first publish writes review.artifactUrl. After the paste, parse_decisions.py reports issue 3 disputed with no problems. Issue 3 is reworked through decide and explain with the owner's note (Ops wants Warning during the migration) as input. review.round becomes 2 and issue 3 keeps its id with round 2; issues 1, 2 and 4 keep round 1 and their decisions in review.json (1 owner-confirmed A, 2 and 4 agent accept). The page is republished to the same URL as review.artifactUrl, shows a 'New in round 2' marker on issue 3 only, and the skill waits again instead of returning.",
+      "files": [
+        "evals/files/round-two/review-eval-round-two/review.json",
+        "evals/files/round-two/decisions.txt",
+        "evals/files/sync-client/src/sync_client.py"
+      ]
+    },
+    {
+      "id": "half-paste",
+      "name": "half-paste",
+      "prompt": "Continue the review at evals/files/half-paste/review-eval-half-paste/review.json. It is ready and has not been published yet. Treat evals/files/sync-client/ as the project root.\n\n[Eval harness: nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/half-paste/decisions-cut.txt as the owner's answer; it is cut off in the middle of issue 2. When the skill asks for a fresh paste, paste the contents of evals/files/half-paste/decisions-full.txt.]",
+      "expected_output": "After the cut paste, parse_decisions.py reports problems for issue 2 (decision line cut off) and issues 3 and 4 (missing). The skill tells the owner in plain words that issues 2, 3 and 4 could not be read and why, asks for a fresh complete paste, and does not return and does not fill the gaps itself. After the full paste the summary is settled and the skill returns 'Review settled: 4 decisions', the full decision text and the review.json path.",
+      "files": [
+        "evals/files/half-paste/review-eval-half-paste/review.json",
+        "evals/files/half-paste/decisions-cut.txt",
+        "evals/files/half-paste/decisions-full.txt",
+        "evals/files/sync-client/src/sync_client.py"
+      ]
+    }
+  ]
+}
