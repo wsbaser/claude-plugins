@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR 2317 Decisions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  --page: #f5f7fb;
+  --surface: #ffffff;
+  --fg: #1e293b;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --hover: #f1f5f9;
+  --chip: #eef2fb;
+  --navy: #26365c;
+  --accent: #3b4f85;
+  --accent-2: #637fc4;
+  --accent-soft: #edf2fe;
+  --btn: #4f6bb5;
+  --pass: #15803d;
+  --pass-soft: #ecfdf3;
+  --fail: #b91c1c;
+  --fail-soft: #fef2f2;
+  --skip: #64748b;
+  --skip-soft: #f1f5f9;
+  --warn: #b45309;
+  --warn-soft: #fffbeb;
+  --warn-line: #f0b46a;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0e1420;
+    --surface: #151d2c;
+    --fg: #e2e8f0;
+    --muted: #94a3b8;
+    --faint: #64748b;
+    --line: #243046;
+    --line-strong: #334158;
+    --hover: #1b2537;
+    --chip: #1d2840;
+    --navy: #111a2e;
+    --accent: #a9bdf0;
+    --accent-2: #8aa3e6;
+    --accent-soft: #1c2740;
+    --btn: #4f6bb5;
+    --pass: #4ade80;
+    --pass-soft: #12261a;
+    --fail: #f87171;
+    --fail-soft: #2a1515;
+    --skip: #94a3b8;
+    --skip-soft: #1b2537;
+    --warn: #f2b056;
+    --warn-soft: #2a2113;
+    --warn-line: #8a6a3a;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0e1420;
+  --surface: #151d2c;
+  --fg: #e2e8f0;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --line: #243046;
+  --line-strong: #334158;
+  --hover: #1b2537;
+  --chip: #1d2840;
+  --navy: #111a2e;
+  --accent: #a9bdf0;
+  --accent-2: #8aa3e6;
+  --accent-soft: #1c2740;
+  --btn: #4f6bb5;
+  --pass: #4ade80;
+  --pass-soft: #12261a;
+  --fail: #f87171;
+  --fail-soft: #2a1515;
+  --skip: #94a3b8;
+  --skip-soft: #1b2537;
+  --warn: #f2b056;
+  --warn-soft: #2a2113;
+  --warn-line: #8a6a3a;
+}
+</style>
+<style>
+/* Page styles. Everything below is written for this page; only the block above is pasted unchanged. */
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--fg);font:400 var(--fs-md)/1.55 var(--font-body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow-wrap:break-word}
+::selection{background:var(--btn);color:#fff}
+:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:4px}
+.col{max-width:1040px;margin:0 auto;padding-inline:16px}
+h1{font-size:var(--fs-xl);line-height:1.3;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:var(--fs-lg);line-height:1.35;font-weight:600;margin:0;text-wrap:balance}
+h3{font-size:var(--fs-md);line-height:1.4;font-weight:600;margin:0}
+p{margin:0;max-width:78ch}
+a{color:var(--accent);text-underline-offset:3px}
+code{font-family:var(--font-mono);font-size:12.5px}
+:not(pre)>code{background:var(--chip);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+svg.i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+button{font:inherit;color:inherit}
+
+/* page head */
+.top{padding-block:32px 20px;display:grid;gap:8px}
+.top .sub{color:var(--muted);font-size:var(--fs-sm);max-width:none}
+
+/* sticky bar */
+.bar{position:sticky;top:0;z-index:10;background:var(--surface);border-block:1px solid var(--line)}
+.bar .col{display:flex;align-items:center;gap:10px 16px;padding-block:10px;flex-wrap:wrap}
+.filter{display:flex;flex-wrap:wrap;gap:6px}
+.filter button{border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);padding:5px 11px;font-size:var(--fs-sm);cursor:pointer;display:flex;gap:6px;align-items:center;transition:background .15s}
+.filter button:hover{background:var(--hover)}
+.filter button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-2);color:var(--accent);font-weight:600}
+.filter button b{font-weight:500;color:var(--muted);font-size:var(--fs-xs)}
+.filter button[aria-pressed="true"] b{color:var(--accent)}
+.spacer{flex:1}
+.count{font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:7px 14px;font-size:var(--fs-sm);font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn.primary{background:var(--btn);color:#fff}
+.btn.primary:hover{background:color-mix(in srgb,var(--btn) 86%,#000)}
+.btn.ghost{background:var(--surface);border-color:var(--line-strong);color:var(--fg);font-weight:500}
+.btn.ghost:hover{background:var(--hover)}
+
+/* issues */
+main{padding-block:24px 40px;display:grid;gap:20px}
+.issue{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px 28px;display:grid;gap:16px;scroll-margin-top:80px;min-width:0}
+.ih{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start}
+.num{width:28px;height:28px;border-radius:8px;background:var(--navy);border:1px solid var(--line-strong);color:#fff;display:grid;place-items:center;font:500 var(--fs-sm) var(--font-mono)}
+.ih>div{display:grid;gap:8px;padding-top:3px;min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mark,.chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);line-height:20px;padding:0 8px;border-radius:6px;max-width:100%}
+.mark{font-weight:600;border:1px solid transparent;white-space:nowrap}
+.mark.needs{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+.mark.agent{background:var(--chip);color:var(--accent)}
+.mark.new{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-2)}
+.chip{background:var(--hover);color:var(--fg)}
+.chip .cl{color:var(--muted)}
+.chip.bad{background:var(--fail-soft);color:var(--fail)}
+.chip.good{background:var(--pass-soft);color:var(--pass)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad .cl,.chip.good .cl,.chip.warn .cl{color:inherit;opacity:.8}
+.where{font:400 var(--fs-xs) var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
+.body{display:grid;gap:14px;min-width:0}
+.cap{font-size:var(--fs-sm);color:var(--muted)}
+
+/* origin quote */
+.quote{background:var(--page);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:6px}
+.quote .who{display:flex;gap:8px;align-items:center;font-size:var(--fs-sm);color:var(--muted);flex-wrap:wrap}
+.quote .who b{color:var(--fg);font-weight:600}
+.quote .who .chip{margin-left:auto;font-weight:600}
+.quote p{max-width:none}
+
+/* code and diffs */
+.code{margin:0;background:var(--page);border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
+.code figcaption{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid var(--line);font:500 var(--fs-xs) var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
+.code figcaption span:last-child{font-weight:400}
+.code pre{margin:0;padding:8px 0;overflow-x:auto;font:400 12px/1.6 var(--font-mono);tab-size:4;white-space:normal}
+.code .l{display:block;padding:0 14px 0 0;white-space:pre;min-width:max-content}
+.code .n{display:inline-block;width:38px;margin-right:12px;text-align:right;color:var(--muted);user-select:none}
+.code .g{display:inline-block;width:14px;margin:0 6px 0 12px;color:var(--muted);user-select:none}
+.code .hl{background:var(--warn-soft);box-shadow:inset 2px 0 0 var(--warn-line)}
+.code .add{background:var(--pass-soft)}
+.code .add .g{color:var(--pass)}
+.code .del{background:var(--fail-soft)}
+.code .del .g{color:var(--fail)}
+.code .hunk{color:var(--muted)}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+
+/* pictures */
+.fig{margin:0;background:var(--page);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto}
+.fig svg{display:block;width:100%;min-width:760px;height:auto}
+.fig svg text{font:500 12px var(--font-body);fill:var(--fg)}
+.fig svg text.m{font:500 12px var(--font-mono)}
+.fig svg text.s{font-weight:400;fill:var(--muted)}
+.fig svg .bx{fill:var(--surface);stroke:var(--line-strong)}
+.fig svg .hot{fill:var(--warn-soft);stroke:var(--warn-line)}
+.fig svg .bad{fill:var(--fail-soft);stroke:var(--fail)}
+.fig svg .badt{fill:var(--fail)}
+.fig svg .ar{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.fig svg .pin{fill:var(--warn)}
+.fig svg .pint{fill:var(--surface);font:600 11px var(--font-mono)}
+.split{height:14px;border-radius:4px;overflow:hidden;display:flex;gap:2px}
+.split i{display:block;height:100%}
+.split .a{background:var(--line-strong)}
+.split .b{background:var(--fail)}
+.legend{display:flex;gap:8px 20px;flex-wrap:wrap;font-size:var(--fs-sm)}
+.legend span{display:flex;gap:6px;align-items:center}
+.legend i{width:10px;height:10px;border-radius:3px;display:block}
+
+/* tables */
+table{border-collapse:collapse;width:100%;font-size:var(--fs-sm)}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:var(--fs-xs);font-weight:500;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.tbl{border:1px solid var(--line);border-radius:8px;overflow-x:auto;background:var(--page)}
+.tbl table{min-width:480px}
+tr.total td{font-weight:600}
+
+/* dependency */
+.deplink{display:flex;gap:6px;align-items:center;font-size:var(--fs-sm);color:var(--muted)}
+.deplink svg{color:var(--accent)}
+.dep{background:var(--page);border:1px solid var(--line);border-radius:8px;display:grid;min-width:0}
+.dep .dh{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:var(--fs-sm)}
+.dep .dh svg{color:var(--accent)}
+.dep .dh span{color:var(--muted)}
+.dep .tw{overflow-x:auto}
+.dep table{min-width:560px}
+.nowtag{font-size:var(--fs-xs);font-weight:600;color:var(--accent);white-space:nowrap}
+main:has(#issue-1 input[value="A"]:checked) #issue-2 tr[data-when="A"],
+main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"],
+main:has(#issue-1 input[value="C"]:checked) #issue-2 tr[data-when="C"]{background:var(--accent-soft)}
+main:has(#issue-1 input[value="A"]:checked) #issue-2 tr[data-when="A"] .nowtag::after,
+main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"] .nowtag::after,
+main:has(#issue-1 input[value="C"]:checked) #issue-2 tr[data-when="C"] .nowtag::after{content:"Applies now"}
+.stale{display:flex;gap:8px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--warn-line);background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm);border-radius:0 0 8px 8px}
+
+/* fold */
+details.fold{border:1px solid var(--line);border-radius:8px;background:var(--page);min-width:0}
+details.fold summary{display:flex;gap:8px;align-items:center;padding:8px 12px;font-size:var(--fs-sm);font-weight:500;cursor:pointer;list-style:none;color:var(--accent)}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold summary svg{transition:transform .15s}
+details.fold[open] summary svg{transform:rotate(90deg)}
+details.fold[open] summary{border-bottom:1px solid var(--line)}
+details.fold .code{border:0;border-radius:0 0 8px 8px}
+
+/* ui mockups */
+.mockwrap{display:grid;gap:8px;min-width:0}
+.mocklabel{font-size:var(--fs-xs);font-weight:600;color:var(--muted)}
+.mock{border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);overflow-x:auto;font-size:var(--fs-sm);font-weight:400}
+.mock .mbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);font-weight:600;min-width:440px}
+.mock .mbar .msub{font-weight:400;color:var(--muted)}
+.mock table{min-width:440px;table-layout:fixed}
+.mock td,.mock th{padding:6px 12px}
+.mock .mono{font-family:var(--font-mono);font-size:12px}
+.mchip{display:inline-flex;align-items:center;font-size:var(--fs-xs);line-height:18px;padding:0 6px;border-radius:4px;background:var(--warn-soft);color:var(--warn);font-weight:600;white-space:nowrap}
+.mbanner{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:var(--warn-soft);color:var(--warn);border-bottom:1px solid var(--warn-line);min-width:440px}
+.mbanner u{text-underline-offset:3px}
+.pin{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--warn);color:var(--surface);font:600 11px/1 var(--font-mono);flex:none;vertical-align:middle}
+ol.pins{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:var(--fs-sm);font-weight:400}
+ol.pins li{display:flex;gap:8px;align-items:baseline}
+
+/* decision block */
+.decide{border-top:1px solid var(--line);padding-top:16px;display:grid;gap:12px;min-width:0}
+.opts{display:grid;border-block:1px solid var(--line)}
+.opt{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;padding:12px;cursor:pointer;border-radius:8px;transition:background .15s}
+.opt+.opt{box-shadow:0 -1px 0 var(--line)}
+.opt:hover{background:var(--hover)}
+.opt.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-2)}
+.opt input{margin:3px 0 0;width:16px;height:16px;accent-color:var(--btn)}
+.opt .oc{display:grid;gap:8px;min-width:0}
+.opt .ot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.opt .k{font:500 var(--fs-xs) var(--font-mono);color:var(--muted)}
+.opt p{font-size:var(--fs-sm)}
+.rec{display:inline-flex;gap:4px;align-items:center;font-size:var(--fs-xs);font-weight:600;color:var(--accent);background:var(--surface);border:1px solid var(--accent-2);border-radius:6px;padding:0 7px;line-height:18px}
+.attrs{margin:0;display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:4px 20px}
+.attrs dt{font-size:var(--fs-xs);color:var(--muted)}
+.attrs dd{margin:0;font-size:var(--fs-sm)}
+.sample{font:400 12px/1.6 var(--font-mono);background:var(--page);border:1px solid var(--line);border-radius:6px;padding:4px 10px;overflow-x:auto;white-space:pre}
+.opt .sample{background:var(--surface)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;justify-self:start}
+.seg button{border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);padding:7px 16px;font-size:var(--fs-sm);font-weight:500;cursor:pointer;display:flex;gap:6px;align-items:center;transition:background .15s}
+.seg button:hover{background:var(--hover)}
+.seg button svg{display:none}
+.seg button[aria-pressed="true"]{font-weight:600}
+.seg button[aria-pressed="true"] svg{display:block}
+.seg button[aria-pressed="true"][data-tone="yes"]{background:var(--pass-soft);color:var(--pass);border-color:var(--pass)}
+.seg button[aria-pressed="true"][data-tone="no"]{background:var(--fail-soft);color:var(--fail);border-color:var(--fail)}
+.seg button[aria-pressed="true"][data-tone="talk"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+.foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 16px;align-items:start}
+textarea{width:100%;min-height:36px;height:36px;resize:vertical;font:400 var(--fs-sm)/1.5 var(--font-body);color:var(--fg);background:var(--page);border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;transition:border-color .15s}
+textarea::placeholder{color:var(--muted)}
+textarea:hover{border-color:var(--accent-2)}
+.state{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:36px}
+.dstat>span{display:none;gap:6px;align-items:center;font-size:var(--fs-sm);color:var(--muted);max-width:46ch}
+.issue[data-state="undecided"] .dstat .s-undecided{display:flex;color:var(--warn)}
+.issue[data-state="decided"][data-by="owner"] .dstat .s-owner,
+.issue[data-state="decided"][data-by="agent"] .dstat .s-agent{display:flex}
+.issue[data-state="disputed"] .dstat .s-disputed{display:flex;color:var(--warn)}
+.dstat .s-owner svg,.dstat .s-agent svg{color:var(--pass)}
+
+/* copied text preview */
+.out{display:grid;gap:10px;padding-bottom:64px}
+.out pre{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px;font:400 12px/1.65 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+
+@media (max-width:900px){.pair{grid-template-columns:1fr}.attrs{grid-template-columns:repeat(2,minmax(0,1fr))}.foot{grid-template-columns:1fr}.issue{padding:18px 16px}}
+@media (max-width:520px){.attrs{grid-template-columns:1fr}.opt{padding:12px 8px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 16 16"><circle cx="8" cy="5.2" r="2.7"/><path d="M2.8 13.5c.6-2.6 2.7-4 5.2-4s4.6 1.4 5.2 4"/></symbol>
+  <symbol id="i-agent" viewBox="0 0 16 16"><rect x="2.5" y="5" width="11" height="8" rx="2"/><path d="M8 5V2.5M6 9v1M10 9v1"/></symbol>
+  <symbol id="i-new" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.8"/><path d="M8 5.2v5.6M5.2 8h5.6"/></symbol>
+  <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.8 9.2a2.6 2.6 0 0 0 3.7 0l2.2-2.2A2.6 2.6 0 0 0 9 3.3l-.9.9M9.2 6.8a2.6 2.6 0 0 0-3.7 0L3.3 9A2.6 2.6 0 0 0 7 12.7l.9-.9"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+  <symbol id="i-wait" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.8"/><path d="M8 4.8V8l2.2 1.6"/></symbol>
+  <symbol id="i-talk" viewBox="0 0 16 16"><path d="M3 3.5h10v7H7.5L4.5 13v-2.5H3z"/></symbol>
+</svg>
+
+<header class="col top">
+  <h1>PR #2317: decisions on log levels</h1>
+  <p class="sub">Normalize log levels in <code>Sync.Client</code> and <code>Sync.Gateway</code> · branch <code>fix/log-levels</code> · review round 2 · 9 issues</p>
+  <p>The agent settled five issues on its own; they already count as decided and you can overrule any of them. Four need your call: the recommended option is preselected, and it counts once you press Confirm or pick an option. When you are done, Copy decisions gives you text to paste into the agent's terminal.</p>
+</header>
+
+<div class="bar">
+  <div class="col">
+    <div class="filter" role="group" aria-label="Show issues">
+      <button type="button" data-filter="all" aria-pressed="true">All <b>9</b></button>
+      <button type="button" data-filter="needs" aria-pressed="false">Needs you <b>4</b></button>
+      <button type="button" data-filter="agent" aria-pressed="false">Agent decided <b>5</b></button>
+      <button type="button" data-filter="new" aria-pressed="false">New this round <b>2</b></button>
+    </div>
+    <span class="spacer"></span>
+    <span class="count" data-progress aria-live="polite"></span>
+    <button type="button" class="btn primary" data-copy><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span data-copy-label>Copy decisions</span></button>
+  </div>
+</div>
+
+<main class="col">
+
+<!-- 1: needs the owner, three options, origin quote, flow, two code excerpts -->
+<article class="issue" id="issue-1" data-issue="1">
+  <header class="ih">
+    <span class="num">1</span>
+    <div>
+      <h2>One transport failure is logged as Error in two layers</h2>
+      <div class="meta">
+        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
+        <span class="chip"><span class="cl">Why you:</span>no clear winner</span>
+        <span class="chip bad"><span class="cl">Impact:</span>pages on-call twice</span>
+        <span class="chip"><span class="cl">Confidence:</span>medium</span>
+        <span class="where">HttpSyncTransport.cs:68 · SyncSession.cs:114</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <div class="quote">
+      <div class="who"><b>Jonas Lindqvist</b><span>review comment on <code>SyncSession.cs:114</code></span><span class="chip good">Valid</span></div>
+      <p>"The transport logs the exception at Error and rethrows, then the session catches it and logs Error again. One gateway outage raises two alerts. Pick one layer."</p>
+    </div>
+    <p>He is right. When the gateway is down, the same failure passes through both catch blocks below, and each writes an Error. The ops alert rule <code>sync-errors</code> pages the on-call engineer for every Error from <code>Sync.*</code>, so one outage pages twice.</p>
+    <figure class="fig">
+      <svg viewBox="0 0 1000 80" role="img" aria-label="Gateway answers 503. HttpSyncTransport logs an Error and throws. SyncSession catches it and logs a second Error. The alert rule pages on every Error, so one outage gives two pages.">
+        <rect class="bx" x="1" y="12" width="148" height="56" rx="8"/><text x="16" y="36">Gateway</text><text class="s" x="16" y="54">answers 503</text>
+        <path class="ar" d="M153 40h30M177 35l6 5-6 5"/>
+        <rect class="hot" x="188" y="12" width="200" height="56" rx="8"/><text class="m" x="203" y="36">HttpSyncTransport</text><text class="s" x="203" y="54">LogError, then throws</text>
+        <circle class="pin" cx="388" cy="12" r="9"/><text class="pint" x="388" y="16" text-anchor="middle">1</text>
+        <path class="ar" d="M392 40h30M416 35l6 5-6 5"/>
+        <rect class="hot" x="427" y="12" width="200" height="56" rx="8"/><text class="m" x="442" y="36">SyncSession</text><text class="s" x="442" y="54">catches, LogError again</text>
+        <circle class="pin" cx="627" cy="12" r="9"/><text class="pint" x="627" y="16" text-anchor="middle">2</text>
+        <path class="ar" d="M631 40h30M655 35l6 5-6 5"/>
+        <rect class="bx" x="666" y="12" width="170" height="56" rx="8"/><text x="681" y="36">Alert rule sync-errors</text><text class="s" x="681" y="54">pages on every Error</text>
+        <path class="ar" d="M840 40h30M864 35l6 5-6 5"/>
+        <rect class="bad" x="875" y="12" width="124" height="56" rx="8"/><text class="badt" x="890" y="36">2 pages</text><text class="s" x="890" y="54">for 1 outage</text>
+      </svg>
+    </figure>
+    <p>The two Errors, at <code>HttpSyncTransport.cs:68</code> and <code>SyncSession.cs:114</code>:</p>
+    <div class="pair">
+      <figure class="code"><figcaption><span>src/Sync.Client/Transport/HttpSyncTransport.cs</span><span>Error 1</span></figcaption><pre tabindex="0">
+<span class="l"><span class="n">66</span>catch (HttpRequestException ex)</span>
+<span class="l"><span class="n">67</span>{</span>
+<span class="l hl"><span class="n">68</span>    _logger.LogError(ex,</span>
+<span class="l hl"><span class="n">69</span>        "Sync request to {Endpoint} failed", _endpoint);</span>
+<span class="l"><span class="n">70</span>    throw new SyncTransportException(_endpoint, ex);</span>
+<span class="l"><span class="n">71</span>}</span></pre></figure>
+      <figure class="code"><figcaption><span>src/Sync.Client/SyncSession.cs</span><span>Error 2</span></figcaption><pre tabindex="0">
+<span class="l"><span class="n">112</span>catch (SyncTransportException ex)</span>
+<span class="l"><span class="n">113</span>{</span>
+<span class="l hl"><span class="n">114</span>    _logger.LogError(ex,</span>
+<span class="l hl"><span class="n">115</span>        "Sync session {SessionId} abandoned", Id);</span>
+<span class="l"><span class="n">116</span>    State = SessionState.Abandoned;</span>
+<span class="l"><span class="n">117</span>    await _backoff.WaitAsync(ct);</span>
+<span class="l"><span class="n">118</span>}</span></pre></figure>
+    </div>
+  </div>
+  <div class="decide">
+    <h3 id="q1">Which layer logs the Error?</h3>
+    <div class="opts" role="radiogroup" aria-labelledby="q1">
+      <label class="opt">
+        <input type="radio" name="opt-1" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>Error once in SyncSession; the transport logs Debug<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>The session is the layer that knows the sync was given up. The transport keeps its line at Debug for troubleshooting. Two files change.</p>
+          <dl class="attrs" style="--cols:4">
+            <div><dt>Pages per outage</dt><dd>1</dd></div>
+            <div><dt>Failure detail</dt><dd>Endpoint and status code stay on the exception, which the session logs</dd></div>
+            <div><dt>Risk</dt><dd>Low. The alert rule is not touched</dd></div>
+            <div><dt>To reverse</dt><dd>Revert one commit</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-1" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>Error in the transport only; the session logs Information<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>The Error sits where the failure happens. The session records "abandoned" as a plain event. Two files change.</p>
+          <dl class="attrs" style="--cols:4">
+            <div><dt>Pages per outage</dt><dd>1 per failed request, up to 3 with retries</dd></div>
+            <div><dt>Failure detail</dt><dd>Logged at the source</dd></div>
+            <div><dt>Risk</dt><dd>Medium. A session abandoned for a non-HTTP reason no longer pages</dd></div>
+            <div><dt>To reverse</dt><dd>Revert one commit</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-1" value="C">
+        <div class="oc">
+          <div class="ot"><span class="k">C</span>Keep both Errors; group them in the alert rule<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>No code change in this PR. The rule groups Errors that share a <code>CorrelationId</code> within 5 minutes into one page.</p>
+          <dl class="attrs" style="--cols:4">
+            <div><dt>Pages per outage</dt><dd>1, if the grouping works</dd></div>
+            <div><dt>Failure detail</dt><dd>Unchanged; logs still show two Errors</dd></div>
+            <div><dt>Risk</dt><dd>Medium. The rule lives in the <code>ops-alerts</code> repo and needs the ops team</dd></div>
+            <div><dt>To reverse</dt><dd>An ops change, on their release cycle</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <a class="deplink" href="#issue-2"><svg class="i" aria-hidden="true"><use href="#i-link"/></svg>Issue 2 follows from this answer. If you change it, the recommendation there changes with it.</a>
+    <div class="foot">
+      <textarea data-note name="note-1" aria-label="Note to the agent for issue 1" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
+        </span>
+        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
+        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 2: needs the owner, new in round 2, depends on issue 1, worked numbers -->
+<article class="issue" id="issue-2" data-issue="2">
+  <header class="ih">
+    <span class="num">2</span>
+    <div>
+      <h2>Client older than the gateway: Warning or Information?</h2>
+      <div class="meta">
+        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
+        <span class="mark new"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg>New in round 2</span>
+        <span class="chip warn"><span class="cl">Why you:</span>costly to reverse</span>
+        <span class="where">src/Sync.Client/Handshake/VersionCheck.cs:47</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>On every connect the client compares its protocol version with the gateway's. When the client is one minor version behind, the gateway serves it in compatibility mode (sync works, using the older message format) and the client writes one log line. This PR sets that line to Warning.</p>
+    <p>Two facts make the level matter. On-prem clients upload only Warning and above to our central telemetry; Information stays in the customer's local log file. And a client reconnects every 30 seconds, so the line repeats all day:</p>
+    <div class="tbl" style="max-width:760px">
+      <table>
+        <tr><th>Worked numbers, last rollout</th><th class="r">Value</th><th>Source</th></tr>
+        <tr><td>On-prem installs</td><td class="r">340</td><td>licence report, October</td></tr>
+        <tr><td>Share one minor version behind during a rollout</td><td class="r">12%</td><td>4.1 rollout, weeks 1 to 7</td></tr>
+        <tr><td>Clients behind: 340 × 0.12</td><td class="r">41</td><td></td></tr>
+        <tr><td>Connects per client per day: 86,400 s ÷ 30 s</td><td class="r">2,880</td><td><code>SyncOptions.ReconnectInterval</code></td></tr>
+        <tr class="total"><td>Warning lines uploaded per day: 41 × 2,880</td><td class="r">118,080</td><td></td></tr>
+      </table>
+    </div>
+    <p>In plain words: as the PR stands, about 118,000 identical Warning lines a day reach central telemetry during a rollout.</p>
+    <p><b>Why it is costly to reverse:</b> the level ships inside the client build. Release 4.2 goes to all 340 installs; changing the level afterwards needs another client release, and the last one took 7 weeks to reach 95% of installs.</p>
+    <div class="dep">
+      <div class="dh"><svg class="i" aria-hidden="true"><use href="#i-link"/></svg><b>Follows from <a href="#issue-1">issue 1</a>.</b><span>The highlighted row is the answer issue 1 has now.</span></div>
+      <div class="tw">
+        <table>
+          <tr><th>If issue 1 is</th><th>Recommended here</th><th>Because</th><th></th></tr>
+          <tr data-when="A"><td style="white-space:nowrap">A, Error in SyncSession</td><td>A, Information</td><td>A sync that fails over versions already pages once through the session's Error, and that Error carries both version numbers. This line is not needed for alerting.</td><td class="nowtag"></td></tr>
+          <tr data-when="B"><td style="white-space:nowrap">B, Error in the transport</td><td>C, Warning once per client per day</td><td>The transport does not know the versions, so its Error would not show them. This line becomes our only central record of them; once a day is enough.</td><td class="nowtag"></td></tr>
+          <tr data-when="C"><td style="white-space:nowrap">C, both Errors kept</td><td>A, Information</td><td>The session's Error still carries both versions. Same reasoning as A.</td><td class="nowtag"></td></tr>
+        </table>
+      </div>
+      <div class="stale" data-stale-notice hidden>
+        <span>You answered this before issue 1 changed. Your answer is kept; the Recommended tag shows what the agent suggests now.</span>
+        <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
+      </div>
+    </div>
+  </div>
+  <div class="decide">
+    <h3 id="q2">Which level does the version line get?</h3>
+    <div class="opts" role="radiogroup" aria-labelledby="q2">
+      <label class="opt">
+        <input type="radio" name="opt-2" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>Information<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>The line stays in the customer's local log file. One line changes.</p>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Lines uploaded per day</dt><dd>0</dd></div>
+            <div><dt>Can we see which clients are behind?</dt><dd>Only when a sync fails</dd></div>
+            <div><dt>Effort</dt><dd>1 line</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-2" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>Warning on every connect, as the PR has it now<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>Nothing changes in the PR.</p>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Lines uploaded per day</dt><dd>118,080</dd></div>
+            <div><dt>Can we see which clients are behind?</dt><dd>Yes, buried in repeats</dd></div>
+            <div><dt>Effort</dt><dd>None</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-2" value="C">
+        <div class="oc">
+          <div class="ot"><span class="k">C</span>Warning, once per client per day<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>The client remembers when it last warned and stays quiet for 24 hours. Later connects log at Debug.</p>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Lines uploaded per day</dt><dd>41</dd></div>
+            <div><dt>Can we see which clients are behind?</dt><dd>Yes, one line per client</dd></div>
+            <div><dt>Effort</dt><dd>About 25 lines, plus a timestamp in the client's local state file</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-2" aria-label="Note to the agent for issue 2" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
+        </span>
+        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
+        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 3: agent decided, one solution as buttons, inline diff -->
+<article class="issue" id="issue-3" data-issue="3">
+  <header class="ih">
+    <span class="num">3</span>
+    <div>
+      <h2>Request logging crashes when the request has no identity</h2>
+      <div class="meta">
+        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
+        <span class="chip"><span class="cl">Kind:</span>bug fix</span>
+        <span class="chip good"><span class="cl">Fix risk:</span>low</span>
+        <span class="where">src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:32</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>The <code>/healthz</code> probe skips authentication, so <code>context.User.Identity</code> is null there. The line this PR added at <code>RequestLogMiddleware.cs:32</code> to put the user name into the log scope throws <code>NullReferenceException</code> before the request is handled, and the probe gets a 500. Staging shows it 212 times since Monday. The fix:</p>
+      <figure class="code"><figcaption><span>src/Sync.Gateway/Middleware/RequestLogMiddleware.cs</span><span>the whole fix</span></figcaption><pre tabindex="0">
+<span class="l hunk"><span class="g"> </span>@@ -32,2 +32,2 @@ public async Task InvokeAsync(HttpContext context)</span>
+<span class="l del"><span class="g">-</span>        var user = context.User.Identity.Name;</span>
+<span class="l add"><span class="g">+</span>        var user = context.User.Identity?.Name ?? "anonymous";</span>
+<span class="l"><span class="g"> </span>        using var scope = _logger.BeginScope("User:{User}", user);</span></pre></figure>
+  </div>
+  <div class="decide">
+    <h3 id="q3">Apply the null guard?</h3>
+    <div class="seg" role="group" aria-labelledby="q3">
+      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
+      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
+      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-3" aria-label="Note to the agent for issue 3" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
+          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
+        </span>
+        <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 4: agent decided, one sentence is the whole explanation -->
+<article class="issue" id="issue-4" data-issue="4">
+  <header class="ih">
+    <span class="num">4</span>
+    <div>
+      <h2>Retry attempts are logged too loud</h2>
+      <div class="meta">
+        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
+        <span class="chip"><span class="cl">Kind:</span>noise</span>
+        <span class="where">src/Sync.Client/Retry/RetryPolicy.cs:41</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>Each retry attempt is logged at Warning, so one slow gateway produces three Warnings before anything has failed; the fix logs attempts at Debug and keeps the single Warning that is written when the retries run out.</p>
+  </div>
+  <div class="decide">
+    <h3 id="q4">Lower retry attempts to Debug?</h3>
+    <div class="seg" role="group" aria-labelledby="q4">
+      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
+      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-4" aria-label="Note to the agent for issue 4" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
+          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
+        </span>
+        <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 5: agent decided, reviewer claim judged not valid, code side by side -->
+<article class="issue" id="issue-5" data-issue="5">
+  <header class="ih">
+    <span class="num">5</span>
+    <div>
+      <h2>Reviewer asks for an IsEnabled check around BatchSynced</h2>
+      <div class="meta">
+        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
+        <span class="chip"><span class="cl">Kind:</span>review comment</span>
+        <span class="where">src/Sync.Client/SyncSession.cs:140</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <div class="quote">
+      <div class="who"><b>Daniel Reyes</b><span>review comment on <code>SyncSession.cs:140</code></span><span class="chip bad">Not valid</span></div>
+      <p>"This builds the message string for every batch even when Information is switched off. Wrap it in <code>if (_logger.IsEnabled(LogLevel.Information))</code>."</p>
+    </div>
+    <p>The check he asks for is already there. <code>BatchSynced</code> is a source-generated log method: the compiler writes its body from the <code>[LoggerMessage]</code> attribute (<code>SyncLog.cs:17</code>), and that body tests the level before it formats anything (<code>SyncLog.g.cs:32</code>). A second check around the call would repeat it.</p>
+    <div class="pair">
+      <figure class="code"><figcaption><span>src/Sync.Client/Logging/SyncLog.cs</span><span>what we wrote</span></figcaption><pre tabindex="0">
+<span class="l hl"><span class="n">17</span>[LoggerMessage(EventId = 2104,</span>
+<span class="l hl"><span class="n">18</span>    Level = LogLevel.Information,</span>
+<span class="l hl"><span class="n">19</span>    Message = "Synced {Count} orders in {ElapsedMs} ms")]</span>
+<span class="l"><span class="n">20</span>public static partial void BatchSynced(</span>
+<span class="l"><span class="n">21</span>    ILogger logger, int count, long elapsedMs);</span></pre></figure>
+      <figure class="code"><figcaption><span>obj/.../SyncLog.g.cs</span><span>what the compiler generated</span></figcaption><pre tabindex="0">
+<span class="l"><span class="n">29</span>public static partial void BatchSynced(</span>
+<span class="l"><span class="n">30</span>    ILogger logger, int count, long elapsedMs)</span>
+<span class="l"><span class="n">31</span>{</span>
+<span class="l hl"><span class="n">32</span>    if (logger.IsEnabled(LogLevel.Information))</span>
+<span class="l"><span class="n">33</span>    {</span>
+<span class="l"><span class="n">34</span>        __BatchSyncedCallback(logger, count, elapsedMs, null);</span>
+<span class="l"><span class="n">35</span>    }</span>
+<span class="l"><span class="n">36</span>}</span></pre></figure>
+    </div>
+    <p class="cap">Reply the agent will post if you leave this as it is: "BatchSynced is a [LoggerMessage] method. The generated body already checks IsEnabled before formatting (SyncLog.g.cs:32), so an outer check would duplicate it. No change."</p>
+  </div>
+  <div class="decide">
+    <h3 id="q5">Decline the comment and post the reply?</h3>
+    <div class="seg" role="group" aria-labelledby="q5">
+      <button type="button" data-choice="decline" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decline comment</button>
+      <button type="button" data-choice="apply" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Add the check anyway</button>
+      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-5" aria-label="Note to the agent for issue 5" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
+          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
+        </span>
+        <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 6: agent decided, one representative hunk inline, the full diff folded with its size -->
+<article class="issue" id="issue-6" data-issue="6">
+  <header class="ih">
+    <span class="num">6</span>
+    <div>
+      <h2>Six log calls in OrderImporter cannot be searched by order</h2>
+      <div class="meta">
+        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
+        <span class="chip"><span class="cl">Kind:</span>searchability</span>
+        <span class="chip"><span class="cl">Scope:</span>6 call sites, 2 level changes</span>
+        <span class="where">src/Sync.Client/Import/OrderImporter.cs:39-83</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>These calls build their text with string interpolation (<code>$"..."</code>), which bakes the order id into the sentence. The log store then has no <code>OrderId</code> field to filter on. The fix uses message templates: text with named <code>{Placeholders}</code>, with the values passed separately so they are stored as fields. One of the six, as an example:</p>
+      <figure class="code"><figcaption><span>src/Sync.Client/Import/OrderImporter.cs</span><span>1 of 6</span></figcaption><pre tabindex="0">
+<span class="l del"><span class="g">-</span>            _logger.LogWarning($"Unknown SKU {order.Sku} on order {order.Id}, skipping");</span>
+<span class="l add"><span class="g">+</span>            _logger.LogWarning("Unknown SKU {Sku} on order {OrderId}, skipping",</span>
+<span class="l add"><span class="g">+</span>                order.Sku, order.Id);</span></pre></figure>
+    <p>Two of the six also change level. "Order already imported" goes from Warning to Information, because a repeated delivery is expected. "More than half of the batch was skipped" goes from Error to Warning, because the import itself finished.</p>
+    <details class="fold">
+      <summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Full diff, 48 lines</summary>
+      <figure class="code"><figcaption><span>src/Sync.Client/Import/OrderImporter.cs</span><span>48 lines</span></figcaption><pre tabindex="0">
+<span class="l hunk"><span class="g"> </span>--- a/src/Sync.Client/Import/OrderImporter.cs</span>
+<span class="l hunk"><span class="g"> </span>+++ b/src/Sync.Client/Import/OrderImporter.cs</span>
+<span class="l hunk"><span class="g"> </span>@@ -38,9 +38,10 @@ public async Task&lt;ImportResult&gt; ImportAsync(Batch batch, CancellationToken ct)</span>
+<span class="l"><span class="g"> </span>    var started = Stopwatch.GetTimestamp();</span>
+<span class="l del"><span class="g">-</span>    _logger.LogInformation($"Import started for batch {batch.Id} with {batch.Orders.Count} orders");</span>
+<span class="l add"><span class="g">+</span>    _logger.LogInformation("Import started for batch {BatchId} with {OrderCount} orders",</span>
+<span class="l add"><span class="g">+</span>        batch.Id, batch.Orders.Count);</span>
+<span class="l"><span class="g"> </span></span>
+<span class="l"><span class="g"> </span>    foreach (var order in batch.Orders)</span>
+<span class="l"><span class="g"> </span>    {</span>
+<span class="l del"><span class="g">-</span>        _logger.LogDebug($"Importing order {order.Id}");</span>
+<span class="l add"><span class="g">+</span>        _logger.LogDebug("Importing order {OrderId}", order.Id);</span>
+<span class="l"><span class="g"> </span>        ct.ThrowIfCancellationRequested();</span>
+<span class="l hunk"><span class="g"> </span>@@ -52,19 +53,20 @@ public async Task&lt;ImportResult&gt; ImportAsync(Batch batch, CancellationToken ct)</span>
+<span class="l"><span class="g"> </span>        if (!_catalog.TryResolve(order.Sku, out var product))</span>
+<span class="l"><span class="g"> </span>        {</span>
+<span class="l del"><span class="g">-</span>            _logger.LogWarning($"Unknown SKU {order.Sku} on order {order.Id}, skipping");</span>
+<span class="l add"><span class="g">+</span>            _logger.LogWarning("Unknown SKU {Sku} on order {OrderId}, skipping",</span>
+<span class="l add"><span class="g">+</span>                order.Sku, order.Id);</span>
+<span class="l"><span class="g"> </span>            skipped++;</span>
+<span class="l"><span class="g"> </span>            continue;</span>
+<span class="l"><span class="g"> </span>        }</span>
+<span class="l"><span class="g"> </span></span>
+<span class="l"><span class="g"> </span>        try</span>
+<span class="l"><span class="g"> </span>        {</span>
+<span class="l"><span class="g"> </span>            await _store.UpsertAsync(order, product, ct);</span>
+<span class="l"><span class="g"> </span>            imported++;</span>
+<span class="l"><span class="g"> </span>        }</span>
+<span class="l"><span class="g"> </span>        catch (DuplicateOrderException ex)</span>
+<span class="l"><span class="g"> </span>        {</span>
+<span class="l del"><span class="g">-</span>            _logger.LogWarning($"Order {order.Id} already imported: {ex.Message}");</span>
+<span class="l add"><span class="g">+</span>            _logger.LogInformation(ex, "Order {OrderId} already imported", order.Id);</span>
+<span class="l"><span class="g"> </span>            skipped++;</span>
+<span class="l"><span class="g"> </span>        }</span>
+<span class="l hunk"><span class="g"> </span>@@ -74,11 +76,14 @@ public async Task&lt;ImportResult&gt; ImportAsync(Batch batch, CancellationToken ct)</span>
+<span class="l"><span class="g"> </span>    var elapsed = Stopwatch.GetElapsedTime(started);</span>
+<span class="l del"><span class="g">-</span>    _logger.LogInformation($"Import finished: {imported} imported, {skipped} skipped in {elapsed.TotalMilliseconds} ms");</span>
+<span class="l add"><span class="g">+</span>    _logger.LogInformation(</span>
+<span class="l add"><span class="g">+</span>        "Import finished: {Imported} imported, {Skipped} skipped in {ElapsedMs} ms",</span>
+<span class="l add"><span class="g">+</span>        imported, skipped, (long)elapsed.TotalMilliseconds);</span>
+<span class="l"><span class="g"> </span></span>
+<span class="l"><span class="g"> </span>    if (skipped &gt; batch.Orders.Count / 2)</span>
+<span class="l"><span class="g"> </span>    {</span>
+<span class="l del"><span class="g">-</span>        _logger.LogError($"More than half of batch {batch.Id} was skipped");</span>
+<span class="l add"><span class="g">+</span>        _logger.LogWarning("More than half of batch {BatchId} was skipped ({Skipped} of {OrderCount})",</span>
+<span class="l add"><span class="g">+</span>            batch.Id, skipped, batch.Orders.Count);</span>
+<span class="l"><span class="g"> </span>    }</span>
+<span class="l"><span class="g"> </span>    return new ImportResult(imported, skipped);</span></pre></figure>
+    </details>
+  </div>
+  <div class="decide">
+    <h3 id="q6">Switch the six calls to message templates?</h3>
+    <div class="seg" role="group" aria-labelledby="q6">
+      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
+      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
+      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-6" aria-label="Note to the agent for issue 6" placeholder="Note to the agent (optional), for example: templates yes, level changes no"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
+          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
+        </span>
+        <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 7: needs the owner, each option shows the resulting log line -->
+<article class="issue" id="issue-7" data-issue="7">
+  <header class="ih">
+    <span class="num">7</span>
+    <div>
+      <h2>Customer email is written to the log at Information</h2>
+      <div class="meta">
+        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
+        <span class="chip"><span class="cl">Why you:</span>product decision</span>
+        <span class="chip"><span class="cl">Kind:</span>personal data</span>
+        <span class="chip"><span class="cl">Affects:</span>support team</span>
+        <span class="where">src/Sync.Client/Import/OrderImporter.cs:88</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>Every imported order writes the customer's email address into the log, and Information lines are kept for 90 days. The agent cannot settle this alone: support asked for the email in the log (ticket SUP-812) because they search by it when a customer calls. Today the line looks like this:</p>
+    <div class="sample">10:42:07 INF Order 48213 imported for anna.berg@nordwind.example</div>
+  </div>
+  <div class="decide">
+    <h3 id="q7">What does the line say about the customer?</h3>
+    <div class="opts" role="radiogroup" aria-labelledby="q7">
+      <label class="opt">
+        <input type="radio" name="opt-7" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>Log the customer id instead of the email<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="sample">10:42:07 INF Order 48213 imported for customer 9917</div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Personal data in the log</dt><dd>None</dd></div>
+            <div><dt>Support finds the order by</dt><dd>Looking up the customer id in the admin first; one extra step</dd></div>
+            <div><dt>Effort</dt><dd>1 line</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-7" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>Log a masked email<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="sample">10:42:07 INF Order 48213 imported for a***@nordwind.example</div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Personal data in the log</dt><dd>First letter and company domain remain</dd></div>
+            <div><dt>Support finds the order by</dt><dd>Matching the masked address by eye</dd></div>
+            <div><dt>Effort</dt><dd>About 10 lines for a masking helper</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-7" value="C">
+        <div class="oc">
+          <div class="ot"><span class="k">C</span>Keep the email; lower the line to Debug<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="sample">10:42:07 DBG Order 48213 imported for anna.berg@nordwind.example</div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Personal data in the log</dt><dd>Full address, whenever Debug is switched on</dd></div>
+            <div><dt>Support finds the order by</dt><dd>Email, but only after asking the customer to switch Debug on</dd></div>
+            <div><dt>Effort</dt><dd>1 line</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-7" aria-label="Note to the agent for issue 7" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
+        </span>
+        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
+        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 8: agent decided with two real options, so radios; a proportion bar -->
+<article class="issue" id="issue-8" data-issue="8">
+  <header class="ih">
+    <span class="num">8</span>
+    <div>
+      <h2>Clients that hang up are logged as Error</h2>
+      <div class="meta">
+        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
+        <span class="chip"><span class="cl">Kind:</span>noise</span>
+        <span class="where">src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:52</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>The middleware logs every exception as Error. When a client closes the connection mid-request, .NET cancels the request and throws <code>OperationCanceledException</code>; nothing is broken on our side. In staging over the last 7 days these made up 1,655 of the 1,912 Error lines from this middleware (87%). Either option leaves 257 Error lines a week.</p>
+    <div class="split" role="img" aria-label="1,655 of 1,912 Error lines are client disconnects, 257 are real failures"><i class="a" style="width:86.6%"></i><i class="b" style="width:13.4%"></i></div>
+    <div class="legend"><span><i style="background:var(--line-strong)"></i>1,655 client disconnects</span><span><i style="background:var(--fail)"></i>257 real failures</span></div>
+  </div>
+  <div class="decide">
+    <h3 id="q8">Which level do client disconnects get?</h3>
+    <div class="opts" role="radiogroup" aria-labelledby="q8">
+      <label class="opt">
+        <input type="radio" name="opt-8" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>Debug when the client cancelled; Error otherwise<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>The check is <code>context.RequestAborted.IsCancellationRequested</code>, which is true only when the client itself went away.</p>
+          <dl class="attrs" style="--cols:2">
+            <div><dt>Disconnects visible at the default level</dt><dd>No</dd></div>
+            <div><dt>Extra lines per week at the default level</dt><dd>0</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-8" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>Information when the client cancelled; Error otherwise<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <p>Same check. Useful if you want to watch for clients on bad networks without switching Debug on.</p>
+          <dl class="attrs" style="--cols:2">
+            <div><dt>Disconnects visible at the default level</dt><dd>Yes</dd></div>
+            <div><dt>Extra lines per week at the default level</dt><dd>1,655</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-8" aria-label="Note to the agent for issue 8" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick the other option to overrule.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
+        </span>
+        <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- 9: needs the owner, new in round 2, options are rendered screen mockups (ui-mockup form) -->
+<article class="issue" id="issue-9" data-issue="9">
+  <header class="ih">
+    <span class="num">9</span>
+    <div>
+      <h2>Where support sees which clients are behind the gateway</h2>
+      <div class="meta">
+        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
+        <span class="mark new"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg>New in round 2</span>
+        <span class="chip"><span class="cl">Why you:</span>product decision</span>
+        <span class="chip"><span class="cl">Kind:</span>UI</span>
+        <span class="where">src/Sync.Admin/Clients/ClientsTable.tsx:40</span>
+      </div>
+    </div>
+  </header>
+  <div class="body">
+    <p>Whatever issue 2 decides, support asked (SUP-840) to see which clients are behind without searching logs. The gateway already stores each client's version at handshake (<code>ClientRegistry.cs:58</code>), and the admin Clients screen lists every client, but nothing on it says a client is behind. The gateway runs 4.2.0. Today the screen looks like this:</p>
+    <div class="mockwrap">
+      <span class="mocklabel">Today</span>
+      <div class="mock" role="img" aria-label="Clients screen today: a table of clients with version, last sync and status; nothing marks the clients on 4.1.3.">
+        <div class="mbar">Clients <span class="msub">340 clients</span></div>
+        <table>
+          <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
+          <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
+          <tr><td>Baltic Freight AB</td><td class="mono">4.1.3</td><td>5 min ago</td><td>Synced</td></tr>
+          <tr><td>Hansa Cold Chain</td><td class="mono">4.1.3</td><td>1 h ago</td><td>Retrying</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="decide">
+    <h3 id="q9">How does the Clients screen show a client that is behind?</h3>
+    <div class="opts" role="radiogroup" aria-labelledby="q9">
+      <label class="opt">
+        <input type="radio" name="opt-9" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>A "behind" chip in the Version column, and a count in the header<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="mockwrap">
+            <div class="mock" role="img" aria-label="Option A: the header adds a 41 behind count; clients on 4.1.3 show a 1 behind chip next to the version.">
+              <div class="mbar">Clients <span class="msub">340 clients</span><span class="mchip">41 behind</span><span class="pin" aria-hidden="true">2</span></div>
+              <table>
+                <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
+                <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
+                <tr><td>Baltic Freight AB</td><td><span class="mono">4.1.3</span> <span class="mchip">1 behind</span> <span class="pin" aria-hidden="true">1</span></td><td>5 min ago</td><td>Synced</td></tr>
+                <tr><td>Hansa Cold Chain</td><td><span class="mono">4.1.3</span> <span class="mchip">1 behind</span></td><td>1 h ago</td><td>Retrying</td></tr>
+              </table>
+            </div>
+            <ol class="pins">
+              <li><span class="pin" aria-hidden="true">1</span>Each client on an older version gets a chip saying how far behind it is.</li>
+              <li><span class="pin" aria-hidden="true">2</span>The header counts behind clients; clicking the count filters the table to them.</li>
+            </ol>
+          </div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Support finds a behind client</dt><dd>At a glance in the row they already open</dd></div>
+            <div><dt>Screen space</dt><dd>No new row or panel</dd></div>
+            <div><dt>Effort</dt><dd>About 40 lines in two components</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-9" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>A banner above the table that links to the behind clients<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="mockwrap">
+            <div class="mock" role="img" aria-label="Option B: a banner above the unchanged table reads 41 clients are one version behind the gateway, with a Show them link.">
+              <div class="mbar">Clients <span class="msub">340 clients</span></div>
+              <div class="mbanner"><span class="pin" aria-hidden="true">1</span>41 clients are one version behind the gateway (4.2.0). <u>Show them</u></div>
+              <table>
+                <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
+                <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
+                <tr><td>Baltic Freight AB</td><td class="mono">4.1.3</td><td>5 min ago</td><td>Synced</td></tr>
+                <tr><td>Hansa Cold Chain</td><td class="mono">4.1.3</td><td>1 h ago</td><td>Retrying</td></tr>
+              </table>
+            </div>
+            <ol class="pins">
+              <li><span class="pin" aria-hidden="true">1</span>A banner, shown while any client is behind, with a link that filters the table. The rows do not change.</li>
+            </ol>
+          </div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Support finds a behind client</dt><dd>Only after clicking the banner</dd></div>
+            <div><dt>Screen space</dt><dd>One banner row during every rollout</dd></div>
+            <div><dt>Effort</dt><dd>About 25 lines in one component</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <div class="foot">
+      <textarea data-note name="note-9" aria-label="Note to the agent for issue 9" placeholder="Note to the agent (optional)"></textarea>
+      <div class="state">
+        <span class="dstat">
+          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
+          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
+        </span>
+        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
+        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+      </div>
+    </div>
+  </div>
+</article>
+
+</main>
+
+<section class="col out" aria-labelledby="out-h">
+  <h2 id="out-h">What Copy decisions puts on your clipboard</h2>
+  <p class="cap">Plain text, updated as you answer. Your answers are also kept in this browser, so a reload or a new round on the same link keeps them.</p>
+  <pre data-preview tabindex="0" aria-label="Decision text"></pre>
+</section>
+
+<script type="application/json" id="review-data">
+{
+  "review": {
+    "id": "pr-2317-log-levels",
+    "title": "PR #2317 \"Normalize log levels in Sync.Client and Sync.Gateway\"",
+    "round": 2
+  },
+  "issues": [
+    {
+      "id": "1",
+      "title": "One transport failure is logged as Error in two layers",
+      "round": 1,
+      "needsOwner": true,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "Error once in SyncSession, the transport logs Debug",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "Error in the transport only, the session logs Information",
+          "dispute": false
+        },
+        {
+          "id": "C",
+          "label": "Keep both Errors, group them in the alert rule",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": null,
+      "dependsOn": null
+    },
+    {
+      "id": "2",
+      "title": "Client older than the gateway: Warning or Information?",
+      "round": 2,
+      "needsOwner": true,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "Information",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "Warning on every connect, as the PR has it now",
+          "dispute": false
+        },
+        {
+          "id": "C",
+          "label": "Warning, once per client per day",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": null,
+      "dependsOn": {
+        "issue": "1",
+        "map": {
+          "A": "A",
+          "B": "C",
+          "C": "A"
+        },
+        "note": "If the transport owns the Error, this line is the only central record of client versions."
+      }
+    },
+    {
+      "id": "3",
+      "title": "Request logging crashes when the request has no identity",
+      "round": 1,
+      "needsOwner": false,
+      "mode": "buttons",
+      "options": [
+        {
+          "id": "accept",
+          "label": "Accept",
+          "outcome": "apply the null guard",
+          "dispute": false
+        },
+        {
+          "id": "reject",
+          "label": "Reject",
+          "dispute": true
+        },
+        {
+          "id": "discuss",
+          "label": "Discuss",
+          "dispute": true
+        }
+      ],
+      "recommended": "accept",
+      "agentChoice": "accept",
+      "dependsOn": null
+    },
+    {
+      "id": "4",
+      "title": "Retry attempts are logged too loud",
+      "round": 1,
+      "needsOwner": false,
+      "mode": "buttons",
+      "options": [
+        {
+          "id": "accept",
+          "label": "Accept",
+          "outcome": "retry attempts go to Debug",
+          "dispute": false
+        },
+        {
+          "id": "reject",
+          "label": "Reject",
+          "dispute": true
+        }
+      ],
+      "recommended": "accept",
+      "agentChoice": "accept",
+      "dependsOn": null
+    },
+    {
+      "id": "5",
+      "title": "Reviewer asks for an IsEnabled check around BatchSynced",
+      "round": 1,
+      "needsOwner": false,
+      "mode": "buttons",
+      "options": [
+        {
+          "id": "decline",
+          "label": "Decline comment",
+          "outcome": "no code change, post the reply",
+          "dispute": false
+        },
+        {
+          "id": "apply",
+          "label": "Add the check anyway",
+          "dispute": true
+        },
+        {
+          "id": "discuss",
+          "label": "Discuss",
+          "dispute": true
+        }
+      ],
+      "recommended": "decline",
+      "agentChoice": "decline",
+      "dependsOn": null
+    },
+    {
+      "id": "6",
+      "title": "Six log calls in OrderImporter cannot be searched by order",
+      "round": 1,
+      "needsOwner": false,
+      "mode": "buttons",
+      "options": [
+        {
+          "id": "accept",
+          "label": "Accept",
+          "outcome": "use message templates in all six calls, with the two level changes",
+          "dispute": false
+        },
+        {
+          "id": "reject",
+          "label": "Reject",
+          "dispute": true
+        },
+        {
+          "id": "discuss",
+          "label": "Discuss",
+          "dispute": true
+        }
+      ],
+      "recommended": "accept",
+      "agentChoice": "accept",
+      "dependsOn": null
+    },
+    {
+      "id": "7",
+      "title": "Customer email is written to the log at Information",
+      "round": 1,
+      "needsOwner": true,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "Log the customer id instead of the email",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "Log a masked email",
+          "dispute": false
+        },
+        {
+          "id": "C",
+          "label": "Keep the email, lower the line to Debug",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": null,
+      "dependsOn": null
+    },
+    {
+      "id": "8",
+      "title": "Clients that hang up are logged as Error",
+      "round": 1,
+      "needsOwner": false,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "Debug when the client cancelled, Error otherwise",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "Information when the client cancelled, Error otherwise",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": "A",
+      "dependsOn": null
+    },
+    {
+      "id": "9",
+      "title": "Where support sees which clients are behind the gateway",
+      "round": 2,
+      "needsOwner": true,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "A behind chip in the Version column and a count in the header",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "A banner above the table that links to the behind clients",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": null,
+      "dependsOn": null
+    }
+  ]
+}
+</script>
+<script>
+/* Review page behaviour. Paste into each review page unchanged.
+ * Reads <script type="application/json" id="review-data"> = { review, issues }.
+ * Pure functions first (never mutate their input), then boot() for the DOM. */
+(function () {
+  'use strict';
+
+  var LINE_END = '[\\r\\n\\v\\f\\x1c-\\x1e\\x85\\u2028\\u2029]+';
+  var LINE_END_RE = new RegExp('\\s*' + LINE_END + '\\s*', 'g');
+
+  function has(o, k) { return o != null && Object.prototype.hasOwnProperty.call(o, k); }
+  function ids(issues) { return issues.map(function (i) { return i.id; }); }
+  function findIssue(issues, id) {
+    for (var k = 0; k < issues.length; k++) if (issues[k].id === id) return issues[k];
+    return null;
+  }
+  function findOption(issue, optionId) {
+    var o = issue && issue.options || [];
+    for (var k = 0; k < o.length; k++) if (o[k].id === optionId) return o[k];
+    return null;
+  }
+  function copyState(state) {
+    var out = {};
+    Object.keys(state).forEach(function (k) { out[k] = Object.assign({}, state[k]); });
+    return out;
+  }
+  function oneLine(text, joiner) {
+    return String(text == null ? '' : text).trim().replace(LINE_END_RE, joiner).trim();
+  }
+
+  function recommendedFor(issue, state) {
+    var dep = issue.dependsOn;
+    if (dep && state && has(state, dep.issue) && state[dep.issue].choice != null && has(dep.map, state[dep.issue].choice)) {
+      var mapped = dep.map[state[dep.issue].choice];
+      if (findOption(issue, mapped)) return mapped;
+    }
+    return issue.recommended != null && findOption(issue, issue.recommended) ? issue.recommended : null;
+  }
+
+  /* Dependency sync: undecided dependents follow the parent; an owner decision
+   * whose recommendation moved is kept and flagged stale. */
+  function sync(state, issues) {
+    var s = copyState(state);
+    for (var pass = 0; pass <= issues.length; pass++) {
+      var changed = false;
+      issues.forEach(function (issue) {
+        var st = s[issue.id], rec = recommendedFor(issue, s), next;
+        if (!st) return;
+        if (st.status === 'undecided') {
+          next = { choice: rec, stale: false };
+        } else if (st.by === 'owner') {
+          var moved = st.rec !== undefined && st.rec !== rec;
+          next = { choice: st.choice, stale: moved && st.choice !== rec };
+        } else {
+          next = { choice: st.choice, stale: false };
+        }
+        if (st.choice !== next.choice || st.stale !== next.stale) {
+          s[issue.id] = Object.assign({}, st, next);
+          changed = true;
+        }
+      });
+      if (!changed) break;
+    }
+    return s;
+  }
+
+  function createState(issues, saved) {
+    var s = {};
+    saved = saved && typeof saved === 'object' ? saved : {};
+    issues.forEach(function (issue) {
+      var agent = !issue.needsOwner && issue.agentChoice != null;
+      var st = agent
+        ? { choice: issue.agentChoice, note: '', status: 'decided', by: 'agent', stale: false }
+        : { choice: issue.recommended != null && findOption(issue, issue.recommended) ? issue.recommended : null, note: '', status: 'undecided', by: null, stale: false };
+      var sv = has(saved, issue.id) && saved[issue.id] && typeof saved[issue.id] === 'object' ? saved[issue.id] : null;
+      if (sv) {
+        if (typeof sv.note === 'string') st.note = sv.note;
+        var decidedBefore = sv.status === 'decided' || sv.status === 'disputed';
+        if (decidedBefore && sv.by === 'agent') {
+          if (issue.agentChoice != null) { st.choice = issue.agentChoice; st.status = 'decided'; st.by = 'agent'; }
+        } else if (decidedBefore && findOption(issue, sv.choice)) {
+          st.choice = sv.choice; st.by = 'owner';
+          st.status = findOption(issue, sv.choice).dispute ? 'disputed' : 'decided';
+          if (sv.rec !== undefined) st.rec = sv.rec;
+        }
+      }
+      s[issue.id] = st;
+    });
+    return sync(s, issues);
+  }
+
+  function update(state, issues, id, change) {
+    if (!has(state, id)) return state;
+    var s = copyState(state);
+    s[id] = Object.assign(s[id], change);
+    return sync(s, issues);
+  }
+
+  function choose(state, issues, id, optionId) {
+    var issue = findIssue(issues, id), opt = findOption(issue, optionId);
+    if (!opt || !has(state, id)) return state;
+    return update(state, issues, id, {
+      choice: optionId, by: 'owner', status: opt.dispute ? 'disputed' : 'decided', stale: false, rec: recommendedFor(issue, state)
+    });
+  }
+
+  function confirm(state, issues, id) {
+    var issue = findIssue(issues, id);
+    if (!issue || !has(state, id) || state[id].status !== 'undecided' || state[id].choice == null) return state;
+    return update(state, issues, id, { status: 'decided', by: 'owner', stale: false, rec: recommendedFor(issue, state) });
+  }
+
+  function reopen(state, issues, id) {
+    var issue = findIssue(issues, id);
+    if (!issue || !has(state, id)) return state;
+    var s = update(state, issues, id, { status: 'undecided', by: null, stale: false });
+    delete s[id].rec;
+    return update(s, issues, id, { choice: recommendedFor(issue, s) });
+  }
+
+  function restoreAgent(state, issues, id) {
+    var issue = findIssue(issues, id);
+    if (!issue || !has(state, id) || issue.agentChoice == null) return state;
+    var s = update(state, issues, id, { choice: issue.agentChoice, by: 'agent', status: 'decided', stale: false });
+    delete s[id].rec;
+    return s;
+  }
+
+  function setNote(state, id, text) {
+    if (!has(state, id)) return state;
+    var s = copyState(state);
+    s[id].note = String(text == null ? '' : text);
+    return s;
+  }
+
+  function counts(state, issues) {
+    var out = { decided: 0, total: issues.length, undecided: [], disputed: [] };
+    issues.forEach(function (issue) {
+      var st = state[issue.id];
+      if (!st || st.status === 'undecided') out.undecided.push(issue.id);
+      else if (st.status === 'disputed') out.disputed.push(issue.id);
+      else out.decided++;
+    });
+    return out;
+  }
+
+  function labelOf(issue, optionId) {
+    var o = findOption(issue, optionId);
+    return o ? oneLine(o.label, ' ') : '';
+  }
+
+  function buildText(review, issues, state) {
+    var c = counts(state, issues);
+    var out = [
+      'Decisions for ' + oneLine(review.title, ' ') + ', review round ' + review.round,
+      'Review: ' + review.id,
+      c.decided + ' of ' + c.total + ' decided',
+      ''
+    ];
+    issues.forEach(function (issue) {
+      var st = state[issue.id] || { choice: null, note: '', status: 'undecided', by: null };
+      var rec = recommendedFor(issue, state);
+      out.push(issue.id + '. ' + oneLine(issue.title, ' ') + (issue.round > 1 ? ' [new in round ' + issue.round + ']' : ''));
+      if (st.status === 'undecided') {
+        out.push(rec == null
+          ? '   UNDECIDED. No recommendation.'
+          : '   UNDECIDED. Agent recommends [' + rec + '] ' + labelOf(issue, rec) + '.');
+      } else {
+        var who = st.by === 'agent' ? 'agent decided, owner left it' : (st.choice === rec ? 'owner confirmed' : 'owner chose');
+        var opt = findOption(issue, st.choice), line = '[' + st.choice + '] ' + labelOf(issue, st.choice);
+        if (st.status === 'disputed') {
+          out.push('   DISPUTED: ' + line + ' (' + who + ')');
+        } else {
+          var outcome = opt && opt.outcome ? ' - ' + oneLine(opt.outcome, ' ') : '';
+          out.push('   Decision: ' + line + outcome + ' (' + who + ')');
+        }
+      }
+      if (issue.dependsOn && has(state, issue.dependsOn.issue)) {
+        var p = state[issue.dependsOn.issue];
+        out.push('   Depends on: issue ' + issue.dependsOn.issue + ' = ' + (p.choice == null ? 'no choice yet' : '[' + p.choice + ']') +
+          (p.status === 'decided' ? ' (confirmed)' : ' (not confirmed)'));
+      }
+      var note = oneLine(st.note, ' / ');
+      if (note) out.push('   Note: ' + note);
+    });
+    if (c.undecided.length || c.disputed.length) out.push('');
+    if (c.undecided.length) out.push('Undecided: ' + c.undecided.join(', ') + '. Do not act on these yet.');
+    if (c.disputed.length) out.push('Disputed: ' + c.disputed.join(', ') + '. Re-think these using the notes.');
+    return out.join('\n');
+  }
+
+  var api = {
+    createState: createState, choose: choose, confirm: confirm, reopen: reopen,
+    restoreAgent: restoreAgent, setNote: setNote, recommendedFor: recommendedFor,
+    counts: counts, buildText: buildText
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+
+  /* ---- DOM ---- */
+  function boot() {
+    var $ = function (sel, root) { return (root || document).querySelector(sel); };
+    var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+    var dataEl = $('#review-data'), data;
+    try { data = JSON.parse(dataEl ? dataEl.textContent : ''); } catch (e) { return; }
+    if (!data || !data.review) return;
+    var review = data.review, issues = Array.isArray(data.issues) ? data.issues : [];
+    var key = 'review:' + review.id, saved = {};
+    try { saved = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { saved = {}; }
+    var state = createState(issues, saved);
+    var filter = 'all';
+    var articles = {};
+    $$('article[data-issue]').forEach(function (a) { articles[a.getAttribute('data-issue')] = a; });
+
+    function save() { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} }
+    function optionIdOf(el) {
+      if (!el) return null;
+      if (el.getAttribute('data-choice') != null) return el.getAttribute('data-choice');
+      if (el.getAttribute('data-option') != null) return el.getAttribute('data-option');
+      var r = $('input[type=radio]', el);
+      return r ? r.value : null;
+    }
+    var matches = {
+      all: function () { return true; },
+      needs: function (i) { return !!i.needsOwner; },
+      agent: function (i) { return !i.needsOwner; },
+      'new': function (i) { return i.round === review.round; }
+    };
+
+    function render() {
+      issues.forEach(function (issue) {
+        var a = articles[issue.id], st = state[issue.id], rec = recommendedFor(issue, state);
+        if (!a || !st) return;
+        a.setAttribute('data-state', st.status);
+        a.setAttribute('data-by', st.by || '');
+        a.hidden = !(matches[filter] || matches.all)(issue);
+        $$('input[type=radio]', a).forEach(function (r) {
+          r.checked = r.value === st.choice;
+          var box = r.closest('label, [data-option]');
+          if (box) box.classList.toggle('sel', r.checked);
+        });
+        $$('button[data-choice]', a).forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-choice') === st.choice));
+        });
+        $$('[data-rec-tag]', a).forEach(function (t) {
+          t.hidden = optionIdOf(t.closest('button[data-choice], [data-option], label')) !== rec;
+        });
+        $$('button[data-act]', a).forEach(function (b) {
+          var act = b.getAttribute('data-act');
+          b.hidden = act === 'confirm' ? !(st.status === 'undecided' && st.choice != null)
+            : act === 'reopen' ? !(issue.needsOwner && st.status !== 'undecided')
+            : act === 'restore' ? !(issue.agentChoice != null && st.by !== 'agent')
+            : act === 'use-recommendation' ? rec == null : false;
+        });
+        $$('[data-stale-notice]', a).forEach(function (n) {
+          n.hidden = !st.stale;
+          if (rec != null) n.setAttribute('data-recommended', rec);
+        });
+        var ta = $('textarea[data-note]', a);
+        if (ta && ta.value !== st.note) ta.value = st.note;
+      });
+      var c = counts(state, issues);
+      $$('[data-progress]').forEach(function (p) { p.textContent = c.decided + ' of ' + c.total + ' decided'; });
+      $$('[data-preview]').forEach(function (p) { p.textContent = buildText(review, issues, state); });
+      $$('button[data-filter]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-filter') === filter));
+      });
+    }
+    function apply(next) { state = next; save(); render(); }
+    function issueIdOf(el) {
+      var a = el.closest('article[data-issue]');
+      return a ? a.getAttribute('data-issue') : null;
+    }
+
+    document.addEventListener('change', function (e) {
+      var t = e.target, id = t && t.matches && t.matches('input[type=radio]') ? issueIdOf(t) : null;
+      if (id != null) apply(choose(state, issues, id, t.value));
+    });
+    document.addEventListener('input', function (e) {
+      var t = e.target, id = t && t.matches && t.matches('textarea[data-note]') ? issueIdOf(t) : null;
+      if (id != null) apply(setNote(state, id, t.value));
+    });
+
+    var copyTimer;
+    function copyText() {
+      var btn = $('button[data-copy]');
+      var label = btn && ($('[data-copy-label]', btn) || (btn.children.length ? null : btn));
+      var original = label ? (label.getAttribute('data-original') || label.textContent) : '';
+      if (label) label.setAttribute('data-original', original);
+      var text = buildText(review, issues, state);
+      function report(msg) {
+        if (!label) return;
+        label.textContent = msg;
+        clearTimeout(copyTimer);
+        copyTimer = setTimeout(function () { label.textContent = original; }, 2500);
+      }
+      function fallback() {
+        var prev = $('[data-preview]'), done = false;
+        var d = prev && prev.closest('details');
+        if (d) d.open = true;
+        try {
+          if (prev) {
+            var range = document.createRange(); range.selectNodeContents(prev);
+            var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+          }
+          done = document.execCommand('copy');
+        } catch (e) { done = false; }
+        report(done ? 'Copied' : 'Copy failed, select the text below');
+      }
+      try {
+        navigator.clipboard.writeText(text).then(function () { report('Copied'); }, fallback);
+      } catch (e) { fallback(); }
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target : null;
+      if (!t) return;
+      var b = t.closest('button');
+      if (!b) return;
+      var id = issueIdOf(b);
+      if (b.hasAttribute('data-choice') && id != null) {
+        apply(choose(state, issues, id, b.getAttribute('data-choice')));
+      } else if (b.hasAttribute('data-act') && id != null) {
+        var act = b.getAttribute('data-act'), issue = findIssue(issues, id);
+        if (act === 'confirm') apply(confirm(state, issues, id));
+        else if (act === 'reopen') apply(reopen(state, issues, id));
+        else if (act === 'restore') apply(restoreAgent(state, issues, id));
+        else if (act === 'use-recommendation' && issue) {
+          var rec = recommendedFor(issue, state);
+          if (rec != null) apply(choose(state, issues, id, rec));
+        }
+      } else if (b.hasAttribute('data-copy')) {
+        copyText();
+      } else if (b.hasAttribute('data-filter')) {
+        filter = b.getAttribute('data-filter');
+        render();
+      }
+    });
+
+    render();
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  }
+})();
+</script>
+</body>
+</html>
