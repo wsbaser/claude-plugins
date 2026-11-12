@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "review": { "id": "spec-invoice-delete", "title": "Spec \"Let users delete draft invoices\"", "round": 1 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "Deleting a draft invoice: mark the row with deleted_at, or move it to an archive table",
+      "round": 1,
+      "origin": null
+    },
+    {
+      "id": "2",
+      "title": "How the invoice list query leaves deleted drafts out",
+      "round": 1,
+      "origin": null
+    }
+  ]
+}

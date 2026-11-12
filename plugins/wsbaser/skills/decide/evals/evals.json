@@ -1,0 +1,47 @@
+{
+  "skill_name": "wsbaser:decide",
+  "evals": [
+    {
+      "id": "evident-issues-no-research",
+      "name": "evident-issues-no-research",
+      "prompt": "You are called by wsbaser:review. The record is at evals/files/evident-issues/review.json at stage intake; treat evals/files/evident-issues/ as the project root. The code under review is src/billing.py, where a discount was just added to invoice totals. Decide all three issues and hand the record back.",
+      "expected_output": "All three issues decided by the agent (decision.by agent, status decided) and none with needsOwner true: issue 1 recommends rounding the discount with to_cents (round() on a Decimal rounds half to even, unlike to_cents), issue 2 recommends renaming calc to follow the compute_* convention, issue 3 recommends removing the import. Each has one real option in buttons mode with dispute options and sources as src/billing.py:line. No web search and no subagent. The record passes check_record.py --stage decided.",
+      "files": ["evals/files/evident-issues/review.json", "evals/files/evident-issues/src/billing.py"]
+    },
+    {
+      "id": "costly-to-reverse-asks",
+      "name": "costly-to-reverse-asks",
+      "prompt": "You are called by wsbaser:review. The record is at evals/files/costly-to-reverse/review.json at stage intake; treat evals/files/costly-to-reverse/ as the project root. The spec adds archiving of paid invoices to the public Billing API v2, whose current paths are in api/openapi-excerpt.yaml. Decide the issue and hand the record back.",
+      "expected_output": "Issue 1 has needsOwner true with a needsOwnerReason that names the cost of reversal (a public path customer integrations will call), a recommendation that is not null (likely POST /v2/invoices/{id}/archive, matching the existing send and void actions) with its reason and the YAML as a source, and decision.by null with status undecided. The record passes check_record.py --stage decided.",
+      "files": ["evals/files/costly-to-reverse/review.json", "evals/files/costly-to-reverse/api/openapi-excerpt.yaml"]
+    },
+    {
+      "id": "invalid-review-comment",
+      "name": "invalid-review-comment",
+      "prompt": "You are called by wsbaser:review. The record is at evals/files/invalid-review-comment/review.json at stage intake; treat evals/files/invalid-review-comment/ as the project root. Issue 1 is a reviewer's comment on src/orders.py. Decide it and hand the record back.",
+      "expected_output": "origin.verdict is not-valid and verdictReason cites the existing guard at src/orders.py:9 to 10, two lines above the call. The issue uses buttons mode with one real option that declines the comment (for example decline), recommended with a reason that reads as a reply to the reviewer, plus dispute options such as 'add it anyway' and 'discuss'. Decided by the agent, needsOwner false. The record passes check_record.py --stage decided.",
+      "files": ["evals/files/invalid-review-comment/review.json", "evals/files/invalid-review-comment/src/orders.py"]
+    },
+    {
+      "id": "ui-question-gets-mockups",
+      "name": "ui-question-gets-mockups",
+      "prompt": "You are called by wsbaser:review. The record is at evals/files/ui-cost-field/review.json at stage intake; treat evals/files/ui-cost-field/ as the project root. The screen is src/ProductCard.tsx. Decide how the cost field should be shown and hand the record back.",
+      "expected_output": "The ui-ux kind file is loaded and impeccable is consulted through the Skill tool. Issue 1 is in radio mode with two or three real options, each carrying a ui-mockup block (screen, source src/ProductCard.tsx:line, html, pins) built from the real card fields and the sample values (Hex bolt M8 x 40, zinc; 1234.5 EUR; box of 100). The recommendation names the convention it follows (currency and number format for the locale, unit of the price) and its sources hold web links. The record passes check_record.py --stage decided.",
+      "files": ["evals/files/ui-cost-field/review.json", "evals/files/ui-cost-field/src/ProductCard.tsx"]
+    },
+    {
+      "id": "dependent-pair",
+      "name": "dependent-pair",
+      "prompt": "You are called by wsbaser:review. The record is at evals/files/dependent-pair/review.json at stage intake. The project is a billing app on PostgreSQL; invoices live in one table, and the invoice list is one SQL query. Decide both issues and hand the record back.",
+      "expected_output": "Issue 2 has dependsOn pointing at issue 1, with a map that has a key for every option of issue 1 (dispute options included) and an option of issue 2 as each value (for example a deleted_at IS NULL filter for the flag, no change for the archive table), and a note saying what changes. The map's value for issue 1's recommended option is issue 2's recommendation. Issue 2 does not need the owner on its own account. The record passes check_record.py --stage decided.",
+      "files": ["evals/files/dependent-pair/review.json"]
+    },
+    {
+      "id": "fifteen-issues",
+      "name": "fifteen-issues",
+      "prompt": "You are called by wsbaser:review. The record is at evals/files/fifteen-issues/review.json at stage intake; treat evals/files/fifteen-issues/ as the project root. The PR adds src/notify.py, a job that emails reminders for overdue invoices. Decide all fifteen issues and hand the record back.",
+      "expected_output": "Triage happens in the main thread first. Evident code fixes are decided inline; related issues are batched (for example the send() retry issues together), and the subagents are few (well under fifteen) and launched in one parallel message. Each reviewer claim has a verdict with evidence; the product questions (reminder frequency, language) and the public tenant setting name need the owner, each still with a recommendation. The record passes check_record.py --stage decided.",
+      "files": ["evals/files/fifteen-issues/review.json", "evals/files/fifteen-issues/src/notify.py"]
+    }
+  ]
+}

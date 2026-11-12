@@ -1,0 +1,16 @@
+# Public API v2. Published to customers; their integrations call these paths.
+openapi: 3.0.3
+info:
+  title: Billing API
+  version: 2.4.0
+paths:
+  /v2/invoices:
+    get: { summary: List invoices }
+    post: { summary: Create an invoice }
+  /v2/invoices/{id}:
+    get: { summary: Get an invoice }
+    patch: { summary: Update a draft invoice }
+  /v2/invoices/{id}/send:
+    post: { summary: Send the invoice to the customer }
+  /v2/invoices/{id}/void:
+    post: { summary: Void a sent invoice }

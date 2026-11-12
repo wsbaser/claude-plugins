@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "review": { "id": "pr-203-overdue-reminders", "title": "PR #203 \"Email reminders for overdue invoices\"", "round": 1 },
+  "issues": [
+    { "id": "1", "round": 1, "origin": null, "title": "send() catches every Exception, including programming errors" },
+    { "id": "2", "round": 1, "origin": null, "title": "Failed attempts are logged at info and the final failure is not logged at all" },
+    { "id": "3", "round": 1, "title": "Reviewer asks for exponential backoff instead of a fixed two-second sleep",
+      "origin": { "quote": "A fixed 2s sleep hammers the SMTP server during an outage. Use exponential backoff.", "author": "reviewer", "where": "src/notify.py:29" } },
+    { "id": "4", "round": 1, "origin": null, "title": "send_overdue_reminders ignores the result of send()" },
+    { "id": "5", "round": 1, "title": "Reviewer asks to filter overdue invoices in the query instead of in Python",
+      "origin": { "quote": "all_invoices() loads every invoice ever issued. Filter overdue and unpaid in the repository query.", "author": "reviewer", "where": "src/notify.py:16" } },
+    { "id": "6", "round": 1, "origin": null, "title": "The SMTP host is hard-coded" },
+    { "id": "7", "round": 1, "origin": null, "title": "The sender address is hard-coded" },
+    { "id": "8", "round": 1, "origin": null, "title": "The message is built by string concatenation with no headers but Subject" },
+    { "id": "9", "round": 1, "origin": null, "title": "Notifier both selects overdue invoices and sends mail" },
+    { "id": "10", "round": 1, "title": "Reviewer says Notifier has no tests",
+      "origin": { "quote": "No tests for Notifier at all?", "author": "reviewer", "where": "src/notify.py:11" } },
+    { "id": "11", "round": 1, "title": "Reviewer says invoice.customer can be None",
+      "origin": { "quote": "invoice.customer can be None for invoices imported from the old system. This will crash the whole run.", "author": "reviewer", "where": "src/notify.py:18" } },
+    { "id": "12", "round": 1, "origin": null, "title": "Customers get a reminder on every run of the job for as long as the invoice is overdue" },
+    { "id": "13", "round": 1, "origin": null, "title": "The reminder text is English only, but customers are in several countries" },
+    { "id": "14", "round": 1, "origin": null, "title": "Name of the tenant setting that controls how often reminders are sent" },
+    { "id": "15", "round": 1, "origin": null, "title": "time.sleep is called directly, so a test of send() waits six seconds" }
+  ]
+}

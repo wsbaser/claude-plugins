@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "review": { "id": "spec-invoice-archive", "title": "Spec \"Archive paid invoices\"", "round": 1 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "Path and verb of the new public endpoint that archives an invoice",
+      "round": 1,
+      "origin": null
+    }
+  ]
+}

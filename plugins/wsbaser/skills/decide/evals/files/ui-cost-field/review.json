@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "review": { "id": "task-88-product-card", "title": "Task 88 \"Show cost on the product card\"", "round": 1 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "How the cost field on the product card should be shown",
+      "round": 1,
+      "origin": null
+    }
+  ]
+}

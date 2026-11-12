@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "review": { "id": "task-412-invoice-discount", "title": "Task 412 \"Apply the customer discount to invoice totals\"", "round": 1 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "The discount is rounded with round() while every other amount uses to_cents",
+      "round": 1,
+      "origin": null
+    },
+    {
+      "id": "2",
+      "title": "The discount function is named calc",
+      "round": 1,
+      "origin": null
+    },
+    {
+      "id": "3",
+      "title": "billing.py imports datetime but never uses it",
+      "round": 1,
+      "origin": null
+    }
+  ]
+}
