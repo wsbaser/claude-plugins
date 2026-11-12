@@ -11,3 +11,6 @@ eval-workspaces/
 
 # Python bytecode
 __pycache__/
+
+# Superpowers working files
+.superpowers/

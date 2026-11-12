@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "review": { "id": "pr-2317-log-levels", "title": "PR #2317 \"Normalize log levels\"", "round": 2 },
+  "issues": [
+    {
+      "id": "1",
+      "title": "One transport failure is logged as Error in two layers",
+      "round": 1,
+      "kind": "code design",
+      "needsOwner": true,
+      "needsOwnerReason": "no clear winner",
+      "origin": { "quote": "Why Error here? The transport already logs this.", "author": "reviewer", "where": "SyncSession.cs:142", "verdict": "valid", "verdictReason": "both layers log the same exception at Error" },
+      "attributes": [ { "label": "Confidence", "value": "Medium" } ],
+      "explanation": [ { "form": "prose", "text": "The same failure is logged at Error in two places." } ],
+      "mode": "radio",
+      "options": [
+        { "id": "A", "label": "Error once in SyncSession, transport logs Debug", "attributes": [], "blocks": [] },
+        { "id": "B", "label": "Error once in the transport, SyncSession logs Debug", "attributes": [], "blocks": [] },
+        { "id": "C", "label": "Keep both, add a correlation id", "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "A", "reason": "SyncSession is the layer that can act on the failure.", "confidence": "medium", "sources": [], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "owner", "choice": "B", "note": "", "status": "decided" }
+    },
+    {
+      "id": "2",
+      "title": "Client older than the gateway: Warning or Information?",
+      "round": 2,
+      "kind": "code design",
+      "needsOwner": true,
+      "needsOwnerReason": "costly to reverse",
+      "origin": null,
+      "attributes": [ { "label": "Reversibility", "value": "Low" } ],
+      "explanation": [ { "form": "prose", "text": "A client behind the gateway version can still work, but support wants to see the skew." } ],
+      "mode": "radio",
+      "options": [
+        { "id": "A", "label": "Information", "attributes": [], "blocks": [] },
+        { "id": "B", "label": "Warning", "attributes": [], "blocks": [] },
+        { "id": "C", "label": "Warning for one release, then Information", "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "A", "reason": "Version skew is expected during rollouts and is not actionable.", "confidence": "medium", "sources": [], "unverified": [] },
+      "dependsOn": { "issue": "1", "map": { "A": "A", "B": "C", "C": "A" }, "note": "If the transport owns the Error, skew must stay visible for one release." },
+      "decision": { "by": null, "choice": null, "note": "", "status": "undecided" }
+    },
+    {
+      "id": "3",
+      "title": "Request logging crashes when the request has no identity",
+      "round": 1,
+      "kind": "code fix",
+      "needsOwner": false,
+      "needsOwnerReason": "",
+      "origin": null,
+      "attributes": [ { "label": "Severity", "value": "High" } ],
+      "explanation": [ { "form": "prose", "text": "The logger reads the user name without a null check and throws on anonymous requests." } ],
+      "mode": "buttons",
+      "options": [
+        { "id": "accept", "label": "Accept", "outcome": "apply the null guard", "attributes": [], "blocks": [] },
+        { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
+        { "id": "discuss", "label": "Discuss", "dispute": true, "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "accept", "reason": "A null guard is small and removes a crash.", "confidence": "high", "sources": [], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "agent", "choice": "accept", "note": "", "status": "decided" }
+    },
+    {
+      "id": "4",
+      "title": "Retry attempts are logged too loud",
+      "round": 1,
+      "kind": "code fix",
+      "needsOwner": false,
+      "needsOwnerReason": "",
+      "origin": null,
+      "attributes": [ { "label": "Severity", "value": "Low" } ],
+      "explanation": [ { "form": "prose", "text": "Every retry attempt is logged at Warning, which floods the log during outages." } ],
+      "mode": "buttons",
+      "options": [
+        { "id": "accept", "label": "Accept", "outcome": "retry attempts go to Debug", "attributes": [], "blocks": [] },
+        { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
+        { "id": "discuss", "label": "Discuss", "dispute": true, "attributes": [], "blocks": [] }
+      ],
+      "recommendation": { "option": "accept", "reason": "Only the final failure needs attention.", "confidence": "medium", "sources": [], "unverified": [] },
+      "dependsOn": null,
+      "decision": { "by": "owner", "choice": "reject", "note": "Ops still wants these at Warning during the migration", "status": "disputed" }
+    }
+  ]
+}
