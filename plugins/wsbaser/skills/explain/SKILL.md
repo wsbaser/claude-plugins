@@ -66,7 +66,7 @@ In the terminal nothing renders, so use the plain-text equivalent of the form yo
 
 ## 6. Embedded mode
 
-`wsbaser:review` gives you the path to a `review.json` that has reached stage `decided`. The record's contract is `<skills>/review/references/record.md`; read it first.
+`wsbaser:review` gives you the path to a `review.json` that has reached stage `decided`. The record's contract is `<skills>/review/references/record.md`; read it first. In a later round it may also pass a list of issue ids to (re)write: then write only those and leave every other issue untouched. Without a list, write every issue.
 
 Before writing, run `python <skills>/review/scripts/check_record.py <path to review.json> --stage decided`. If it prints anything, stop, write nothing, and tell the caller what it printed.
 

@@ -17,7 +17,7 @@ The caller gives you the path to a `review.json` and, often, pointers to what it
 
 1. Read `<skills>/review/references/record.md`. Its field names are the contract. If it or `<skills>/review/scripts/check_record.py` is missing, stop and tell the caller.
 2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage intake`. If it prints anything, stop, write nothing, and tell the caller what it printed.
-3. Decide every issue that has no `options` yet, and any issue the caller names for a re-think. Leave the others as they are.
+3. Decide every issue that has no `options` yet, and any issue the caller names for a re-think. Leave the others as they are. In a later round the caller may pass a list of issue ids to (re)work; then work only on those and leave every other issue untouched. Without a list, work on every issue.
 
 For each issue you decide, fill exactly these fields:
 

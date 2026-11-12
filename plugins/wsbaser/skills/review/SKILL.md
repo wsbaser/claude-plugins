@@ -19,17 +19,17 @@ After every step that writes the record, run `python <base>/scripts/check_record
 
 When the caller hands you an existing `review.json`, do not start over:
 
+- Any issue's decision is `disputed`: go to step 8.
 - It has `review.artifactUrl` and the caller brings new issues: go to step 10.
-- It has `review.artifactUrl` and nothing new: the page is out; go to step 6.
-- Otherwise find the highest stage it passes (`intake`, `decided`, `ready`) and continue with the step after the one that reached it. A record that passed `ready` and has no `artifactUrl` continues at step 5.
+- Otherwise find the highest stage it passes: `intake` goes to step 2, `decided` to step 4, `ready` to step 5, or to step 6 when `review.artifactUrl` is set (the page is already out).
 
 ## 1. Intake
 
 Issues come from a slot: one file per kind of source, each opening with a `when:` line. The set grows by adding files, so never assume which exist.
 
-1. List `<base>/intake/` and, if it exists, `.claude/review/intake/` under the root of the project being worked on. When both hold a file with the same name, the project's file wins.
-2. Read only the frontmatter `when:` line of each file and load the one that matches the topic and how it was handed to you.
-3. Follow that file. It says how to read the source, what becomes an issue, and how to fill each issue's intake fields.
+1. List `<base>/intake/` and, if it exists, `.claude/review/intake/` under the root of the project being worked on. When both hold a file with the same name, the project's file wins. Run `python <base>/scripts/check_slots.py` on both folders; skip any file it reports without a one-line `when:` and tell the owner which one you skipped.
+2. Read only the frontmatter `when:` line of each file and load the ones that match the topic and how it was handed to you.
+3. Follow each matching file. It says how to read the source, what becomes an issue, and how to fill each issue's intake fields. When several match, merge their issues under one review and renumber any id that clashes.
 4. If no file matches, read the topic and every source it names in full (the conversation, files, links, code), and list as issues the open points where a wrong guess costs rework. `origin` holds a claim only when someone else made it.
 
 Create the folder `review-<review.id>/` where the caller says, else in the session scratchpad, and write `<record>` with `schema: 1`, the `review` object (`round: 1`) and the issues. Validate at `intake`.
@@ -64,43 +64,46 @@ When the caller announces the page and collects the owner's answer itself, give 
 
 ## 7. Read the paste
 
-First check the paste's first line. If it names a round lower than `review.round`, it came from a tab opened before the last republish: ask the owner to reload the page and copy again, and do not parse it.
+Check the head of the paste before parsing, in this order:
 
-Save the pasted text next to `<record>` as `decisions-round-<review.round>.txt` and run:
+1. **Review id.** The second line is `Review: <id>`. If the id is not `review.id`, nothing is applied: tell the owner which review the paste belongs to and ask for the text from this page's link.
+2. **Round.** The first line ends `review round <N>`. If N is lower than `review.round`, the paste came from a tab opened before the last republish: ask the owner to reload the page and copy again.
+3. **Missing head.** If the first line, its round or the `Review:` line is missing, the paste is unreadable: say so and ask for a fresh paste of Copy decisions.
+
+Do not parse a paste that fails these checks. Otherwise save it in the folder that holds `<record>` (`review-<review.id>/`) as `decisions-round-<review.round>.txt`, and run, through the Bash tool (the script reads stdin, and PowerShell has no `<` redirect):
 
 ```bash
-python <base>/scripts/parse_decisions.py <record> < <folder of record>/decisions-round-<review.round>.txt
+python <base>/scripts/parse_decisions.py <record> < review-<review.id>/decisions-round-<review.round>.txt
 ```
 
-It merges the decisions into `<record>`, writes it back, and prints JSON with `settled`, `undecided`, `disputed` and `problems`.
+with both paths written out in full. It merges the decisions into `<record>`, writes it back, and prints JSON with `settled`, `undecided`, `disputed` and `problems`. If it exits non-zero or prints something that is not that JSON, stop and give the owner (or the caller) what it printed.
 
-- **Another review.** A problem saying the text is for another review means nothing was applied. Tell the owner which review the paste belongs to and ask for the text from this page's link.
 - **Unreadable or missing issues.** For each problem, tell the owner in plain words which issue could not be read and why (cut off, missing, an option the issue does not have). The parser marks those issues undecided, so ask for a fresh, complete paste of Copy decisions and run step 7 again. Do not fill the gaps yourself.
-- **"Accept all recommendations"** instead of a paste: set every issue that has a recommendation to `{ "by": "owner", "choice": <recommended option>, "note": "", "status": "decided" }`, keeping agent decisions as they are; issues with no recommendation stay undecided. Write the decision text for the return yourself, from the record, in the format of `decision-text.md`.
+- **"Accept all recommendations"** instead of a paste: change only issues whose decision is `undecided` or `disputed`; leave every `decided` one, the owner's or the agent's, as it is. Set each changed issue that has a recommendation to `{ "by": "owner", "choice": <option>, "note": "", "status": "decided" }`, where `<option>` is the recommendation, or for a dependent issue the option its `dependsOn.map` gives for the parent's current choice. An issue with no recommendation stays undecided. Then write the decision text from the record in the format of `decision-text.md`, save it as above, and run it through the parser, so the summary is the parser's like any paste.
 
-Undecided issues with no problems mean the owner has not answered them yet: say which ones and wait for a new paste.
+Undecided issues with no problems mean the owner has not answered them yet: name their ids and wait for a new paste. Do not return.
 
 ## 8. Settle disputes
 
 Rework every issue the summary lists as `disputed`, and every decided issue whose note argues against the choice (a note that only adds detail is not a dispute; it goes back to the caller with the decision).
 
 1. Raise `review.round` by one.
-2. Invoke `wsbaser:decide` naming those issues for a re-think, with each owner's note as new input. If a reworked issue's option ids change, name the issues that depend on it too, so their maps are redone.
-3. Set each reworked issue's `round` to the new `review.round`. This is what makes the page drop the owner's saved state for that issue only. Keep the id. Leave every other issue's `round` and decision as they are, so their earlier decisions stay on the page and in the record.
-4. Invoke `wsbaser:explain` in embedded mode, naming the reworked issues to rewrite.
+2. Invoke `wsbaser:decide` with the list of those issue ids to re-think and each owner's note as new input. If a reworked issue's option ids change, add the issues that depend on it to the list, so their maps are redone. Validate at `decided`.
+3. Set the `round` of every issue on the list, and of any dependent whose map or recommendation decide redid, to the new `review.round`. This is what makes the page drop the owner's saved state for those issues only. Keep the ids. Leave every other issue's `round` and decision as they are, so their earlier decisions stay on the page and in the record.
+4. Invoke `wsbaser:explain` in embedded mode with the same list of ids.
 5. Validate at `ready`, rebuild the page, republish to `review.artifactUrl`, and go back to step 6. Say which issues were reworked and what changed in one line each.
 
 ## 9. Return
 
-Return only when the summary says `settled: true`, in this form:
+Return only when the parser's summary says `settled: true`, in this form:
 
 ```
 Review settled: <number of issues> decisions
-<the decision text: the owner's last paste, or the text you wrote for "accept all">
+<the decision text that was parsed last: the owner's paste, or the text you wrote for "accept all">
 <record>
 ```
 
-If the owner says to stop before that, return:
+Until then, wait. Only when the owner (or the caller) says to stop, return:
 
 ```
 Review not settled
@@ -116,7 +119,7 @@ Take the ids from the last parse summary, or from the record's decisions when no
 When the caller invokes you again on the same `<record>` with new issues (applying the decisions raised them):
 
 1. Raise `review.round` by one. Add the new issues with ids not used before and `round` set to the new round. Validate at `intake`.
-2. Run steps 3 and 4. Decide fills only issues without options, so earlier decisions stay. Tell explain which issues are new.
+2. Run steps 3 and 4, passing decide and explain the list of new issue ids, so earlier issues and decisions stay untouched. If decide redoes a dependent's map or recommendation, give that dependent the new round too.
 3. Re-apply the order, validate at `ready`, rebuild the page, republish to `review.artifactUrl`, and continue from step 6.
 
 ## What this skill does not do

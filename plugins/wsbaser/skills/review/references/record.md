@@ -47,7 +47,7 @@ The file is named `review.json` and lives in a folder `review-<review.id>/`. The
 |---|---|
 | `id` | Stable id, unique in the record, matching `^[A-Za-z0-9-]+$`. |
 | `title` | Non-empty, one line. |
-| `round` | The round the issue was added in; `1 <= round <= review.round`. |
+| `round` | The round the issue was added in or last reworked in (a re-think after a dispute, or a dependent whose map or recommendation was redone); `1 <= round <= review.round`. Raising it makes the review page drop the owner's saved state for that issue. |
 | `kind` | Free text chosen by the agent (for example "code fix", "PR comment", "product question", "UI/UX"). Routes research and skill choice. Not a closed list. |
 | `origin` | `null` when the skill found the issue itself. Otherwise the claim someone else made: `quote`, `author`, `where` (what it points at), `verdict` (`valid`, `not-valid` or `partly`: the agent's judgement of the claim) and `verdictReason`. Validity exists only for issues that came from someone else's claim. |
 | `attributes` | Free list of `{ "label", "value" }` pairs picked for this issue: confidence, severity, complexity, risk, reversibility, effort, blast radius, or others. No fixed set. |
