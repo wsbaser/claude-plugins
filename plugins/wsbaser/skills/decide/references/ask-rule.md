@@ -13,6 +13,8 @@ Set `needsOwner: true` when at least one trigger holds:
 
 Otherwise decide: set `needsOwner: false`, `needsOwnerReason: ""`, and record the agent decision.
 
+**Dependent issues.** An issue whose `dependsOn` parent needs the owner needs the owner too, with `needsOwnerReason: "follows issue <parent id>"`, so its answer moves with the parent's. When the parent is decided by the agent, judge the dependent issue on its own by the triggers above.
+
 ## Always recommend
 
 Give a recommendation whenever one is defensible, also when you ask. The owner decides fastest when the best guess is already selected and its reason is next to it. Leave `recommendation` as `null` only for a pure preference question where the evidence favours no option; then `needsOwner` is `true`.
@@ -22,7 +24,6 @@ Give a recommendation whenever one is defensible, also when you ask. The owner d
 - The issue feels important, but one option is clearly best and cheap to undo.
 - The change is large. Effort is not the cost of reversal: a big local change that can be reverted is decided like a small one.
 - Someone else raised it. A claim is judged on its evidence like any other issue.
-- The answer follows fully from another issue's answer through `dependsOn`. Ask about that parent issue instead.
 - The owner might have an opinion. Ask only when a trigger above holds.
 
 ## Writing the reason

@@ -70,7 +70,7 @@ In the terminal nothing renders, so use the plain-text equivalent of the form yo
 
 Before writing, run `python <skills>/review/scripts/check_record.py <path to review.json> --stage decided`. If it prints anything, stop, write nothing, and tell the caller what it printed.
 
-**What you change.** Only each issue's `explanation` and, where needed, its options' `blocks`. Every other field belongs to another skill; leave it as it is.
+**What you change.** Only each issue's `explanation` and, where needed, its options' `blocks`. Every other field belongs to another skill; leave it as it is. Keep any option `blocks` already present (the decision step may have written them, a mockup for example); only add your own.
 
 **What the page already shows.** The title, attribute chips, the whole `origin` quote with its verdict chip, each option's `label`, and the recommendation with its reason, confidence, sources and unverified claims are rendered from the record. Do not repeat them in the explanation; explain what the reader needs in order to judge them. Quoting a single part of the claim in order to judge it is not repeating it.
 

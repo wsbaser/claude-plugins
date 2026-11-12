@@ -15,17 +15,20 @@ In this file, `<skills>` is the plugin's skills folder: the parent of this skill
 
 The caller gives you the path to a `review.json` and, often, pointers to what it already knows: the conversation, files, links. Read those pointers; they are part of each issue's context.
 
-1. Read `<skills>/review/references/record.md`. Its field names are the contract.
+1. Read `<skills>/review/references/record.md`. Its field names are the contract. If it or `<skills>/review/scripts/check_record.py` is missing, stop and tell the caller.
 2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage intake`. If it prints anything, stop, write nothing, and tell the caller what it printed.
 3. Decide every issue that has no `options` yet, and any issue the caller names for a re-think. Leave the others as they are.
 
 For each issue you decide, fill exactly these fields:
 
-- `kind`, `attributes`, `mode`, `options`, `recommendation`.
+- `kind`: the name of the kind file that matched (without `.md`), or the free text from triage when no file matched.
+- `attributes`, `mode`.
+- `options`: each with `id`, `label` and `attributes`, plus `outcome`, `dispute` and `blocks` where section 6 and the kind file say.
+- `recommendation`: `option`, `reason`, `confidence`, `sources`, `unverified`.
 - `needsOwner` and `needsOwnerReason` (an empty string when `needsOwner` is `false`).
 - `dependsOn`: `null` or the parent with its map.
 - `origin.verdict` and `origin.verdictReason`, when the issue has an `origin`.
-- `decision`: `{ "by": "agent", "choice": <recommended option id>, "note": "", "status": "decided" }` when you decide; `{ "by": null, "choice": null, "note": "", "status": "undecided" }` when the owner must.
+- `decision`, which follows `needsOwner`. `needsOwner: false`: `{ "by": "agent", "choice": <recommended option id>, "note": "", "status": "decided" }`. `needsOwner: true`: `{ "by": null, "choice": null, "note": "", "status": "undecided" }`, even when a recommendation is set.
 
 Leave `id`, `title`, `round`, the origin's `quote`, `author` and `where`, `explanation` and the `review` object unchanged.
 
@@ -38,7 +41,7 @@ Before any research, go through the whole list and note per issue:
 - **Cost of reversal**: a one-commit revert, or a migration, a breaking change, a message to customers.
 - **Is the answer evident?** From code you can read in a minute, or from the conversation. Often it is.
 
-Triage is cheap and shapes everything after it. Do not research during triage.
+Triage is cheap and shapes everything after it. Reading a file in the repository to see whether the answer is evident is part of triage; research outside the repository is not.
 
 ## 2. Load kind guidance
 
@@ -59,6 +62,8 @@ For an issue no kind file matches, look through the installed skill list and pic
 | In need of outside knowledge (best practice, library behaviour, a convention, domain rules) | Research on the web, scaled to the stakes: one or two sources for a cheap choice, more for a costly one. |
 | Important (high stakes or costly to reverse) | Both: the research and the skill the kind file names. |
 
+When a loaded kind file says to consult a skill, consult it for every issue of that kind that is not evident, and always for an important one. The kind file governs; the table is the floor.
+
 Stop researching when the pick is clear or when more sources stop changing it.
 
 ## 4. Use subagents economically
@@ -68,7 +73,7 @@ Never one subagent per issue. Decide in the main thread what you can, and send t
 - **Inline:** evident issues and local questions answered by one or two files you already have open.
 - **Batched:** issues that touch the same code, share a research question, or need the same skill go to one subagent together.
 - **Alone:** a heavy issue (wide web research plus a skill, or a trace across several repositories) gets its own subagent.
-- **In parallel:** launch every independent subagent in one message. For a list of under ten issues, zero to three subagents is typical.
+- **In parallel:** launch every independent subagent in one message. For a list of under ten issues, zero to three subagents is typical. For ten or more, batch by shared code or shared skill; rarely more than four subagents.
 
 Each subagent brief names:
 
@@ -76,6 +81,7 @@ Each subagent brief names:
 - what triage already found: the kind, the stakes, the files read with `file:line`;
 - the kind file to follow (its path) and the skill to consult, if any;
 - how deep to research;
+- paths with `<skills>` already replaced by the real folder; a subagent does not know what `<skills>` means;
 - the fields to return per issue: options with labels and attributes, the recommended option with reason, confidence, sources and unverified claims, and the verdict with its reason for an issue with an origin.
 
 Subagents return data. Only the main thread writes `review.json`.
@@ -88,7 +94,7 @@ An issue with an `origin` started as someone else's claim. Before building optio
 - `not-valid`: it does not; for example, what it asks for already exists.
 - `partly`: some of it holds; say which part.
 
-Write `verdictReason` with the evidence, `file:line` where it is code. A `not-valid` claim is still an issue: its one real option declines it (for example id `decline`), and the recommendation's reason is the reply to whoever made the claim.
+Write `verdictReason` with the evidence, `file:line` where it is code. A `not-valid` claim is still an issue: its one real option declines it (for example id `decline`). The recommendation's reason opens with the evidence-based reply to whoever made the claim, and that same evidence is why declining beats doing it: "The guard already exists at `orders.py:9`, two lines above; a second one would be dead code."
 
 ## 6. Build options and pick
 
@@ -108,8 +114,9 @@ Apply `references/ask-rule.md`. It alone says when `needsOwner` is `true` and ho
 An issue depends on another when its best answer changes with the other's answer. For each such pair:
 
 - Set `dependsOn` on the child: `{ "issue": "<parent id>", "map": { ... }, "note": "<what changes>" }`.
-- The map has a key for every option of the parent, dispute options included, and each value is an option of the child. Map each dispute option of the parent to the child's recommended option: a disputed parent leaves the child as it is.
-- The map's value for the parent's recommended option is the child's recommended option.
+- The map has a key for every option of the parent, dispute options included, and each value is an option of the child.
+- The value for the parent's recommended option is the child's recommendation. Every other real parent option maps to the child option that is best if the owner picks it. Each dispute option of the parent maps to the child's recommendation: a disputed parent leaves the child as it is.
+- When the parent needs the owner, so does the child: `needsOwner: true`, `needsOwnerReason: "follows issue <parent id>"`, decision undecided. The page then moves the child with the parent's answer; an agent-decided child would stay fixed.
 - No loops. When an issue seems to depend on two others, pick the one that decides it.
 
 ## 9. Record honestly
@@ -122,5 +129,5 @@ An issue depends on another when its best answer changes with the other's answer
 
 1. Write the file back as UTF-8 JSON.
 2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage decided`.
-3. Fix every line it prints and run it again until it exits 0 with no output.
+3. Fix every line it prints and run it again until it exits 0 with no output. After three rounds that still print errors, stop and give the caller the remaining lines.
 4. Tell the caller the record is decided, with how many issues the agent decided, which ids need the owner, and the reason for each.
