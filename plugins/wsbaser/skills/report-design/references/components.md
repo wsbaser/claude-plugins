@@ -8,7 +8,7 @@ Every text that comes from the record or a source (titles, quotes, code lines, t
 
 ## Page shell
 
-- A page published with the Artifact tool has no `<!DOCTYPE>`, `<html>`, `<head>` or `<body>` tags: the tool adds the document skeleton and the viewport meta. Start the file with the two-to-four-word `<title>`, then the font links and the styles below. A local page served for viewing on its own (such as `assets/example-review-page.html`) keeps the full skeleton: `<!DOCTYPE html>`, `lang`, `<meta name="viewport" content="width=device-width, initial-scale=1">`.
+- A page published with the Artifact tool has no `<!DOCTYPE>`, `<html>`, `<head>` or `<body>` tags: the tool adds the document skeleton and the viewport meta. Start the file with the two-to-four-word `<title>` and the `claude:viewport-fit-sides` meta, then the font links and the styles below. A local page served for viewing on its own (such as `assets/example-review-page.html`) keeps the full skeleton: `<!DOCTYPE html>`, `lang`, `<meta name="viewport" content="width=device-width, initial-scale=1">`.
 - Fonts: Inter (400, 500, 600) and JetBrains Mono (400, 500, 600) from `fonts.googleapis.com`; the token stacks fall back to system fonts.
 - First `<style>`, with or without the skeleton: `tokens.css` pasted unchanged. Second `<style>`: the page's own CSS.
 - `body` (the CSS selector, which still applies when the tool adds the tag): `background: var(--page)`, `color: var(--fg)`, `font: 400 var(--fs-md)/1.55 var(--font-body)`, `font-variant-numeric: tabular-nums` so figures line up in tables and counters.
@@ -17,27 +17,46 @@ Every text that comes from the record or a source (titles, quotes, code lines, t
 
 ## One reading column
 
-- One column, `max-width: 1040px`, centred, `padding-inline: 16px` (`.col`). No side panes, no master and detail, no stepper.
+- One column, `max-width: 1040px`, centred, side padding `max(16px, env(safe-area-inset-left, 0px))` and the same for the right (`.col`), so content clears a phone's side bar. Put `<meta name="claude:viewport-fit-sides" content="cover">` beside the `<title>`: the Artifact tool asks for both together, and this house style follows it rather than a plain 16px. No side panes, no master and detail, no stepper.
 - The body never scrolls sideways at any width. Wide content (code, tables, pictures, mockups) scrolls inside its own frame with `overflow-x: auto`; give grid and flex children `min-width: 0` so they can shrink. Links and `<code>` in running text carry `overflow-wrap: anywhere`, so a long URL or path breaks instead of widening the page.
 - Prose paragraphs are capped near `78ch`.
 - Below 900px: two-column grids become one column, attribute rows drop to two columns, card padding shrinks to 16px.
 
 ## Sticky bar
 
-- `position: sticky; top: 0`, background `--surface`, 1px `--line` borders top and bottom, content in the same `.col` as the page.
-- Holds, left to right: filter buttons, a spacer, the progress text, the primary action (Copy decisions). Wraps on narrow screens.
+- `position: sticky; top: env(safe-area-inset-top, 0px)`, background `--surface`, 1px `--line` borders top and bottom, a soft shadow below so it reads as floating, content in the same `.col` as the page.
+- Holds, left to right: the split progress (owner's count in weight 600 over the agent's in `--fs-xs` `--muted`), the issue strip, a spacer, Next open issue (`.btn.warn`), the "All answered" message (hidden until `body.all-done`), Copy decisions (`.btn.primary`). Wraps on narrow screens; the strip wraps inside itself.
+- On a decision page this is how the owner navigates. Give each issue `scroll-margin-top` larger than the bar (about 96px, 190px below 760px where the bar wraps) so a jump never lands under it.
 - Example: `.bar`.
+
+## Issue strip
+
+- One pill per issue (`a.pill[data-pill]`): 28px high, fully rounded, `--font-mono` `--fs-xs` weight 600, a 12px status icon then the id. Needs-owner pills first, a 1px `--line-strong` separator, then agent-decided pills.
+- Tone from `data-status`: `wait` `--warn-soft`/`--warn`/`--warn-line`, `you` `--pass-soft`/`--pass`, `agent` `--hover`/`--muted`, `over` `--accent-soft`/`--accent`, `disputed` `--fail-soft`/`--fail`. `aria-current="true"` adds a 2px `--accent-2` ring offset by the surface colour.
+- The script writes the content, title and label; the markup is just `<a class="pill" href="#issue-6" data-pill="6"></a>`.
+
+## Section headings
+
+- Two sections in `<main>`: "Needs your decision" and "Settled by the agent". Each opens with a small heading row (`.sec`): the heading in `--fs-md`, uppercase, letter-spacing .06em, `--muted`, and a muted count line beside it ("3 issues · highest stakes first"). This is a label that names a real group, not a decorative eyebrow above a heading.
 
 ## Cards
 
-- One card per issue or section: background `--surface`, 1px `--line` border, radius 12px, padding 24px 28px (16px on narrow screens), `display: grid; gap: 16px`.
-- Inside a card, evidence blocks are flat panels (background `--page`, 1px `--line`, radius 8px, no shadow). Never put a card inside a card, and never put a bordered panel inside a bordered panel, except a code frame inside a fold, which drops its own border.
+- One card per issue: background `--surface`, 1px `--line` border, radius 12px, padding 20px 24px (16px on narrow screens), `display: grid; gap: 16px`.
+- A card waiting for the owner (`[data-status="wait"]`) gets a full `--warn-line` border and a 3px `--warn-soft` outer ring; a disputed card a `--fail` border. Never a one-sided stripe.
+- A card the script just scrolled to gets `.flash` for 1.2 seconds: a 3px `--accent-soft` ring.
+- Folded (`.collapsed`): padding-block 16px, only the header and the verdict line show.
+- Inside a card, evidence blocks are flat panels (background `--page`, 1px `--line`, radius 8px, no shadow). Never put a card inside a card, and never put a bordered panel inside a bordered panel, except a code frame inside a fold, which drops its own border, and a table or code frame inside the background fold, which keeps a `--surface` background.
 
-## Header, markers and chips
+## Header, badges and facts
 
-- Issue header: a small id badge (`.num`: 28px, radius 8px, background `--navy`, 1px `--line-strong` border so it shows in dark mode, white `--font-mono` number), the title as `h2` at `--fs-lg`, then one wrapping row of markers and chips, then the main `file:line` in `--font-mono`, `--fs-xs`, `--muted`.
-- Markers say how the issue reaches the owner. They carry an inline SVG icon and weight 600: needs-owner (`.mark.needs`: `--warn-soft` background, `--warn` text, `--warn-line` border), agent-decided (`.mark.agent`: `--chip` background, `--accent` text), new in round N (`.mark.new`: `--accent-soft`, `--accent`, `--accent-2` border). Markers are the only visual difference between needs-owner and agent-decided issues.
-- Chips are attributes: a free label and a value, `<span class="chip"><span class="cl">Risk:</span>low</span>`. Label in `--muted`, value in `--fg`, background `--hover`, `--fs-xs`, radius 6px. Pick the attributes that matter for this issue; no fixed set. Tone a chip only when the value is good or bad news: `.good` (`--pass-soft`/`--pass`), `.bad` (`--fail-soft`/`--fail`), `.warn` (`--warn-soft`/`--warn`).
+- Issue header: a three-column grid: the id badge (`.num`: 28px high, at least 28px wide and growing for longer ids such as `35557-defect` up to about 12 characters, radius 8px, background `--navy`, 1px `--line-strong` border so it shows in dark mode, white `--font-mono` number), the title block, and the fold toggle at the right (below 760px the toggle drops under the title). The title is `h2` at `--fs-lg`.
+- Under the title, one wrapping row of badges, then the facts line.
+- Badges are fully rounded pills, `--fs-xs`, weight 600, 22px high. The status badge carries an icon and is shown by CSS from `data-status` (`wait` warn, `you` pass, `agent` neutral, `over` accent, `disputed` fail; all five are written in the markup). The stakes pill: High `--fail-soft`/`--fail`, Medium `--warn-soft`/`--warn`, Low `--hover`/`--muted`. The confidence pill is weight 500: neutral for high, warn for anything lower (medium-high, medium, low). "New in round N" uses `--accent-soft`/`--accent`.
+- The facts line (`.facts`) is `--fs-sm` `--muted` running text: bold "Why you:" and "Risk:" labels in `--fg`, then the other attributes as "Label: value", joined by middle dots in `--faint`. Pick the attributes that matter for this issue; no fixed set.
+
+## Verdict line
+
+- `[data-verdict]`, shown only on a folded card: a flat panel (`--page`, 1px `--line`, radius 8px, 10px 12px padding), the option key in a small `--accent-soft` mono tag, then the script's text ("You chose …") and the outcome in `--muted`.
 
 ## Origin quote with verdict
 
@@ -76,19 +95,34 @@ Every text that comes from the record or a source (titles, quotes, code lines, t
 - `<details class="fold">` with a `<summary>` holding a chevron SVG (rotates 90 degrees when open), the label and the size: "Full diff, 48 lines". The size is mandatory.
 - Only for extra depth of 600 characters or more that the reader can decide without. Short content is never folded. Show the gist inline above the fold. Example: issue 6.
 
+## Background fold
+
+- On a decision page, each issue's explanation sits in one `<details class="bg">` under the options: a flat panel, the summary in `--accent` weight 500 with a chevron, naming what is inside ("Background: what negative stock is, with a worked example (Kaffi)"). Inside, the explanation's blocks in order, with 12px gaps.
+- It may hold shorter content than the general fold rule allows, because the recommendation box above already carries the gist the owner decides on. When the whole explanation is one or two sentences, write it inline instead.
+- Never fold an origin quote, a dependency panel, or anything the recommendation's reason refers to as "see below" without restating it.
+
+## Sources fold
+
+- `<details class="src">` at the end of the recommendation box: summary "N sources" in `--fs-xs` `--muted` with a chevron; a list of short source names in `<code>` (file name and lines, ticket key), the full path in a `title` attribute.
+
 ## Option radios
 
 - Two or more real options: a radio group (`role="radiogroup"`, labelled by the question `h3`). Each option is one `<label class="opt">` containing its radio and everything about the option: a mono key letter, the title in weight 600, the Recommended tag, a one or two sentence description, any mockup or sample, and its attribute rows.
 - Attribute rows are a `<dl class="attrs">` grid (`--cols` set per option group, two columns on narrow screens, one on phones): `dt` in `--fs-xs` `--muted`, `dd` in `--fs-sm`. Use the attributes that decide between these options, the same set on every option of the group.
-- The selected option (`.sel`, set by the script on decision pages) gets `--accent-soft` and an inset 1px `--accent-2` ring. The recommended one is preselected and carries a small tag (`.rec`: `--accent` text, 1px `--accent-2` border, check icon).
+- Each option is its own bordered row (1px `--line`, radius 10px, 6px gap between options), so options read as separate choices.
+- Option titles and attribute values often hold paths and identifiers with no break points. Give `.ot`, the outcome line and `.attrs dd` `overflow-wrap: anywhere; min-width: 0`, and each `.attrs` cell `min-width: 0`; `overflow-wrap: break-word` on the body is not enough inside a flex or grid row, and the page then scrolls sideways on a phone.
+- The selected option (`.sel`, set by the script on decision pages) gets `--accent-soft` and an `--accent-2` border. The recommended one carries a small tag (`.rec`: `--accent` text, 1px `--accent-2` border, check icon).
+- On an issue still waiting for the owner, the preselected option is not yet a decision: give it a 1.5px dashed `--warn-line` border on `--surface` instead of the selected fill, and show its "Preselected, not confirmed" tag (`.pre`, `--warn`).
 - Example: issues 1, 2, 7, 8, 9.
 
-## Recommendation
+## Recommendation box
 
-- Every recommendation shows its reason where the choice is made: a short block (`.why`) right under the decision question, `--fs-sm`, starting with "Recommended: <option>" in weight 600, then the reason in plain words, then a confidence chip and the sources (`file:line` in `<code>`, links). The block carries `overflow-wrap: anywhere`: a source URL has no break points and would otherwise push the body wider than a phone screen. Agent-decided issues get it too, so the owner can check the agent.
-- A claim the agent could not verify is said in this block, as its own sentence ("Not checked: ..."), in `--warn`. Never move it to a footnote.
-- One line is enough when the reason is short. When the explanation above already argues the case, the reason still gets its one line here.
-- Example: `.why` in every issue of the example, 1 to 9; issue 2 shows the dependent form, naming the current answer and pointing to the table for the others.
+- Every issue opens its detail with a recommendation box (`.recbox`): `--accent-soft` background, a 1px border of `--accent-2` mixed 45% with transparent, radius 10px, 14px 16px padding, `overflow-wrap: anywhere` (a source URL has no break points).
+- First line: "Recommended" (or "Agent's choice") as a small uppercase `--accent` label, the option key tag and a short form of the option in weight 600, the confidence pill. Then the reason in `--fs-sm` plain words, one to three sentences.
+- Each claim the agent could not verify is its own warning row (`.unchk`): alert icon, "Not checked:" in weight 600, `--warn-soft` background, 1px `--warn-line` border, `--warn` text. Never a footnote and never merged into the reason.
+- Then the sources fold.
+- Agent-decided issues get the same box, so the owner can check the agent.
+- Example: `.recbox` in every issue of the example; issue 2 shows the dependent form, naming the current answer and pointing to the table for the others.
 
 ## Verdict buttons
 
@@ -97,17 +131,21 @@ Every text that comes from the record or a source (titles, quotes, code lines, t
 
 ## Note field and status line
 
-- Every issue has a note field: a `<textarea>` with a `name`, an `aria-label` naming the issue, placeholder "Note to the agent (optional)", 36px high, resizable, background `--page`, 1px `--line-strong` border.
-- Beside it, a short status line and the action buttons (Confirm primary, Reopen and Restore ghost). Undecided status reads in `--warn`.
+- Every issue has a note field: a `<textarea>` with an `id`, a `name`, an `aria-label` naming the issue, placeholder "Note to the agent (optional)" (on needs-owner issues "Note to the agent (optional; explain a different choice here)"), 36px high, resizable, background `--page`, 1px `--line-strong` border.
+- Beside it, a short status line and the action buttons (Confirm primary with a check icon, Reopen and Restore ghost, Next open issue warn). The foot has a 1px `--line` top border. The status badge in the header already says "Waiting for you", so the foot does not repeat it.
 - Example: `.foot` in every issue.
+
+## Copied text
+
+- Under the issues: `<details class="outd">`, `--surface`, radius 12px. Its summary holds a chevron, "What Copy decisions puts on your clipboard" (taking the free width) and a second Copy decisions button at the right. Inside, the `<pre data-preview>` in `--font-mono` 12px, `white-space: pre-wrap`.
 
 ## Filter buttons
 
-- A row of separate small buttons in the sticky bar, each with `aria-pressed` and a static count in a `<b>`: All, Needs you, Agent decided, New this round. Pressed: `--accent-soft` background, `--accent-2` border, `--accent` text, weight 600.
+- Optional on decision pages; the sections and the strip replace them. When used: a row of separate small buttons in the sticky bar, each with `aria-pressed` and a static count in a `<b>`. Pressed: `--accent-soft` background, `--accent-2` border, `--accent` text, weight 600.
 
 ## Buttons, focus and selection
 
-- `.btn.primary`: background `--btn`, white text, hover darkened with `color-mix` toward `--navy` (`color-mix(in srgb, var(--btn) 80%, var(--navy))`), never toward a hex colour. `.btn.ghost`: `--surface` background, 1px `--line-strong` border.
+- `.btn.primary`: background `--btn`, white text, hover darkened with `color-mix` toward `--navy` (`color-mix(in srgb, var(--btn) 80%, var(--navy))`), never toward a hex colour. `.btn.ghost`: `--surface` background, 1px `--line-strong` border. `.btn.warn` (Next open issue): `--warn-soft` background, 1px `--warn-line` border, `--warn` text.
 - Focus ring on everything focusable: `:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px }`.
 - Text selection: `::selection { background: var(--btn); color: #fff }`. Radios use `accent-color: var(--btn)`.
 - Respect `prefers-reduced-motion`: no transitions, no smooth scrolling.
@@ -117,6 +155,7 @@ Every text that comes from the record or a source (titles, quotes, code lines, t
 - No nested cards.
 - No coloured side borders thicker than 1px (no thick left stripe on cards, quotes or notices). The 2px inset on a highlighted code line is the only accent stripe.
 - No unicode glyphs or emoji as icons. Icons are inline SVG (`<symbol>` sprite plus `<use>`), `aria-hidden="true"`, stroked with `currentColor`.
-- No dimming, shrinking, collapsing or reordering of agent-decided issues. They have the same anatomy, size and contrast as needs-owner issues; only the marker differs.
-- No content hidden behind a click unless it is a fold that meets the fold rule.
+- No dimming or shrinking of agent-decided issues. They have the same anatomy and contrast as needs-owner issues; on a decision page they sit in their own section and start folded to a verdict line that states the agent's choice, one click from the full card.
+- No content hidden behind a click unless it is a fold that meets the fold rule, the background fold, the sources fold, or a folded issue.
+- No repeated question heading: the issue title is the question.
 - No same-for-every-issue section grid: each issue's body has the blocks it needs and no others.

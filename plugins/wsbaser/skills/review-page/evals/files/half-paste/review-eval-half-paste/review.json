@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "review": { "id": "eval-round-two", "title": "Task \"Normalize log levels in the sync client\"", "round": 1 },
+  "review": { "id": "eval-half-paste", "title": "Task \"Normalize log levels in the sync client\"", "round": 1 },
   "issues": [
     {
       "id": "1",
@@ -20,7 +20,7 @@
       "explanation": [
         { "form": "prose", "text": "One failed push writes two Error lines today: the transport logs the OSError at `src/sync_client.py:16`, then SyncSession logs it again after the last retry at `src/sync_client.py:36`. Alerting counts both." }
       ],
-      "mode": "radio",
+      "stakes": {"level": "High", "reason": "one outage pages on-call twice"}, "mode": "radio",
       "options": [
         { "id": "A", "label": "Error once in SyncSession, transport logs Debug", "attributes": [ { "label": "Keeps context", "value": "retry count and request" } ], "blocks": [] },
         { "id": "B", "label": "Error once in the transport, SyncSession logs Debug", "attributes": [ { "label": "Keeps context", "value": "socket error only" } ], "blocks": [] },
@@ -48,7 +48,7 @@
       "explanation": [
         { "form": "prose", "text": "`src/sync_client.py:29` reads `request.identity.name`; an anonymous request has no identity, so the log call raises before the push starts." }
       ],
-      "mode": "buttons",
+      "stakes": {"level": "High", "reason": "anonymous requests such as the health probe get a 500"}, "mode": "buttons",
       "options": [
         { "id": "accept", "label": "Accept", "outcome": "apply the null guard", "attributes": [], "blocks": [] },
         { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
@@ -70,7 +70,7 @@
       "explanation": [
         { "form": "prose", "text": "Every failed attempt is logged at Warning (`src/sync_client.py:34`), so one outage writes a Warning per attempt per push before the final Error." }
       ],
-      "mode": "buttons",
+      "stakes": {"level": "Low", "reason": "retries fill the Warning log with noise"}, "mode": "buttons",
       "options": [
         { "id": "accept", "label": "Accept", "outcome": "retry attempts go to Debug", "attributes": [], "blocks": [] },
         { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
@@ -92,7 +92,7 @@
       "explanation": [
         { "form": "prose", "text": "`src/sync_client.py:37` logs \"Retrying\" right before the final `raise`, after the last attempt." }
       ],
-      "mode": "buttons",
+      "stakes": {"level": "Low", "reason": "the log misleads whoever reads it"}, "mode": "buttons",
       "options": [
         { "id": "accept", "label": "Accept", "outcome": "remove the misleading line", "attributes": [], "blocks": [] },
         { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },

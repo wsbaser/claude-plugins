@@ -1,6 +1,6 @@
 ---
 name: wsbaser:explain
-description: Explains how something actually works — where a value is computed, which layer owns a decision, how data flows end to end, and why a bug appeared. Sizes the answer to the question and publishes the longer ones as a Claude artifact with diagrams. Use whenever the user asks how or where something works, says a flow is a black box, asks whether logic lives in the frontend or the backend, wants a data flow or pipeline traced, asks why a bug appeared or what changed, or says "explain", "walk me through" or "help me understand" — even when they frame it as a quick question rather than a request for a document. Also writes the per-issue explanations inside a review page when called by wsbaser:review.
+description: Explains how something actually works — where a value is computed, which layer owns a decision, how data flows end to end, and why a bug appeared. Sizes the answer to the question and publishes the longer ones as a Claude artifact with diagrams. Use whenever the user asks how or where something works, says a flow is a black box, asks whether logic lives in the frontend or the backend, wants a data flow or pipeline traced, asks why a bug appeared or what changed, or says "explain", "walk me through" or "help me understand" — even when they frame it as a quick question rather than a request for a document. Also writes the per-issue explanations inside a review page when called by wsbaser:review-page.
 ---
 
 # Explain
@@ -66,9 +66,9 @@ In the terminal nothing renders, so use the plain-text equivalent of the form yo
 
 ## 6. Embedded mode
 
-`wsbaser:review` gives you the path to a `review.json` that has reached stage `decided`. The record's contract is `<skills>/review/references/record.md`; read it first. In a later round it may also pass a list of issue ids to (re)write: then write only those and leave every other issue untouched. Without a list, write every issue.
+`wsbaser:review-page` gives you the path to a `review.json` that has reached stage `decided`. The record's contract is `<skills>/review-page/references/record.md`; read it first. In a later round it may also pass a list of issue ids to (re)write: then write only those and leave every other issue untouched. Without a list, write every issue.
 
-Before writing, run `python <skills>/review/scripts/check_record.py <path to review.json> --stage decided`. If it prints anything, stop, write nothing, and tell the caller what it printed.
+Before writing, run `python <skills>/review-page/scripts/check_record.py <path to review.json> --stage decided`. If it prints anything, stop, write nothing, and tell the caller what it printed.
 
 **What you change.** Only each issue's `explanation` and, where needed, its options' `blocks`. Every other field belongs to another skill; leave it as it is. Keep any option `blocks` already present (the decision step may have written them, a mockup for example); only add your own.
 
@@ -88,7 +88,7 @@ Before writing, run `python <skills>/review/scripts/check_record.py <path to rev
 **Check and hand back.**
 
 1. Write the file back as UTF-8 JSON.
-2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage ready`.
+2. Run `python <skills>/review-page/scripts/check_record.py <path to review.json> --stage ready`.
 3. Fix every line it prints and run it again until it exits 0 with no output.
 4. Tell the caller the record is ready, with one line per issue saying the shape you gave it (for example "issue 3: one sentence").
 

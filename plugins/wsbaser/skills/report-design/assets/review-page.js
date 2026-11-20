@@ -201,14 +201,63 @@
     return out.join('\n');
   }
 
+  /* Where an issue stands, as the owner sees it:
+   * wait (needs the owner, undecided), you (owner answered a needs-owner issue),
+   * agent (agent decided, untouched), over (owner overruled an agent decision),
+   * disputed (sent back to the agent). */
+  function statusOf(issue, st) {
+    if (!st || st.status === 'undecided') return 'wait';
+    if (st.status === 'disputed') return 'disputed';
+    if (st.by === 'agent') return 'agent';
+    return issue && issue.needsOwner ? 'you' : 'over';
+  }
+
+  /* Progress split by who has to act: the owner's answers against the
+   * needs-owner issues, and how many agent decisions the owner overruled. */
+  function ownerCounts(state, issues) {
+    var out = { answered: 0, needs: 0, agent: 0, overruled: 0, waiting: [] };
+    issues.forEach(function (issue) {
+      var s = statusOf(issue, state[issue.id]);
+      if (issue.needsOwner) {
+        out.needs++;
+        if (s === 'wait') out.waiting.push(issue.id); else out.answered++;
+      } else {
+        out.agent++;
+        if (s === 'over' || s === 'disputed') out.overruled++;
+        if (s === 'wait') out.waiting.push(issue.id);
+      }
+    });
+    return out;
+  }
+
+  /* The next (dir 1) or previous (dir -1) issue still waiting for the owner,
+   * in page order, wrapping around; null when none is waiting. */
+  function nextOpen(issues, state, fromId, dir) {
+    var order = ids(issues), at = fromId == null ? -1 : order.indexOf(fromId);
+    var waiting = issues.filter(function (i) { return statusOf(i, state[i.id]) === 'wait'; }).map(function (i) { return i.id; });
+    if (!waiting.length) return null;
+    if (dir < 0) {
+      if (at < 0) at = order.length;
+      for (var k = waiting.length - 1; k >= 0; k--) if (order.indexOf(waiting[k]) < at) return waiting[k];
+      return waiting[waiting.length - 1];
+    }
+    for (var j = 0; j < waiting.length; j++) if (order.indexOf(waiting[j]) > at) return waiting[j];
+    return waiting[0];
+  }
+
   var api = {
     createState: createState, choose: choose, confirm: confirm, reopen: reopen,
     restoreAgent: restoreAgent, setNote: setNote, recommendedFor: recommendedFor,
-    counts: counts, buildText: buildText
+    counts: counts, buildText: buildText,
+    statusOf: statusOf, ownerCounts: ownerCounts, nextOpen: nextOpen
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   /* ---- DOM ---- */
+  var ICON = { wait: 'i-wait', you: 'i-check', agent: 'i-agent', over: 'i-user', disputed: 'i-talk' };
+  var WORD = { wait: 'waiting for you', you: 'decided by you', agent: 'decided by the agent', over: 'overruled by you', disputed: 'sent back to the agent' };
+  var LEAD = { wait: 'Preselected, not confirmed:', you: 'You chose', agent: 'Agent chose', over: 'You chose', disputed: 'Sent back:' };
+
   function boot() {
     var $ = function (sel, root) { return (root || document).querySelector(sel); };
     var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -222,6 +271,7 @@
     var filter = 'all';
     var articles = {};
     $$('article[data-issue]').forEach(function (a) { articles[a.getAttribute('data-issue')] = a; });
+    var reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function save() { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} }
     function optionIdOf(el) {
@@ -235,15 +285,39 @@
       all: function () { return true; },
       needs: function (i) { return !!i.needsOwner; },
       agent: function (i) { return !i.needsOwner; },
-      'new': function (i) { return i.round === review.round; }
+      'new': function (i) { return i.round === review.round; },
+      waiting: function (i) { return statusOf(i, state[i.id]) === 'wait'; }
     };
+
+    /* Collapsing: an issue that is not waiting for the owner starts folded to its
+     * header and verdict line; Confirm folds it and moves on; Reopen unfolds it.
+     * Only articles that have a [data-verdict] line can fold. */
+    function setCollapsed(a, on) {
+      if (!a || !$('[data-verdict]', a)) return;
+      a.classList.toggle('collapsed', on);
+      $$('[data-toggle]', a).forEach(function (t) { t.setAttribute('aria-expanded', String(!on)); });
+    }
+    function pillIcon(p, status) {
+      var NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(NS, 'svg'), use = document.createElementNS(NS, 'use');
+      svg.setAttribute('class', 'i');
+      svg.setAttribute('aria-hidden', 'true');
+      use.setAttribute('href', '#' + ICON[status]);
+      svg.appendChild(use);
+      p.textContent = '';
+      p.appendChild(svg);
+      p.appendChild(document.createTextNode(p.getAttribute('data-pill')));
+    }
 
     function render() {
       issues.forEach(function (issue) {
         var a = articles[issue.id], st = state[issue.id], rec = recommendedFor(issue, state);
         if (!a || !st) return;
+        var status = statusOf(issue, st);
         a.setAttribute('data-state', st.status);
         a.setAttribute('data-by', st.by || '');
+        a.setAttribute('data-needs', issue.needsOwner ? 'owner' : 'agent');
+        a.setAttribute('data-status', status);
         a.hidden = !(matches[filter] || matches.all)(issue);
         $$('input[type=radio]', a).forEach(function (r) {
           r.checked = r.value === st.choice;
@@ -269,9 +343,25 @@
         });
         var ta = $('textarea[data-note]', a);
         if (ta && ta.value !== st.note) ta.value = st.note;
+        var o = st.choice != null ? findOption(issue, st.choice) : null;
+        $$('[data-vk]', a).forEach(function (el) { el.textContent = o ? (o.id.length <= 2 ? o.id : 'Chosen') : 'None'; });
+        $$('[data-vl]', a).forEach(function (el) { el.textContent = LEAD[status] + ' ' + (o ? oneLine(o.label, ' ') : 'nothing selected yet'); });
+        $$('[data-vo]', a).forEach(function (el) { el.textContent = o && o.outcome && status !== 'disputed' ? '· ' + oneLine(o.outcome, ' ') : ''; });
+        $$('[data-pill="' + issue.id + '"]').forEach(function (p) {
+          p.setAttribute('data-status', status);
+          pillIcon(p, status);
+          var t = 'Issue ' + issue.id + ', ' + WORD[status] + ': ' + oneLine(issue.title, ' ');
+          p.setAttribute('title', t);
+          p.setAttribute('aria-label', t);
+        });
       });
-      var c = counts(state, issues);
+      var c = counts(state, issues), oc = ownerCounts(state, issues);
       $$('[data-progress]').forEach(function (p) { p.textContent = c.decided + ' of ' + c.total + ' decided'; });
+      $$('[data-you-count]').forEach(function (p) {
+        p.textContent = oc.needs ? 'You: ' + oc.answered + ' of ' + oc.needs + ' answered' : 'Nothing needs you';
+      });
+      $$('[data-agent-count]').forEach(function (p) { p.textContent = 'Agent settled ' + oc.agent + ' · ' + oc.overruled + ' overruled by you'; });
+      if (document.body) document.body.classList.toggle('all-done', oc.waiting.length === 0);
       $$('[data-preview]').forEach(function (p) { p.textContent = buildText(review, issues, state); });
       $$('button[data-filter]').forEach(function (b) {
         b.setAttribute('aria-pressed', String(b.getAttribute('data-filter') === filter));
@@ -283,6 +373,33 @@
       return a ? a.getAttribute('data-issue') : null;
     }
 
+    function go(id) {
+      var a = articles[id];
+      if (!a) return;
+      setCollapsed(a, false);
+      $$('[data-pill]').forEach(function (p) { p.setAttribute('aria-current', String(p.getAttribute('data-pill') === id)); });
+      a.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      a.classList.add('flash');
+      setTimeout(function () { a.classList.remove('flash'); }, 1200);
+      var f = $('input[type=radio]:checked', a) || $('input[type=radio], button[data-choice]', a);
+      if (f) try { f.focus({ preventScroll: true }); } catch (e) {}
+    }
+    /* The issue at the top of the viewport, so Next continues from where the owner is reading. */
+    function currentId() {
+      var cur = null, bar = $('.bar'), line = (bar ? bar.getBoundingClientRect().bottom : 0) + 48;
+      issues.forEach(function (i) {
+        var a = articles[i.id];
+        if (a && !a.hidden && a.getBoundingClientRect().top <= line) cur = i.id;
+      });
+      return cur;
+    }
+    function step(fromId, dir) {
+      var id = nextOpen(issues, state, fromId, dir);
+      if (id != null) { go(id); return; }
+      var copy = $('button[data-copy]');
+      if (copy) copy.focus();
+    }
+
     document.addEventListener('change', function (e) {
       var t = e.target, id = t && t.matches && t.matches('input[type=radio]') ? issueIdOf(t) : null;
       if (id != null) apply(choose(state, issues, id, t.value));
@@ -292,9 +409,8 @@
       if (id != null) apply(setNote(state, id, t.value));
     });
 
-    var copyTimer;
-    function copyText() {
-      var btn = $('button[data-copy]');
+    /* Every copy button reports on its own label, so the one the owner clicked says "Copied". */
+    function copyText(btn) {
       var label = btn && ($('[data-copy-label]', btn) || (btn.children.length ? null : btn));
       var original = label ? (label.getAttribute('data-original') || label.textContent) : '';
       if (label) label.setAttribute('data-original', original);
@@ -302,8 +418,8 @@
       function report(msg) {
         if (!label) return;
         label.textContent = msg;
-        clearTimeout(copyTimer);
-        copyTimer = setTimeout(function () { label.textContent = original; }, 2500);
+        clearTimeout(label._copyTimer);
+        label._copyTimer = setTimeout(function () { label.textContent = original; }, 2500);
       }
       function fallback() {
         var prev = $('[data-preview]'), done = false;
@@ -326,6 +442,14 @@
     document.addEventListener('click', function (e) {
       var t = e.target && e.target.closest ? e.target : null;
       if (!t) return;
+      var pill = t.closest('[data-pill]');
+      if (pill) {
+        e.preventDefault();
+        var pid = pill.getAttribute('data-pill');
+        go(pid);
+        try { history.replaceState(null, '', '#issue-' + pid); } catch (x) {}
+        return;
+      }
       var b = t.closest('button');
       if (!b) return;
       var id = issueIdOf(b);
@@ -333,22 +457,48 @@
         apply(choose(state, issues, id, b.getAttribute('data-choice')));
       } else if (b.hasAttribute('data-act') && id != null) {
         var act = b.getAttribute('data-act'), issue = findIssue(issues, id);
-        if (act === 'confirm') apply(confirm(state, issues, id));
-        else if (act === 'reopen') apply(reopen(state, issues, id));
-        else if (act === 'restore') apply(restoreAgent(state, issues, id));
+        if (act === 'confirm') {
+          apply(confirm(state, issues, id));
+          setCollapsed(articles[id], true);
+          step(id, 1);
+        } else if (act === 'reopen') {
+          apply(reopen(state, issues, id));
+          setCollapsed(articles[id], false);
+        } else if (act === 'restore') apply(restoreAgent(state, issues, id));
         else if (act === 'use-recommendation' && issue) {
           var rec = recommendedFor(issue, state);
           if (rec != null) apply(choose(state, issues, id, rec));
         }
       } else if (b.hasAttribute('data-copy')) {
-        copyText();
+        /* A copy button inside a <summary> must not also open or close its fold. */
+        if (b.closest('summary')) e.preventDefault();
+        copyText(b);
       } else if (b.hasAttribute('data-filter')) {
         filter = b.getAttribute('data-filter');
         render();
+      } else if (b.hasAttribute('data-next')) {
+        step(currentId(), 1);
+      } else if (b.hasAttribute('data-go-next') && id != null) {
+        setCollapsed(articles[id], true);
+        step(id, 1);
+      } else if (b.hasAttribute('data-toggle') && id != null) {
+        setCollapsed(articles[id], !articles[id].classList.contains('collapsed'));
       }
     });
 
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var t = e.target, tag = t && t.tagName;
+      if (tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && t.type !== 'radio') || (t && t.isContentEditable)) return;
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); step(currentId(), 1); }
+      else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); step(currentId(), -1); }
+    });
+
     render();
+    var target = location.hash && location.hash.indexOf('#issue-') === 0 ? location.hash.slice(7) : null;
+    issues.forEach(function (issue) {
+      if (statusOf(issue, state[issue.id]) !== 'wait' && issue.id !== target) setCollapsed(articles[issue.id], true);
+    });
   }
 
   if (typeof document !== 'undefined') {

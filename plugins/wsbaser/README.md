@@ -9,7 +9,7 @@ A collection of commands and agents for Claude Code that streamline development 
 | `/wsbaser:implement-spec` | Coordinate a team of coding and review agents to implement features from spec files |
 | `/wsbaser:implement-story` | Full development workflow from Jira story to implementation |
 | `/wsbaser:interview` | Interview in detail about a feature requirement, then write the spec; open points are researched, decided and settled on one review page |
-| `/wsbaser:review` | Settle the open issues of a topic (PR comments, task questions) on one review page where you confirm or change each decision; returns the decision list, implements nothing |
+| `/wsbaser:review-page` | Settle the open issues of a topic (PR comments, task questions) on one review page where you confirm or change each decision; returns the decision list, implements nothing |
 | `/wsbaser:decide` | Decide open issues like a careful senior: sizes research per issue, consults the fitting skill, recommends with reasons, asks you only where truly needed |
 | `/wsbaser:explain` | Explain how something actually works (where a value is computed, which layer owns a decision, how data flows, why a bug appeared); long answers become an artifact with diagrams |
 | `/wsbaser:report-design` | House style for every report page a skill publishes: palette, type, components, folding rules and the fixed script for decision pages |
@@ -23,7 +23,7 @@ A collection of commands and agents for Claude Code that streamline development 
 
 ### Extending the review skills
 
-Add a markdown file to `review/intake/` (where issues come from), `decide/kinds/` (how a kind of issue is decided) or `report-design/forms/` (how content is shown). The same folders under `.claude/review/` in a project add project-specific entries. Every file must start with a `when:` line saying when it applies. Then run `python plugins/wsbaser/skills/review/scripts/check_slots.py <folder>` on the folder you changed.
+Add a markdown file to `review-page/intake/` (where issues come from), `decide/kinds/` (how a kind of issue is decided) or `report-design/forms/` (how content is shown). The same folders under `.claude/review/` in a project add project-specific entries. Every file must start with a `when:` line saying when it applies. Then run `python plugins/wsbaser/skills/review-page/scripts/check_slots.py <folder>` on the folder you changed.
 
 ## Agents
 

@@ -12,7 +12,7 @@
       "origin": null,
       "attributes": [ { "label": "Effort", "value": "1 line" } ],
       "explanation": [],
-      "mode": "buttons",
+      "stakes": {"level": "Low", "reason": "the log misleads whoever reads it"}, "mode": "buttons",
       "options": [
         { "id": "accept", "label": "Change the text to \"Giving up after 3 attempts\"", "attributes": [] },
         { "id": "reject", "label": "Leave it", "attributes": [], "dispute": true }
@@ -31,7 +31,7 @@
       "origin": null,
       "attributes": [ { "label": "Severity", "value": "High" }, { "label": "Confidence", "value": "Medium" } ],
       "explanation": [],
-      "mode": "radio",
+      "stakes": {"level": "High", "reason": "one of two concurrent saves silently loses its change to the total"}, "mode": "radio",
       "options": [
         { "id": "A", "label": "Optimistic concurrency: add a RowVersion to Estimate and return 409 on conflict", "attributes": [ { "label": "Effort", "value": "1 day" }, { "label": "Frontend change", "value": "handle 409, reload and reapply" } ] },
         { "id": "B", "label": "Recalculate the total in SQL inside the save transaction", "attributes": [ { "label": "Effort", "value": "half a day" }, { "label": "Frontend change", "value": "none" } ] }
@@ -50,7 +50,7 @@
       "origin": null,
       "attributes": [ { "label": "Reversibility", "value": "easy" } ],
       "explanation": [],
-      "mode": "radio",
+      "stakes": {"level": "Medium", "reason": "a user without permission sees a confusing or leaking estimate page"}, "mode": "radio",
       "options": [
         { "id": "A", "label": "Redirect to the estimates list with a toast \"You do not have access to this estimate\"", "attributes": [ { "label": "Effort", "value": "2 hours" } ] },
         { "id": "B", "label": "Show an in-page \"No access\" panel with the estimate number and a Request access button", "attributes": [ { "label": "Effort", "value": "1 day" } ] }

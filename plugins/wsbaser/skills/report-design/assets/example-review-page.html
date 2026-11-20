@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PR 2317 Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -105,10 +106,9 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--page);color:var(--fg);font:400 var(--fs-md)/1.55 var(--font-body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow-wrap:break-word}
 ::selection{background:var(--btn);color:#fff}
 :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:4px}
-.col{max-width:1040px;margin:0 auto;padding-inline:16px}
+.col{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1{font-size:var(--fs-xl);line-height:1.3;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
 h2{font-size:var(--fs-lg);line-height:1.35;font-weight:600;margin:0;text-wrap:balance}
-h3{font-size:var(--fs-md);line-height:1.4;font-weight:600;margin:0}
 p{margin:0;max-width:78ch}
 a{color:var(--accent);text-underline-offset:3px;overflow-wrap:anywhere}
 code{font-family:var(--font-mono);font-size:12.5px}
@@ -119,52 +119,118 @@ button{font:inherit;color:inherit}
 /* page head */
 .top{padding-block:32px 20px;display:grid;gap:8px}
 .top .sub{color:var(--muted);font-size:var(--fs-sm);max-width:none}
+.top .how{font-size:var(--fs-sm)}
 
 /* sticky bar */
-.bar{position:sticky;top:0;z-index:10;background:var(--surface);border-block:1px solid var(--line)}
-.bar .col{display:flex;align-items:center;gap:10px 16px;padding-block:10px;flex-wrap:wrap}
-.filter{display:flex;flex-wrap:wrap;gap:6px}
-.filter button{border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);padding:5px 11px;font-size:var(--fs-sm);cursor:pointer;display:flex;gap:6px;align-items:center;transition:background .15s}
-.filter button:hover{background:var(--hover)}
-.filter button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-2);color:var(--accent);font-weight:600}
-.filter button b{font-weight:500;color:var(--muted);font-size:var(--fs-xs)}
-.filter button[aria-pressed="true"] b{color:var(--accent)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);border-block:1px solid var(--line);box-shadow:0 4px 12px -8px color-mix(in srgb,var(--fg) 30%,transparent)}
+.bar .col{display:flex;align-items:center;gap:10px 12px;padding-block:10px;flex-wrap:wrap}
+.prog{display:grid;gap:2px;min-width:0}
+.prog b{font-size:var(--fs-md);font-weight:600;white-space:nowrap}
+.prog span{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.strip{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+.strip .sep{width:1px;height:22px;background:var(--line-strong);margin-inline:3px}
+.pill{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 8px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);font:600 var(--fs-xs) var(--font-mono);text-decoration:none;transition:background .15s,border-color .15s}
+.pill:hover{background:var(--hover)}
+.pill svg.i{width:12px;height:12px}
+.pill[data-status="wait"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+.pill[data-status="you"]{background:var(--pass-soft);color:var(--pass);border-color:var(--pass)}
+.pill[data-status="agent"]{background:var(--hover);color:var(--muted);border-color:var(--line)}
+.pill[data-status="over"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-2)}
+.pill[data-status="disputed"]{background:var(--fail-soft);color:var(--fail);border-color:var(--fail)}
+.pill[aria-current="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent-2)}
 .spacer{flex:1}
-.count{font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:7px 14px;font-size:var(--fs-sm);font-weight:600;cursor:pointer;border:1px solid transparent;white-space:nowrap;transition:background .15s,border-color .15s}
 .btn.primary{background:var(--btn);color:#fff}
 .btn.primary:hover{background:color-mix(in srgb,var(--btn) 80%,var(--navy))}
 .btn.ghost{background:var(--surface);border-color:var(--line-strong);color:var(--fg);font-weight:500}
 .btn.ghost:hover{background:var(--hover)}
+.btn.warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
+.btn.warn:hover{background:color-mix(in srgb,var(--warn-soft) 70%,var(--warn-line))}
+.done-msg{display:none;align-items:center;gap:6px;font-size:var(--fs-sm);font-weight:600;color:var(--pass)}
+body.all-done .done-msg{display:inline-flex}
+body.all-done .bar [data-next]{display:none}
 
-/* issues */
-main{padding-block:24px 40px;display:grid;gap:20px}
-.issue{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px 28px;display:grid;gap:16px;scroll-margin-top:80px;min-width:0}
-.ih{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start}
-.num{width:28px;height:28px;border-radius:8px;background:var(--navy);border:1px solid var(--line-strong);color:#fff;display:grid;place-items:center;font:500 var(--fs-sm) var(--font-mono)}
-.ih>div{display:grid;gap:8px;padding-top:3px;min-width:0}
-.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.mark,.chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);line-height:20px;padding:0 8px;border-radius:6px;max-width:100%}
-.mark{font-weight:600;border:1px solid transparent;white-space:nowrap}
-.mark.needs{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
-.mark.agent{background:var(--chip);color:var(--accent)}
-.mark.new{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-2)}
-.chip{background:var(--hover);color:var(--fg)}
-.chip .cl{color:var(--muted)}
-.chip.bad{background:var(--fail-soft);color:var(--fail)}
-.chip.good{background:var(--pass-soft);color:var(--pass)}
-.chip.warn{background:var(--warn-soft);color:var(--warn)}
-.chip.bad .cl,.chip.good .cl,.chip.warn .cl{color:inherit;opacity:.8}
-.where{font:400 var(--fs-xs) var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
-.body{display:grid;gap:14px;min-width:0}
+/* sections */
+main{padding-block:24px 40px;display:grid;gap:14px}
+.sec{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-top:14px}
+.sec:first-child{margin-top:0}
+.sec h2{font-size:var(--fs-md);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sec p{font-size:var(--fs-sm);color:var(--muted)}
+
+/* issue card */
+.issue{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 24px;display:grid;gap:16px;scroll-margin-top:96px;min-width:0;transition:border-color .2s,box-shadow .2s}
+.issue[data-status="wait"]{border-color:var(--warn-line);box-shadow:0 0 0 3px var(--warn-soft)}
+.issue[data-status="disputed"]{border-color:var(--fail)}
+.issue.flash{box-shadow:0 0 0 3px var(--accent-soft)}
+.issue.collapsed{padding-block:16px;gap:12px}
+.ih{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start}
+.num{min-width:28px;max-width:12ch;height:28px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:8px;background:var(--navy);border:1px solid var(--line-strong);color:#fff;display:grid;place-items:center;font:500 var(--fs-sm) var(--font-mono)}
+.ihc{display:grid;gap:8px;min-width:0;padding-top:2px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.st,.stake,.conf,.newr{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);font-weight:600;line-height:20px;padding:0 9px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.st{display:none}
+.issue[data-status="wait"] .st.s-wait{display:inline-flex;background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
+.issue[data-status="you"] .st.s-you{display:inline-flex;background:var(--pass-soft);color:var(--pass);border-color:var(--pass)}
+.issue[data-status="agent"] .st.s-agent{display:inline-flex;background:var(--hover);color:var(--muted);border-color:var(--line-strong)}
+.issue[data-status="over"] .st.s-over{display:inline-flex;background:var(--accent-soft);color:var(--accent);border-color:var(--accent-2)}
+.issue[data-status="disputed"] .st.s-disp{display:inline-flex;background:var(--fail-soft);color:var(--fail);border-color:var(--fail)}
+.stake.high{background:var(--fail-soft);color:var(--fail)}
+.stake.med{background:var(--warn-soft);color:var(--warn)}
+.stake.low{background:var(--hover);color:var(--muted)}
+.conf{font-weight:500;background:var(--hover);color:var(--muted)}
+.conf.medium{background:var(--warn-soft);color:var(--warn)}
+.newr{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-2)}
+.facts{font-size:var(--fs-sm);color:var(--muted);max-width:none}
+.facts b{color:var(--fg);font-weight:600}
+.facts .dot{margin-inline:6px;color:var(--faint)}
+.facts .where{font:400 var(--fs-xs) var(--font-mono);overflow-wrap:anywhere}
+.toggle{background:none;border:0;padding:4px 6px;margin:-2px -6px 0 0;border-radius:6px;cursor:pointer;color:var(--accent);font-size:var(--fs-sm);font-weight:500;display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+.toggle:hover{background:var(--hover)}
+.toggle svg{transition:transform .15s}
+.issue:not(.collapsed) .toggle svg{transform:rotate(90deg)}
+.toggle .t-open,.issue.collapsed .toggle .t-close{display:none}
+.issue.collapsed .toggle .t-open{display:inline}
+
+/* verdict line, shown only on a folded card */
+.verdict{display:none;gap:8px;align-items:baseline;font-size:var(--fs-sm);padding:10px 12px;border-radius:8px;background:var(--page);border:1px solid var(--line);min-width:0}
+.verdict .vk{font:600 var(--fs-xs) var(--font-mono);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:0 6px;flex:none}
+.verdict .vt{min-width:0}
+.verdict .vo{color:var(--muted)}
+.issue.collapsed .verdict{display:flex}
+.issue.collapsed .detail{display:none}
+.detail{display:grid;gap:16px;min-width:0}
 .cap{font-size:var(--fs-sm);color:var(--muted)}
+.inl{font-size:var(--fs-sm)}
 
 /* origin quote */
 .quote{background:var(--page);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:6px}
 .quote .who{display:flex;gap:8px;align-items:center;font-size:var(--fs-sm);color:var(--muted);flex-wrap:wrap}
 .quote .who b{color:var(--fg);font-weight:600}
-.quote .who .chip{margin-left:auto;font-weight:600}
 .quote p{max-width:none}
+.vchip{margin-left:auto;display:inline-flex;align-items:center;font-size:var(--fs-xs);font-weight:600;line-height:20px;padding:0 8px;border-radius:6px}
+.vchip.good{background:var(--pass-soft);color:var(--pass)}
+.vchip.bad{background:var(--fail-soft);color:var(--fail)}
+.vchip.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* recommendation box */
+.recbox{display:grid;gap:8px;padding:14px 16px;border-radius:10px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent-2) 45%,transparent);min-width:0;overflow-wrap:anywhere}
+.recbox .rl{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;max-width:none;font-weight:600}
+.recbox .rk{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.recbox .rr{font-size:var(--fs-sm);max-width:none}
+.unchk{display:flex;gap:8px;align-items:flex-start;font-size:var(--fs-sm);color:var(--warn);background:var(--warn-soft);border:1px solid var(--warn-line);border-radius:8px;padding:7px 10px;max-width:none}
+.unchk svg{margin-top:3px}
+.unchk b{font-weight:600}
+details.src summary{font-size:var(--fs-xs);color:var(--muted);cursor:pointer;width:max-content;list-style:none;display:inline-flex;gap:4px;align-items:center}
+details.src summary::-webkit-details-marker{display:none}
+details.src summary svg{transition:transform .15s}
+details.src[open] summary svg{transform:rotate(90deg)}
+details.src ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:4px}
+details.src li{font-size:var(--fs-xs);color:var(--muted);overflow-wrap:anywhere}
+/* issue 2: the recommendation box names the answer issue 1 has now */
+.dw{display:none}
+main:has(#issue-1 input[value="A"]:checked) #issue-2 .dw[data-when="A"],
+main:has(#issue-1 input[value="B"]:checked) #issue-2 .dw[data-when="B"],
+main:has(#issue-1 input[value="C"]:checked) #issue-2 .dw[data-when="C"]{display:inline}
 
 /* code and diffs */
 .code{margin:0;background:var(--page);border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
@@ -229,22 +295,19 @@ main:has(#issue-1 input[value="C"]:checked) #issue-2 tr[data-when="C"]{backgroun
 main:has(#issue-1 input[value="A"]:checked) #issue-2 tr[data-when="A"] .nowtag::after,
 main:has(#issue-1 input[value="B"]:checked) #issue-2 tr[data-when="B"] .nowtag::after,
 main:has(#issue-1 input[value="C"]:checked) #issue-2 tr[data-when="C"] .nowtag::after{content:"Applies now"}
-.stale{display:flex;gap:8px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--warn-line);background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm);border-radius:0 0 8px 8px}
+.stale{display:flex;gap:8px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm);border:1px solid var(--warn-line);border-radius:8px}
+.dep .stale{border-width:1px 0 0;border-radius:0 0 8px 8px}
 
-.why{font-size:var(--fs-sm);line-height:1.7;max-width:none;overflow-wrap:anywhere}
-.why>b{font-weight:600}
-.why .chip{margin-inline:4px}
-.why .unchecked{display:block;color:var(--warn)}
-.decide>.stale{border:1px solid var(--warn-line);border-radius:8px}
-
-/* fold */
-details.fold{border:1px solid var(--line);border-radius:8px;background:var(--page);min-width:0}
-details.fold summary{display:flex;gap:8px;align-items:center;padding:8px 12px;font-size:var(--fs-sm);font-weight:500;cursor:pointer;list-style:none;color:var(--accent)}
-details.fold summary::-webkit-details-marker{display:none}
-details.fold summary svg{transition:transform .15s}
-details.fold[open] summary svg{transform:rotate(90deg)}
-details.fold[open] summary{border-bottom:1px solid var(--line)}
-details.fold .code{border:0;border-radius:0 0 8px 8px}
+/* folds */
+details.bg,details.fold{border:1px solid var(--line);border-radius:10px;background:var(--page);min-width:0}
+details.bg>summary,details.fold>summary{display:flex;gap:8px;align-items:center;padding:10px 14px;font-size:var(--fs-sm);font-weight:500;cursor:pointer;list-style:none;color:var(--accent)}
+details.bg>summary::-webkit-details-marker,details.fold>summary::-webkit-details-marker{display:none}
+details.bg>summary svg,details.fold>summary svg{transition:transform .15s}
+details.bg[open]>summary svg,details.fold[open]>summary svg{transform:rotate(90deg)}
+details.bg[open]>summary,details.fold[open]>summary{border-bottom:1px solid var(--line)}
+.bgb{display:grid;gap:12px;padding:14px;min-width:0}
+.bgb .code,.bgb .tbl,.bgb .fig{background:var(--surface)}
+details.fold .code{border:0;border-radius:0 0 10px 10px}
 
 /* ui mockups */
 .mockwrap{display:grid;gap:8px;min-width:0}
@@ -262,51 +325,71 @@ details.fold .code{border:0;border-radius:0 0 8px 8px}
 ol.pins{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:var(--fs-sm);font-weight:400}
 ol.pins li{display:flex;gap:8px;align-items:baseline}
 
-/* decision block */
-.decide{border-top:1px solid var(--line);padding-top:16px;display:grid;gap:12px;min-width:0}
-.opts{display:grid;border-block:1px solid var(--line)}
-.opt{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;padding:12px;cursor:pointer;border-radius:8px;transition:background .15s}
-.opt+.opt{box-shadow:0 -1px 0 var(--line)}
+/* options */
+.opts{display:grid;gap:6px}
+.opt{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;padding:12px 14px;cursor:pointer;border-radius:10px;border:1px solid var(--line);transition:background .15s,border-color .15s}
 .opt:hover{background:var(--hover)}
-.opt.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-2)}
+.opt.sel{background:var(--accent-soft);border-color:var(--accent-2)}
+.issue[data-status="wait"] .opt.sel{background:var(--surface);border:1.5px dashed var(--warn-line)}
 .opt input{margin:3px 0 0;width:16px;height:16px;accent-color:var(--btn)}
-.opt .oc{display:grid;gap:8px;min-width:0}
-.opt .ot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
-.opt .k{font:500 var(--fs-xs) var(--font-mono);color:var(--muted)}
-.opt p{font-size:var(--fs-sm)}
+.oc{display:grid;gap:8px;min-width:0}
+.ot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.ot,.oc>p,.attrs dd{overflow-wrap:anywhere;min-width:0}
+.attrs>div{min-width:0}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);line-height:20px;padding:0 8px;border-radius:6px;background:var(--hover);color:var(--fg)}
+.chip.good{background:var(--pass-soft);color:var(--pass)}
+.chip.bad{background:var(--fail-soft);color:var(--fail)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.k{font:600 var(--fs-xs) var(--font-mono);color:var(--accent);background:var(--chip);border-radius:4px;padding:0 6px}
+.oc>p{font-size:var(--fs-sm)}
 .rec{display:inline-flex;gap:4px;align-items:center;font-size:var(--fs-xs);font-weight:600;color:var(--accent);background:var(--surface);border:1px solid var(--accent-2);border-radius:6px;padding:0 7px;line-height:18px}
+.pre{display:none;font-size:var(--fs-xs);font-weight:600;color:var(--warn)}
+.issue[data-status="wait"] .opt.sel .pre{display:inline}
 .attrs{margin:0;display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:4px 20px}
 .attrs dt{font-size:var(--fs-xs);color:var(--muted)}
 .attrs dd{margin:0;font-size:var(--fs-sm)}
 .sample{font:400 12px/1.6 var(--font-mono);background:var(--page);border:1px solid var(--line);border-radius:6px;padding:4px 10px;overflow-x:auto;white-space:pre}
-.opt .sample{background:var(--surface)}
+.opt .sample,.bgb .sample{background:var(--surface)}
 .seg{display:flex;flex-wrap:wrap;gap:6px;justify-self:start}
 .seg button{border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);padding:7px 16px;font-size:var(--fs-sm);font-weight:500;cursor:pointer;display:flex;gap:6px;align-items:center;transition:background .15s}
 .seg button:hover{background:var(--hover)}
-.seg button svg{display:none}
+.seg button>svg{display:none}
 .seg button[aria-pressed="true"]{font-weight:600}
-.seg button[aria-pressed="true"] svg{display:block}
+.seg button[aria-pressed="true"]>svg{display:block}
 .seg button[aria-pressed="true"][data-tone="yes"]{background:var(--pass-soft);color:var(--pass);border-color:var(--pass)}
 .seg button[aria-pressed="true"][data-tone="no"]{background:var(--fail-soft);color:var(--fail);border-color:var(--fail)}
 .seg button[aria-pressed="true"][data-tone="talk"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
-.foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 16px;align-items:start}
+
+/* foot */
+.foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:start;border-top:1px solid var(--line);padding-top:14px}
 textarea{width:100%;min-height:36px;height:36px;resize:vertical;font:400 var(--fs-sm)/1.5 var(--font-body);color:var(--fg);background:var(--page);border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;transition:border-color .15s}
 textarea::placeholder{color:var(--muted)}
 textarea:hover{border-color:var(--accent-2)}
-.state{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:36px}
+.state{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;min-height:36px}
 .dstat>span{display:none;gap:6px;align-items:center;font-size:var(--fs-sm);color:var(--muted);max-width:46ch}
-.issue[data-state="undecided"] .dstat .s-undecided{display:flex;color:var(--warn)}
-.issue[data-state="decided"][data-by="owner"] .dstat .s-owner,
-.issue[data-state="decided"][data-by="agent"] .dstat .s-agent{display:flex}
-.issue[data-state="disputed"] .dstat .s-disputed{display:flex;color:var(--warn)}
-.dstat .s-owner svg,.dstat .s-agent svg{color:var(--pass)}
+.issue[data-status="you"] .dstat .s-you,
+.issue[data-status="agent"] .dstat .s-agent,
+.issue[data-status="over"] .dstat .s-over{display:flex}
+.issue[data-status="disputed"] .dstat .s-disputed{display:flex;color:var(--fail)}
+.dstat .s-you svg,.dstat .s-agent svg,.dstat .s-over svg{color:var(--pass)}
+[data-go-next]{display:none}
+.issue[data-needs="owner"]:not([data-status="wait"]) [data-go-next]{display:inline-flex}
+body.all-done [data-go-next]{display:none!important}
 
-/* copied text preview */
-.out{display:grid;gap:10px;padding-bottom:64px}
-.out pre{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px;font:400 12px/1.65 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+/* copied text */
+.out{padding-bottom:64px}
+details.outd{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+details.outd>summary{padding:10px 12px 10px 16px;font-weight:600;cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+details.outd>summary::-webkit-details-marker{display:none}
+details.outd>summary .st-t{flex:1;min-width:0}
+details.outd>summary>svg{transition:transform .15s}
+details.outd[open]>summary>svg{transform:rotate(90deg)}
+details.outd .cap{padding:12px 20px 0;border-top:1px solid var(--line)}
+details.outd pre{margin:0;padding:12px 20px 16px;font:400 12px/1.65 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
 
-@media (max-width:900px){.pair{grid-template-columns:1fr}.attrs{grid-template-columns:repeat(2,minmax(0,1fr))}.foot{grid-template-columns:1fr}.issue{padding:18px 16px}}
-@media (max-width:520px){.attrs{grid-template-columns:1fr}.opt{padding:12px 8px}}
+@media (max-width:900px){.pair{grid-template-columns:1fr}.attrs{grid-template-columns:repeat(2,minmax(0,1fr))}.foot{grid-template-columns:1fr}.state{justify-content:flex-start}.issue{padding:16px}}
+@media (max-width:760px){.ih{grid-template-columns:auto minmax(0,1fr)}.ih .toggle{grid-column:2;justify-self:start;margin:0 0 0 -6px}.bar .col{gap:8px 12px}.issue{scroll-margin-top:190px}}
+@media (max-width:520px){.attrs{grid-template-columns:1fr}.opt{padding:12px 10px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
@@ -321,93 +404,65 @@ textarea:hover{border-color:var(--accent-2)}
   <symbol id="i-chev" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
   <symbol id="i-wait" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.8"/><path d="M8 4.8V8l2.2 1.6"/></symbol>
   <symbol id="i-talk" viewBox="0 0 16 16"><path d="M3 3.5h10v7H7.5L4.5 13v-2.5H3z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.5l6 10.5H2z"/><path d="M8 6.5v3M8 11.3v.2"/></symbol>
+  <symbol id="i-next" viewBox="0 0 16 16"><path d="M3 8h9.5M9 4.5L12.5 8 9 11.5"/></symbol>
 </svg>
 
 <header class="col top">
   <h1>PR #2317: decisions on log levels</h1>
   <p class="sub">Normalize log levels in <code>Sync.Client</code> and <code>Sync.Gateway</code> · branch <code>fix/log-levels</code> · review round 2 · 9 issues</p>
-  <p>The agent settled five issues on its own; they already count as decided and you can overrule any of them. Four need your call: the recommended option is preselected, and it counts once you press Confirm or pick an option. When you are done, Copy decisions gives you text to paste into the agent's terminal.</p>
+  <p class="how"><b>4 issues need your decision</b>, highest stakes first. The recommended option is preselected (dashed outline) and counts once you press Confirm or pick another option. The 5 issues the agent settled sit folded below and already count as decided; open one to overrule it. When you are done, Copy decisions and paste the text into the agent's terminal.</p>
 </header>
 
-<div class="bar">
-  <div class="col">
-    <div class="filter" role="group" aria-label="Show issues">
-      <button type="button" data-filter="all" aria-pressed="true">All <b>9</b></button>
-      <button type="button" data-filter="needs" aria-pressed="false">Needs you <b>4</b></button>
-      <button type="button" data-filter="agent" aria-pressed="false">Agent decided <b>5</b></button>
-      <button type="button" data-filter="new" aria-pressed="false">New this round <b>2</b></button>
-    </div>
-    <span class="spacer"></span>
-    <span class="count" data-progress aria-live="polite"></span>
-    <button type="button" class="btn primary" data-copy><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span data-copy-label>Copy decisions</span></button>
-  </div>
-</div>
+<div class="bar"><div class="col">
+  <div class="prog" aria-live="polite"><b data-you-count>You: 0 of 4 answered</b><span data-agent-count>Agent settled 5 · 0 overruled by you</span></div>
+  <nav class="strip" aria-label="Jump to issue">
+    <a class="pill" href="#issue-1" data-pill="1"></a>
+    <a class="pill" href="#issue-2" data-pill="2"></a>
+    <a class="pill" href="#issue-7" data-pill="7"></a>
+    <a class="pill" href="#issue-9" data-pill="9"></a>
+    <span class="sep" aria-hidden="true"></span>
+    <a class="pill" href="#issue-3" data-pill="3"></a>
+    <a class="pill" href="#issue-4" data-pill="4"></a>
+    <a class="pill" href="#issue-5" data-pill="5"></a>
+    <a class="pill" href="#issue-6" data-pill="6"></a>
+    <a class="pill" href="#issue-8" data-pill="8"></a>
+  </nav>
+  <span class="spacer"></span>
+  <button type="button" class="btn warn" data-next title="Jump to the next issue waiting for you (key N)"><svg class="i" aria-hidden="true"><use href="#i-next"/></svg>Next open issue</button>
+  <span class="done-msg"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>All answered</span>
+  <button type="button" class="btn primary" data-copy><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span data-copy-label>Copy decisions</span></button>
+</div></div>
 
 <main class="col">
+<div class="sec"><h2>Needs your decision</h2><p>4 issues · highest stakes first</p></div>
 
 <!-- 1: needs the owner, three options, origin quote, flow, two code excerpts -->
 <article class="issue" id="issue-1" data-issue="1">
-  <header class="ih">
-    <span class="num">1</span>
-    <div>
-      <h2>One transport failure is logged as Error in two layers</h2>
-      <div class="meta">
-        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
-        <span class="chip"><span class="cl">Why you:</span>no clear winner</span>
-        <span class="chip bad"><span class="cl">Impact:</span>pages on-call twice</span>
-        <span class="chip"><span class="cl">Confidence:</span>medium</span>
-        <span class="where">HttpSyncTransport.cs:68 · SyncSession.cs:114</span>
-      </div>
+  <header class="ih"><span class="num">1</span><div class="ihc">
+    <h2 id="t1">One transport failure is logged as Error in two layers</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake high">High stakes</span>
     </div>
-  </header>
-  <div class="body">
+    <p class="facts"><b>Why you:</b> no clear winner; each option trades pages against detail or needs the ops team<span class="dot">·</span><b>Risk:</b> one outage pages on-call twice<span class="dot">·</span>Reversal: one commit, or an ops change for C<span class="dot">·</span><span class="where">HttpSyncTransport.cs:68 · SyncSession.cs:114</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
     <div class="quote">
-      <div class="who"><b>Jonas Lindqvist</b><span>review comment on <code>SyncSession.cs:114</code></span><span class="chip good">Valid</span></div>
+      <div class="who"><b>Jonas Lindqvist</b><span>review comment on <code>SyncSession.cs:114</code></span><span class="vchip good">Valid</span></div>
       <p>"The transport logs the exception at Error and rethrows, then the session catches it and logs Error again. One gateway outage raises two alerts. Pick one layer."</p>
     </div>
-    <p>He is right. When the gateway is down, the same failure passes through both catch blocks below, and each writes an Error. The ops alert rule <code>sync-errors</code> pages the on-call engineer for every Error from <code>Sync.*</code>, so one outage pages twice.</p>
-    <figure class="fig">
-      <svg viewBox="0 0 1000 80" role="img" aria-label="Gateway answers 503. HttpSyncTransport logs an Error and throws. SyncSession catches it and logs a second Error. The alert rule pages on every Error, so one outage gives two pages.">
-        <rect class="bx" x="1" y="12" width="148" height="56" rx="8"/><text x="16" y="36">Gateway</text><text class="s" x="16" y="54">answers 503</text>
-        <path class="ar" d="M153 40h30M177 35l6 5-6 5"/>
-        <rect class="hot" x="188" y="12" width="200" height="56" rx="8"/><text class="m" x="203" y="36">HttpSyncTransport</text><text class="s" x="203" y="54">LogError, then throws</text>
-        <circle class="pin" cx="388" cy="12" r="9"/><text class="pint" x="388" y="16" text-anchor="middle">1</text>
-        <path class="ar" d="M392 40h30M416 35l6 5-6 5"/>
-        <rect class="hot" x="427" y="12" width="200" height="56" rx="8"/><text class="m" x="442" y="36">SyncSession</text><text class="s" x="442" y="54">catches, LogError again</text>
-        <circle class="pin" cx="627" cy="12" r="9"/><text class="pint" x="627" y="16" text-anchor="middle">2</text>
-        <path class="ar" d="M631 40h30M655 35l6 5-6 5"/>
-        <rect class="bx" x="666" y="12" width="170" height="56" rx="8"/><text x="681" y="36">Alert rule sync-errors</text><text class="s" x="681" y="54">pages on every Error</text>
-        <path class="ar" d="M840 40h30M864 35l6 5-6 5"/>
-        <rect class="bad" x="875" y="12" width="124" height="56" rx="8"/><text class="badt" x="890" y="36">2 pages</text><text class="s" x="890" y="54">for 1 outage</text>
-      </svg>
-    </figure>
-    <p>The two Errors, at <code>HttpSyncTransport.cs:68</code> and <code>SyncSession.cs:114</code>:</p>
-    <div class="pair">
-      <figure class="code"><figcaption><span>src/Sync.Client/Transport/HttpSyncTransport.cs</span><span>Error 1</span></figcaption><pre tabindex="0">
-<span class="l"><span class="n">66</span>catch (HttpRequestException ex)</span>
-<span class="l"><span class="n">67</span>{</span>
-<span class="l hl"><span class="n">68</span>    _logger.LogError(ex,</span>
-<span class="l hl"><span class="n">69</span>        "Sync request to {Endpoint} failed", _endpoint);</span>
-<span class="l"><span class="n">70</span>    throw new SyncTransportException(_endpoint, ex);</span>
-<span class="l"><span class="n">71</span>}</span></pre></figure>
-      <figure class="code"><figcaption><span>src/Sync.Client/SyncSession.cs</span><span>Error 2</span></figcaption><pre tabindex="0">
-<span class="l"><span class="n">112</span>catch (SyncTransportException ex)</span>
-<span class="l"><span class="n">113</span>{</span>
-<span class="l hl"><span class="n">114</span>    _logger.LogError(ex,</span>
-<span class="l hl"><span class="n">115</span>        "Sync session {SessionId} abandoned", Id);</span>
-<span class="l"><span class="n">116</span>    State = SessionState.Abandoned;</span>
-<span class="l"><span class="n">117</span>    await _backoff.WaitAsync(ct);</span>
-<span class="l"><span class="n">118</span>}</span></pre></figure>
+    <div class="recbox">
+      <p class="rl"><span class="rk">Recommended</span><span><span class="k">A</span> Error once in SyncSession</span><span class="conf medium">Medium confidence</span></p>
+      <p class="rr">The session is the one layer that knows a sync was given up, so one Error there gives one page per outage without touching the ops rule.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>3 sources</summary><ul><li><code title="src/Sync.Client/SyncSession.cs:114">SyncSession.cs:114</code></li><li><code title="src/Sync.Client/Transport/HttpSyncTransport.cs:68">HttpSyncTransport.cs:68</code></li><li><code title="ops-alerts: alert rule sync-errors">alert rule sync-errors</code></li></ul></details>
     </div>
-  </div>
-  <div class="decide">
-    <h3 id="q1">Which layer logs the Error?</h3>
-    <p class="why"><b>Recommended: A.</b> The session is the one layer that knows a sync was given up, so one Error there gives one page per outage without touching the ops rule. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>SyncSession.cs:114</code>, <code>HttpSyncTransport.cs:68</code>, alert rule <code>sync-errors</code>.</p>
-    <div class="opts" role="radiogroup" aria-labelledby="q1">
+    <div class="opts" role="radiogroup" aria-labelledby="t1">
       <label class="opt">
         <input type="radio" name="opt-1" value="A">
         <div class="oc">
-          <div class="ot"><span class="k">A</span>Error once in SyncSession; the transport logs Debug<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="ot"><span class="k">A</span>Error once in SyncSession; the transport logs Debug<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
           <p>The session is the layer that knows the sync was given up. The transport keeps its line at Debug for troubleshooting. Two files change.</p>
           <dl class="attrs" style="--cols:4">
             <div><dt>Pages per outage</dt><dd>1</dd></div>
@@ -420,7 +475,7 @@ textarea:hover{border-color:var(--accent-2)}
       <label class="opt">
         <input type="radio" name="opt-1" value="B">
         <div class="oc">
-          <div class="ot"><span class="k">B</span>Error in the transport only; the session logs Information<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="ot"><span class="k">B</span>Error in the transport only; the session logs Information<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
           <p>The Error sits where the failure happens. The session records "abandoned" as a plain event. Two files change.</p>
           <dl class="attrs" style="--cols:4">
             <div><dt>Pages per outage</dt><dd>1 per failed request, up to 3 with retries</dd></div>
@@ -433,7 +488,7 @@ textarea:hover{border-color:var(--accent-2)}
       <label class="opt">
         <input type="radio" name="opt-1" value="C">
         <div class="oc">
-          <div class="ot"><span class="k">C</span>Keep both Errors; group them in the alert rule<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="ot"><span class="k">C</span>Keep both Errors; group them in the alert rule<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
           <p>No code change in this PR. The rule groups Errors that share a <code>CorrelationId</code> within 5 minutes into one page.</p>
           <dl class="attrs" style="--cols:4">
             <div><dt>Pages per outage</dt><dd>1, if the grouping works</dd></div>
@@ -445,19 +500,50 @@ textarea:hover{border-color:var(--accent-2)}
       </label>
     </div>
     <a class="deplink" href="#issue-2"><svg class="i" aria-hidden="true"><use href="#i-link"/></svg>Issue 2 follows from this answer. If you change it, the recommendation there changes with it.</a>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: how one outage becomes two pages, with both catch blocks</summary><div class="bgb">
+      <p>He is right. When the gateway is down, the same failure passes through both catch blocks below, and each writes an Error. The ops alert rule <code>sync-errors</code> pages the on-call engineer for every Error from <code>Sync.*</code>, so one outage pages twice.</p>
+      <figure class="fig">
+        <svg viewBox="0 0 1000 80" role="img" aria-label="Gateway answers 503. HttpSyncTransport logs an Error and throws. SyncSession catches it and logs a second Error. The alert rule pages on every Error, so one outage gives two pages.">
+          <rect class="bx" x="1" y="12" width="148" height="56" rx="8"/><text x="16" y="36">Gateway</text><text class="s" x="16" y="54">answers 503</text>
+          <path class="ar" d="M153 40h30M177 35l6 5-6 5"/>
+          <rect class="hot" x="188" y="12" width="200" height="56" rx="8"/><text class="m" x="203" y="36">HttpSyncTransport</text><text class="s" x="203" y="54">LogError, then throws</text>
+          <circle class="pin" cx="388" cy="12" r="9"/><text class="pint" x="388" y="16" text-anchor="middle">1</text>
+          <path class="ar" d="M392 40h30M416 35l6 5-6 5"/>
+          <rect class="hot" x="427" y="12" width="200" height="56" rx="8"/><text class="m" x="442" y="36">SyncSession</text><text class="s" x="442" y="54">catches, LogError again</text>
+          <circle class="pin" cx="627" cy="12" r="9"/><text class="pint" x="627" y="16" text-anchor="middle">2</text>
+          <path class="ar" d="M631 40h30M655 35l6 5-6 5"/>
+          <rect class="bx" x="666" y="12" width="170" height="56" rx="8"/><text x="681" y="36">Alert rule sync-errors</text><text class="s" x="681" y="54">pages on every Error</text>
+          <path class="ar" d="M840 40h30M864 35l6 5-6 5"/>
+          <rect class="bad" x="875" y="12" width="124" height="56" rx="8"/><text class="badt" x="890" y="36">2 pages</text><text class="s" x="890" y="54">for 1 outage</text>
+        </svg>
+      </figure>
+      <p>The two Errors, at <code>HttpSyncTransport.cs:68</code> and <code>SyncSession.cs:114</code>:</p>
+      <div class="pair">
+        <figure class="code"><figcaption><span>src/Sync.Client/Transport/HttpSyncTransport.cs</span><span>Error 1</span></figcaption><pre tabindex="0">
+<span class="l"><span class="n">66</span>catch (HttpRequestException ex)</span>
+<span class="l"><span class="n">67</span>{</span>
+<span class="l hl"><span class="n">68</span>    _logger.LogError(ex,</span>
+<span class="l hl"><span class="n">69</span>        "Sync request to {Endpoint} failed", _endpoint);</span>
+<span class="l"><span class="n">70</span>    throw new SyncTransportException(_endpoint, ex);</span>
+<span class="l"><span class="n">71</span>}</span></pre></figure>
+        <figure class="code"><figcaption><span>src/Sync.Client/SyncSession.cs</span><span>Error 2</span></figcaption><pre tabindex="0">
+<span class="l"><span class="n">112</span>catch (SyncTransportException ex)</span>
+<span class="l"><span class="n">113</span>{</span>
+<span class="l hl"><span class="n">114</span>    _logger.LogError(ex,</span>
+<span class="l hl"><span class="n">115</span>        "Sync session {SessionId} abandoned", Id);</span>
+<span class="l"><span class="n">116</span>    State = SessionState.Abandoned;</span>
+<span class="l"><span class="n">117</span>    await _backoff.WaitAsync(ct);</span>
+<span class="l"><span class="n">118</span>}</span></pre></figure>
+      </div>
+    </div></details>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
     <div class="foot">
-      <textarea data-note name="note-1" aria-label="Note to the agent for issue 1" placeholder="Note to the agent (optional)"></textarea>
+      <textarea data-note id="note-1" name="note-1" aria-label="Note to the agent for issue 1" placeholder="Note to the agent (optional; explain a different choice here)"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
-        </span>
-        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
+        <span class="dstat"><span class="s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
+        <button type="button" class="btn primary" data-act="confirm"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Confirm</button>
         <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+        <button type="button" class="btn warn" data-go-next>Next open issue<svg class="i" aria-hidden="true"><use href="#i-next"/></svg></button>
       </div>
     </div>
   </div>
@@ -465,33 +551,22 @@ textarea:hover{border-color:var(--accent-2)}
 
 <!-- 2: needs the owner, new in round 2, depends on issue 1, worked numbers -->
 <article class="issue" id="issue-2" data-issue="2">
-  <header class="ih">
-    <span class="num">2</span>
-    <div>
-      <h2>Client older than the gateway: Warning or Information?</h2>
-      <div class="meta">
-        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
-        <span class="mark new"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg>New in round 2</span>
-        <span class="chip warn"><span class="cl">Why you:</span>costly to reverse</span>
-        <span class="where">src/Sync.Client/Handshake/VersionCheck.cs:47</span>
-      </div>
+  <header class="ih"><span class="num">2</span><div class="ihc">
+    <h2 id="t2">Client older than the gateway: Warning or Information?</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake med">Medium stakes</span>
+      <span class="newr"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg>New in round 2</span>
     </div>
-  </header>
-  <div class="body">
-    <p>On every connect the client compares its protocol version with the gateway's. When the client is one minor version behind, the gateway serves it in compatibility mode (sync works, using the older message format) and the client writes one log line. This PR sets that line to Warning.</p>
-    <p>Two facts make the level matter. On-prem clients upload only Warning and above to our central telemetry; Information stays in the customer's local log file. And a client reconnects every 30 seconds, so the line repeats all day:</p>
-    <div class="tbl" style="max-width:760px">
-      <table>
-        <tr><th>Worked numbers, last rollout</th><th class="r">Value</th><th>Source</th></tr>
-        <tr><td>On-prem installs</td><td class="r">340</td><td>licence report, October</td></tr>
-        <tr><td>Share one minor version behind during a rollout</td><td class="r">12%</td><td>4.1 rollout, weeks 1 to 7</td></tr>
-        <tr><td>Clients behind: 340 × 0.12</td><td class="r">41</td><td></td></tr>
-        <tr><td>Connects per client per day: 86,400 s ÷ 30 s</td><td class="r">2,880</td><td><code>SyncOptions.ReconnectInterval</code></td></tr>
-        <tr class="total"><td>Warning lines uploaded per day: 41 × 2,880</td><td class="r">118,080</td><td></td></tr>
-      </table>
+    <p class="facts"><b>Why you:</b> costly to reverse; the level ships inside the client build<span class="dot">·</span><b>Risk:</b> about 118,000 identical Warning lines a day in central telemetry during a rollout<span class="dot">·</span>Reversal: another client release (the last took 7 weeks)<span class="dot">·</span><span class="where">src/Sync.Client/Handshake/VersionCheck.cs:47</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Recommended</span><span class="dw" data-when="A"><span class="k">A</span> Information</span><span class="dw" data-when="B"><span class="k">C</span> Warning, once per client per day</span><span class="dw" data-when="C"><span class="k">A</span> Information</span><span class="conf medium">Medium confidence</span></p>
+      <p class="rr">Follows issue 1. <span class="dw" data-when="A">With issue 1 at A, Error in SyncSession, this is A, Information: the session's Error already carries both versions, so this line is not needed for alerting.</span><span class="dw" data-when="B">With issue 1 at B, Error in the transport, this is C, Warning once per client per day: the transport's Error would not show the versions, so this line becomes the only central record of them.</span><span class="dw" data-when="C">With issue 1 at C, both Errors kept, this is A, Information: the session's Error still carries both versions.</span> The table below gives the recommendation and its reason for each answer to issue 1.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>3 sources</summary><ul><li><code title="src/Sync.Client/Handshake/VersionCheck.cs:47">VersionCheck.cs:47</code></li><li><code title="Licence report, October">licence report (October)</code></li><li><code title="4.1 rollout figures, weeks 1 to 7">4.1 rollout figures</code></li></ul></details>
     </div>
-    <p>In plain words: as the PR stands, about 118,000 identical Warning lines a day reach central telemetry during a rollout.</p>
-    <p><b>Why it is costly to reverse:</b> the level ships inside the client build. Release 4.2 goes to all 340 installs; changing the level afterwards needs another client release, and the last one took 7 weeks to reach 95% of installs.</p>
     <div class="dep">
       <div class="dh"><svg class="i" aria-hidden="true"><use href="#i-link"/></svg><b>Follows from <a href="#issue-1">issue 1</a>.</b><span>The highlighted row is the answer issue 1 has now.</span></div>
       <div class="tw">
@@ -507,15 +582,11 @@ textarea:hover{border-color:var(--accent-2)}
         <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
       </div>
     </div>
-  </div>
-  <div class="decide">
-    <h3 id="q2">Which level does the version line get?</h3>
-    <p class="why"><b>Recommended: follows issue 1.</b> With issue 1 at its recommended A, this is A, Information: the session's Error already carries both versions, so this line is not needed for alerting. The table above gives the recommendation and its reason for each answer to issue 1. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>VersionCheck.cs:47</code>, licence report (October), 4.1 rollout figures.</p>
-    <div class="opts" role="radiogroup" aria-labelledby="q2">
+    <div class="opts" role="radiogroup" aria-labelledby="t2">
       <label class="opt">
         <input type="radio" name="opt-2" value="A">
         <div class="oc">
-          <div class="ot"><span class="k">A</span>Information<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="ot"><span class="k">A</span>Information<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
           <p>The line stays in the customer's local log file. One line changes.</p>
           <dl class="attrs" style="--cols:3">
             <div><dt>Lines uploaded per day</dt><dd>0</dd></div>
@@ -527,7 +598,7 @@ textarea:hover{border-color:var(--accent-2)}
       <label class="opt">
         <input type="radio" name="opt-2" value="B">
         <div class="oc">
-          <div class="ot"><span class="k">B</span>Warning on every connect, as the PR has it now<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="ot"><span class="k">B</span>Warning on every connect, as the PR has it now<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
           <p>Nothing changes in the PR.</p>
           <dl class="attrs" style="--cols:3">
             <div><dt>Lines uploaded per day</dt><dd>118,080</dd></div>
@@ -539,7 +610,7 @@ textarea:hover{border-color:var(--accent-2)}
       <label class="opt">
         <input type="radio" name="opt-2" value="C">
         <div class="oc">
-          <div class="ot"><span class="k">C</span>Warning, once per client per day<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
+          <div class="ot"><span class="k">C</span>Warning, once per client per day<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
           <p>The client remembers when it last warned and stays quiet for 24 hours. Later connects log at Debug.</p>
           <dl class="attrs" style="--cols:3">
             <div><dt>Lines uploaded per day</dt><dd>41</dd></div>
@@ -549,103 +620,277 @@ textarea:hover{border-color:var(--accent-2)}
         </div>
       </label>
     </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: why the level matters, with the worked numbers from the last rollout</summary><div class="bgb">
+      <p>On every connect the client compares its protocol version with the gateway's. When the client is one minor version behind, the gateway serves it in compatibility mode (sync works, using the older message format) and the client writes one log line. This PR sets that line to Warning.</p>
+      <p>Two facts make the level matter. On-prem clients upload only Warning and above to our central telemetry; Information stays in the customer's local log file. And a client reconnects every 30 seconds, so the line repeats all day:</p>
+      <div class="tbl" style="max-width:760px">
+        <table>
+          <tr><th>Worked numbers, last rollout</th><th class="r">Value</th><th>Source</th></tr>
+          <tr><td>On-prem installs</td><td class="r">340</td><td>licence report, October</td></tr>
+          <tr><td>Share one minor version behind during a rollout</td><td class="r">12%</td><td>4.1 rollout, weeks 1 to 7</td></tr>
+          <tr><td>Clients behind: 340 × 0.12</td><td class="r">41</td><td></td></tr>
+          <tr><td>Connects per client per day: 86,400 s ÷ 30 s</td><td class="r">2,880</td><td><code>SyncOptions.ReconnectInterval</code></td></tr>
+          <tr class="total"><td>Warning lines uploaded per day: 41 × 2,880</td><td class="r">118,080</td><td></td></tr>
+        </table>
+      </div>
+      <p>In plain words: as the PR stands, about 118,000 identical Warning lines a day reach central telemetry during a rollout.</p>
+      <p><b>Why it is costly to reverse:</b> the level ships inside the client build. Release 4.2 goes to all 340 installs; changing the level afterwards needs another client release, and the last one took 7 weeks to reach 95% of installs.</p>
+    </div></details>
     <div class="foot">
-      <textarea data-note name="note-2" aria-label="Note to the agent for issue 2" placeholder="Note to the agent (optional)"></textarea>
+      <textarea data-note id="note-2" name="note-2" aria-label="Note to the agent for issue 2" placeholder="Note to the agent (optional; explain a different choice here)"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
-        </span>
-        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
+        <span class="dstat"><span class="s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
+        <button type="button" class="btn primary" data-act="confirm"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Confirm</button>
         <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+        <button type="button" class="btn warn" data-go-next>Next open issue<svg class="i" aria-hidden="true"><use href="#i-next"/></svg></button>
       </div>
     </div>
   </div>
 </article>
 
-<!-- 3: agent decided, one solution as buttons, inline diff -->
-<article class="issue" id="issue-3" data-issue="3">
-  <header class="ih">
-    <span class="num">3</span>
-    <div>
-      <h2>Request logging crashes when the request has no identity</h2>
-      <div class="meta">
-        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
-        <span class="chip"><span class="cl">Kind:</span>bug fix</span>
-        <span class="chip good"><span class="cl">Fix risk:</span>low</span>
-        <span class="where">src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:32</span>
+<!-- 7: needs the owner, each option shows the resulting log line, one claim not checked -->
+<article class="issue" id="issue-7" data-issue="7">
+  <header class="ih"><span class="num">7</span><div class="ihc">
+    <h2 id="t7">Customer email is written to the log at Information</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake med">Medium stakes</span>
+    </div>
+    <p class="facts"><b>Why you:</b> product decision; support asked for the email in the log (SUP-812)<span class="dot">·</span><b>Risk:</b> personal data kept in the log for 90 days<span class="dot">·</span>Kind: personal data<span class="dot">·</span>Affects: support team<span class="dot">·</span><span class="where">src/Sync.Client/Import/OrderImporter.cs:88</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Recommended</span><span><span class="k">A</span> Log the customer id</span><span class="conf medium">Medium confidence</span></p>
+      <p class="rr">It removes personal data from the log for one line of code, and support keeps a way to find the order.</p>
+      <p class="unchk"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><span><b>Not checked:</b> whether support's admin search accepts a customer id; their ticket only mentions email.</span></p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>2 sources</summary><ul><li><code title="src/Sync.Client/Import/OrderImporter.cs:88">OrderImporter.cs:88</code></li><li><code title="Ticket SUP-812">SUP-812</code></li></ul></details>
+    </div>
+    <div class="opts" role="radiogroup" aria-labelledby="t7">
+      <label class="opt">
+        <input type="radio" name="opt-7" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>Log the customer id instead of the email<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
+          <div class="sample">10:42:07 INF Order 48213 imported for customer 9917</div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Personal data in the log</dt><dd>None</dd></div>
+            <div><dt>Support finds the order by</dt><dd>Looking up the customer id in the admin first; one extra step</dd></div>
+            <div><dt>Effort</dt><dd>1 line</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-7" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>Log a masked email<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
+          <div class="sample">10:42:07 INF Order 48213 imported for a***@nordwind.example</div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Personal data in the log</dt><dd>First letter and company domain remain</dd></div>
+            <div><dt>Support finds the order by</dt><dd>Matching the masked address by eye</dd></div>
+            <div><dt>Effort</dt><dd>About 10 lines for a masking helper</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-7" value="C">
+        <div class="oc">
+          <div class="ot"><span class="k">C</span>Keep the email; lower the line to Debug<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
+          <div class="sample">10:42:07 DBG Order 48213 imported for anna.berg@nordwind.example</div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Personal data in the log</dt><dd>Full address, whenever Debug is switched on</dd></div>
+            <div><dt>Support finds the order by</dt><dd>Email, but only after asking the customer to switch Debug on</dd></div>
+            <div><dt>Effort</dt><dd>1 line</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: why support wants the email, with today's log line</summary><div class="bgb">
+      <p>Every imported order writes the customer's email address into the log, and Information lines are kept for 90 days. The agent cannot settle this alone: support asked for the email in the log (ticket SUP-812) because they search by it when a customer calls. Today the line looks like this:</p>
+      <div class="sample">10:42:07 INF Order 48213 imported for anna.berg@nordwind.example</div>
+    </div></details>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
+    <div class="foot">
+      <textarea data-note id="note-7" name="note-7" aria-label="Note to the agent for issue 7" placeholder="Note to the agent (optional; explain a different choice here)"></textarea>
+      <div class="state">
+        <span class="dstat"><span class="s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
+        <button type="button" class="btn primary" data-act="confirm"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Confirm</button>
+        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+        <button type="button" class="btn warn" data-go-next>Next open issue<svg class="i" aria-hidden="true"><use href="#i-next"/></svg></button>
       </div>
     </div>
-  </header>
-  <div class="body">
-    <p>The <code>/healthz</code> probe skips authentication, so <code>context.User.Identity</code> is null there. The line this PR added at <code>RequestLogMiddleware.cs:32</code> to put the user name into the log scope throws <code>NullReferenceException</code> before the request is handled, and the probe gets a 500. Staging shows it 212 times since Monday. The fix:</p>
+  </div>
+</article>
+
+<!-- 9: needs the owner, new in round 2, options are rendered screen mockups (ui-mockup form) -->
+<article class="issue" id="issue-9" data-issue="9">
+  <header class="ih"><span class="num">9</span><div class="ihc">
+    <h2 id="t9">Where support sees which clients are behind the gateway</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake low">Low stakes</span>
+      <span class="newr"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg>New in round 2</span>
+    </div>
+    <p class="facts"><b>Why you:</b> product decision on the admin screen support uses (SUP-840)<span class="dot">·</span><b>Risk:</b> support keeps searching logs to find clients that are behind<span class="dot">·</span>Kind: UI<span class="dot">·</span><span class="where">src/Sync.Admin/Clients/ClientsTable.tsx:40</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Recommended</span><span><span class="k">A</span> A "behind" chip and a header count</span><span class="conf medium">Medium confidence</span></p>
+      <p class="rr">Support already opens the client row when a customer calls, so the chip is seen where it is needed and costs no screen space.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>3 sources</summary><ul><li><code title="src/Sync.Admin/Clients/ClientsTable.tsx:40">ClientsTable.tsx:40</code></li><li><code title="ClientRegistry.cs:58">ClientRegistry.cs:58</code></li><li><code title="Ticket SUP-840">SUP-840</code></li></ul></details>
+    </div>
+    <div class="opts" role="radiogroup" aria-labelledby="t9">
+      <label class="opt">
+        <input type="radio" name="opt-9" value="A">
+        <div class="oc">
+          <div class="ot"><span class="k">A</span>A "behind" chip in the Version column, and a count in the header<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
+          <div class="mockwrap">
+            <div class="mock" role="img" aria-label="Option A: the header adds a 41 behind count; clients on 4.1.3 show a 1 behind chip next to the version.">
+              <div class="mbar">Clients <span class="msub">340 clients</span><span class="mchip">41 behind</span><span class="pin" aria-hidden="true">2</span></div>
+              <table>
+                <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
+                <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
+                <tr><td>Baltic Freight AB</td><td><span class="mono">4.1.3</span> <span class="mchip">1 behind</span> <span class="pin" aria-hidden="true">1</span></td><td>5 min ago</td><td>Synced</td></tr>
+                <tr><td>Hansa Cold Chain</td><td><span class="mono">4.1.3</span> <span class="mchip">1 behind</span></td><td>1 h ago</td><td>Retrying</td></tr>
+              </table>
+            </div>
+            <ol class="pins">
+              <li><span class="pin" aria-hidden="true">1</span>Each client on an older version gets a chip saying how far behind it is.</li>
+              <li><span class="pin" aria-hidden="true">2</span>The header counts behind clients; clicking the count filters the table to them.</li>
+            </ol>
+          </div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Support finds a behind client</dt><dd>At a glance in the row they already open</dd></div>
+            <div><dt>Screen space</dt><dd>No new row or panel</dd></div>
+            <div><dt>Effort</dt><dd>About 40 lines in two components</dd></div>
+          </dl>
+        </div>
+      </label>
+      <label class="opt">
+        <input type="radio" name="opt-9" value="B">
+        <div class="oc">
+          <div class="ot"><span class="k">B</span>A banner above the table that links to the behind clients<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span><span class="pre">Preselected, not confirmed</span></div>
+          <div class="mockwrap">
+            <div class="mock" role="img" aria-label="Option B: a banner above the unchanged table reads 41 clients are one version behind the gateway, with a Show them link.">
+              <div class="mbar">Clients <span class="msub">340 clients</span></div>
+              <div class="mbanner"><span class="pin" aria-hidden="true">1</span>41 clients are one version behind the gateway (4.2.0). <u>Show them</u></div>
+              <table>
+                <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
+                <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
+                <tr><td>Baltic Freight AB</td><td class="mono">4.1.3</td><td>5 min ago</td><td>Synced</td></tr>
+                <tr><td>Hansa Cold Chain</td><td class="mono">4.1.3</td><td>1 h ago</td><td>Retrying</td></tr>
+              </table>
+            </div>
+            <ol class="pins">
+              <li><span class="pin" aria-hidden="true">1</span>A banner, shown while any client is behind, with a link that filters the table. The rows do not change.</li>
+            </ol>
+          </div>
+          <dl class="attrs" style="--cols:3">
+            <div><dt>Support finds a behind client</dt><dd>Only after clicking the banner</dd></div>
+            <div><dt>Screen space</dt><dd>One banner row during every rollout</dd></div>
+            <div><dt>Effort</dt><dd>About 25 lines in one component</dd></div>
+          </dl>
+        </div>
+      </label>
+    </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: what support asked for, with today's Clients screen</summary><div class="bgb">
+      <p>Whatever issue 2 decides, support asked (SUP-840) to see which clients are behind without searching logs. The gateway already stores each client's version at handshake (<code>ClientRegistry.cs:58</code>), and the admin Clients screen lists every client, but nothing on it says a client is behind. The gateway runs 4.2.0. Today the screen looks like this:</p>
+      <div class="mockwrap">
+        <span class="mocklabel">Today</span>
+        <div class="mock" role="img" aria-label="Clients screen today: a table of clients with version, last sync and status; nothing marks the clients on 4.1.3.">
+          <div class="mbar">Clients <span class="msub">340 clients</span></div>
+          <table>
+            <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
+            <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
+            <tr><td>Baltic Freight AB</td><td class="mono">4.1.3</td><td>5 min ago</td><td>Synced</td></tr>
+            <tr><td>Hansa Cold Chain</td><td class="mono">4.1.3</td><td>1 h ago</td><td>Retrying</td></tr>
+          </table>
+        </div>
+      </div>
+    </div></details>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
+    <div class="foot">
+      <textarea data-note id="note-9" name="note-9" aria-label="Note to the agent for issue 9" placeholder="Note to the agent (optional; explain a different choice here)"></textarea>
+      <div class="state">
+        <span class="dstat"><span class="s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
+        <button type="button" class="btn primary" data-act="confirm"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Confirm</button>
+        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
+        <button type="button" class="btn warn" data-go-next>Next open issue<svg class="i" aria-hidden="true"><use href="#i-next"/></svg></button>
+      </div>
+    </div>
+  </div>
+</article>
+
+<div class="sec"><h2>Settled by the agent</h2><p>5 issues · already count as decided · open one to overrule it</p></div>
+
+<!-- 3: agent decided, one solution as buttons, inline diff -->
+<article class="issue" id="issue-3" data-issue="3">
+  <header class="ih"><span class="num">3</span><div class="ihc">
+    <h2 id="t3">Request logging crashes when the request has no identity</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake med">Medium stakes</span><span class="conf">High confidence</span>
+    </div>
+    <p class="facts"><b>Risk:</b> the <code>/healthz</code> probe gets a 500 (212 times on staging since Monday)<span class="dot">·</span>Kind: bug fix<span class="dot">·</span>Fix risk: low<span class="dot">·</span><span class="where">src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:32</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Agent's choice</span><span>Accept: apply the null guard</span><span class="conf">High confidence</span></p>
+      <p class="rr">The probe has no identity, and the null guard is the smallest change that stops the 500s.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>2 sources</summary><ul><li><code title="src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:32">RequestLogMiddleware.cs:32</code></li><li><code title="Staging logs since Monday">staging logs since Monday</code></li></ul></details>
+    </div>
+    <div class="seg" role="group" aria-labelledby="t3">
+      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></button>
+      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
+      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: why the probe crashes, with the 1-line fix</summary><div class="bgb">
+      <p>The <code>/healthz</code> probe skips authentication, so <code>context.User.Identity</code> is null there. The line this PR added at <code>RequestLogMiddleware.cs:32</code> to put the user name into the log scope throws <code>NullReferenceException</code> before the request is handled, and the probe gets a 500. Staging shows it 212 times since Monday. The fix:</p>
       <figure class="code"><figcaption><span>src/Sync.Gateway/Middleware/RequestLogMiddleware.cs</span><span>the whole fix</span></figcaption><pre tabindex="0">
 <span class="l hunk"><span class="g"> </span>@@ -32,2 +32,2 @@ public async Task InvokeAsync(HttpContext context)</span>
 <span class="l del"><span class="g">-</span>        var user = context.User.Identity.Name;</span>
 <span class="l add"><span class="g">+</span>        var user = context.User.Identity?.Name ?? "anonymous";</span>
 <span class="l"><span class="g"> </span>        using var scope = _logger.BeginScope("User:{User}", user);</span></pre></figure>
-  </div>
-  <div class="decide">
-    <h3 id="q3">Apply the null guard?</h3>
-    <p class="why"><b>Recommended: Accept.</b> The probe has no identity, and the null guard is the smallest change that stops the 500s. <span class="chip"><span class="cl">Confidence:</span>high</span> Sources: <code>RequestLogMiddleware.cs:32</code>, staging logs since Monday.</p>
-    <div class="seg" role="group" aria-labelledby="q3">
-      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
-      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
-      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
-    </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
+    </div></details>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
     <div class="foot">
-      <textarea data-note name="note-3" aria-label="Note to the agent for issue 3" placeholder="Note to the agent (optional)"></textarea>
+      <textarea data-note id="note-3" name="note-3" aria-label="Note to the agent for issue 3" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
-          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
-        </span>
+        <span class="dstat"><span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span><span class="s-over"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
         <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
       </div>
     </div>
   </div>
 </article>
 
-<!-- 4: agent decided, one sentence is the whole explanation -->
+<!-- 4: agent decided, one sentence is the whole explanation, so it is inline -->
 <article class="issue" id="issue-4" data-issue="4">
-  <header class="ih">
-    <span class="num">4</span>
-    <div>
-      <h2>Retry attempts are logged too loud</h2>
-      <div class="meta">
-        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
-        <span class="chip"><span class="cl">Kind:</span>noise</span>
-        <span class="where">src/Sync.Client/Retry/RetryPolicy.cs:41</span>
-      </div>
+  <header class="ih"><span class="num">4</span><div class="ihc">
+    <h2 id="t4">Retry attempts are logged too loud</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake low">Low stakes</span><span class="conf">High confidence</span>
     </div>
-  </header>
-  <div class="body">
-    <p>Each retry attempt is logged at Warning, so one slow gateway produces three Warnings before anything has failed; the fix logs attempts at Debug and keeps the single Warning that is written when the retries run out.</p>
-  </div>
-  <div class="decide">
-    <h3 id="q4">Lower retry attempts to Debug?</h3>
-    <p class="why"><b>Recommended: Accept.</b> An attempt that may still succeed is not a warning; the one Warning when the retries run out stays. <span class="chip"><span class="cl">Confidence:</span>high</span> Source: <code>RetryPolicy.cs:41</code>.</p>
-    <div class="seg" role="group" aria-labelledby="q4">
-      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
+    <p class="facts"><b>Risk:</b> three Warnings per slow gateway before anything has failed<span class="dot">·</span>Kind: noise<span class="dot">·</span><span class="where">src/Sync.Client/Retry/RetryPolicy.cs:41</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Agent's choice</span><span>Accept: retry attempts go to Debug</span><span class="conf">High confidence</span></p>
+      <p class="rr">An attempt that may still succeed is not a warning; the one Warning when the retries run out stays.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>1 source</summary><ul><li><code title="src/Sync.Client/Retry/RetryPolicy.cs:41">RetryPolicy.cs:41</code></li></ul></details>
+    </div>
+    <p class="inl">Each retry attempt is logged at Warning, so one slow gateway produces three Warnings before anything has failed; the fix logs attempts at Debug and keeps the single Warning that is written when the retries run out.</p>
+    <div class="seg" role="group" aria-labelledby="t4">
+      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></button>
       <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
     </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
     <div class="foot">
-      <textarea data-note name="note-4" aria-label="Note to the agent for issue 4" placeholder="Note to the agent (optional)"></textarea>
+      <textarea data-note id="note-4" name="note-4" aria-label="Note to the agent for issue 4" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
-          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
-        </span>
+        <span class="dstat"><span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span><span class="s-over"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
         <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
       </div>
     </div>
@@ -654,31 +899,41 @@ textarea:hover{border-color:var(--accent-2)}
 
 <!-- 5: agent decided, reviewer claim judged not valid, code side by side -->
 <article class="issue" id="issue-5" data-issue="5">
-  <header class="ih">
-    <span class="num">5</span>
-    <div>
-      <h2>Reviewer asks for an IsEnabled check around BatchSynced</h2>
-      <div class="meta">
-        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
-        <span class="chip"><span class="cl">Kind:</span>review comment</span>
-        <span class="where">src/Sync.Client/SyncSession.cs:140</span>
-      </div>
+  <header class="ih"><span class="num">5</span><div class="ihc">
+    <h2 id="t5">Reviewer asks for an IsEnabled check around BatchSynced</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake low">Low stakes</span><span class="conf">High confidence</span>
     </div>
-  </header>
-  <div class="body">
+    <p class="facts"><b>Risk:</b> a redundant check if added; none if declined<span class="dot">·</span>Kind: review comment<span class="dot">·</span><span class="where">src/Sync.Client/SyncSession.cs:140</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
     <div class="quote">
-      <div class="who"><b>Daniel Reyes</b><span>review comment on <code>SyncSession.cs:140</code></span><span class="chip bad">Not valid</span></div>
+      <div class="who"><b>Daniel Reyes</b><span>review comment on <code>SyncSession.cs:140</code></span><span class="vchip bad">Not valid</span></div>
       <p>"This builds the message string for every batch even when Information is switched off. Wrap it in <code>if (_logger.IsEnabled(LogLevel.Information))</code>."</p>
     </div>
-    <p>The check he asks for is already there. <code>BatchSynced</code> is a source-generated log method: the compiler writes its body from the <code>[LoggerMessage]</code> attribute (<code>SyncLog.cs:17</code>), and that body tests the level before it formats anything (<code>SyncLog.g.cs:32</code>). A second check around the call would repeat it.</p>
-    <div class="pair">
-      <figure class="code"><figcaption><span>src/Sync.Client/Logging/SyncLog.cs</span><span>what we wrote</span></figcaption><pre tabindex="0">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Agent's choice</span><span>Decline comment: no code change, post the reply</span><span class="conf">High confidence</span></p>
+      <p class="rr">The generated body already checks the level before formatting, so an outer check would repeat it.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>2 sources</summary><ul><li><code title="src/Sync.Client/Logging/SyncLog.cs:17">SyncLog.cs:17</code></li><li><code title="obj/.../SyncLog.g.cs:32">SyncLog.g.cs:32</code></li></ul></details>
+    </div>
+    <div class="seg" role="group" aria-labelledby="t5">
+      <button type="button" data-choice="decline" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decline comment<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></button>
+      <button type="button" data-choice="apply" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Add the check anyway</button>
+      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <p class="cap">Reply the agent will post if you leave this as it is: "BatchSynced is a [LoggerMessage] method. The generated body already checks IsEnabled before formatting (SyncLog.g.cs:32), so an outer check would duplicate it. No change."</p>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: what the compiler generates for BatchSynced, side by side</summary><div class="bgb">
+      <p>The check he asks for is already there. <code>BatchSynced</code> is a source-generated log method: the compiler writes its body from the <code>[LoggerMessage]</code> attribute (<code>SyncLog.cs:17</code>), and that body tests the level before it formats anything (<code>SyncLog.g.cs:32</code>). A second check around the call would repeat it.</p>
+      <div class="pair">
+        <figure class="code"><figcaption><span>src/Sync.Client/Logging/SyncLog.cs</span><span>what we wrote</span></figcaption><pre tabindex="0">
 <span class="l hl"><span class="n">17</span>[LoggerMessage(EventId = 2104,</span>
 <span class="l hl"><span class="n">18</span>    Level = LogLevel.Information,</span>
 <span class="l hl"><span class="n">19</span>    Message = "Synced {Count} orders in {ElapsedMs} ms")]</span>
 <span class="l"><span class="n">20</span>public static partial void BatchSynced(</span>
 <span class="l"><span class="n">21</span>    ILogger logger, int count, long elapsedMs);</span></pre></figure>
-      <figure class="code"><figcaption><span>obj/.../SyncLog.g.cs</span><span>what the compiler generated</span></figcaption><pre tabindex="0">
+        <figure class="code"><figcaption><span>obj/.../SyncLog.g.cs</span><span>what the compiler generated</span></figcaption><pre tabindex="0">
 <span class="l"><span class="n">29</span>public static partial void BatchSynced(</span>
 <span class="l"><span class="n">30</span>    ILogger logger, int count, long elapsedMs)</span>
 <span class="l"><span class="n">31</span>{</span>
@@ -687,56 +942,49 @@ textarea:hover{border-color:var(--accent-2)}
 <span class="l"><span class="n">34</span>        __BatchSyncedCallback(logger, count, elapsedMs, null);</span>
 <span class="l"><span class="n">35</span>    }</span>
 <span class="l"><span class="n">36</span>}</span></pre></figure>
-    </div>
-    <p class="cap">Reply the agent will post if you leave this as it is: "BatchSynced is a [LoggerMessage] method. The generated body already checks IsEnabled before formatting (SyncLog.g.cs:32), so an outer check would duplicate it. No change."</p>
-  </div>
-  <div class="decide">
-    <h3 id="q5">Decline the comment and post the reply?</h3>
-    <p class="why"><b>Recommended: Decline comment.</b> The generated body already checks the level before formatting, so an outer check would repeat it. <span class="chip"><span class="cl">Confidence:</span>high</span> Sources: <code>SyncLog.cs:17</code>, <code>SyncLog.g.cs:32</code>.</p>
-    <div class="seg" role="group" aria-labelledby="q5">
-      <button type="button" data-choice="decline" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decline comment</button>
-      <button type="button" data-choice="apply" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Add the check anyway</button>
-      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
-    </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
+      </div>
+    </div></details>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
     <div class="foot">
-      <textarea data-note name="note-5" aria-label="Note to the agent for issue 5" placeholder="Note to the agent (optional)"></textarea>
+      <textarea data-note id="note-5" name="note-5" aria-label="Note to the agent for issue 5" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
-          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
-        </span>
+        <span class="dstat"><span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span><span class="s-over"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
         <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
       </div>
     </div>
   </div>
 </article>
 
-<!-- 6: agent decided, one representative hunk inline, the full diff folded with its size -->
+<!-- 6: agent decided, one representative hunk in the background, the full diff folded with its size -->
 <article class="issue" id="issue-6" data-issue="6">
-  <header class="ih">
-    <span class="num">6</span>
-    <div>
-      <h2>Six log calls in OrderImporter cannot be searched by order</h2>
-      <div class="meta">
-        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
-        <span class="chip"><span class="cl">Kind:</span>searchability</span>
-        <span class="chip"><span class="cl">Scope:</span>6 call sites, 2 level changes</span>
-        <span class="where">src/Sync.Client/Import/OrderImporter.cs:39-83</span>
-      </div>
+  <header class="ih"><span class="num">6</span><div class="ihc">
+    <h2 id="t6">Six log calls in OrderImporter cannot be searched by order</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake low">Low stakes</span><span class="conf">High confidence</span>
     </div>
-  </header>
-  <div class="body">
-    <p>These calls build their text with string interpolation (<code>$"..."</code>), which bakes the order id into the sentence. The log store then has no <code>OrderId</code> field to filter on. The fix uses message templates: text with named <code>{Placeholders}</code>, with the values passed separately so they are stored as fields. One of the six, as an example:</p>
+    <p class="facts"><b>Risk:</b> the log store has no <code>OrderId</code> field to filter on<span class="dot">·</span>Kind: searchability<span class="dot">·</span>Scope: 6 call sites, 2 level changes<span class="dot">·</span><span class="where">src/Sync.Client/Import/OrderImporter.cs:39-83</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Agent's choice</span><span>Accept: message templates in all six calls</span><span class="conf">High confidence</span></p>
+      <p class="rr">Templates give the log store an <code>OrderId</code> field to filter on, and the two level changes match what each event means.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>1 source</summary><ul><li><code title="src/Sync.Client/Import/OrderImporter.cs:39-83">OrderImporter.cs:39-83</code></li></ul></details>
+    </div>
+    <div class="seg" role="group" aria-labelledby="t6">
+      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></button>
+      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
+      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
+    </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: what message templates change, with one of the six calls</summary><div class="bgb">
+      <p>These calls build their text with string interpolation (<code>$"..."</code>), which bakes the order id into the sentence. The log store then has no <code>OrderId</code> field to filter on. The fix uses message templates: text with named <code>{Placeholders}</code>, with the values passed separately so they are stored as fields. One of the six, as an example:</p>
       <figure class="code"><figcaption><span>src/Sync.Client/Import/OrderImporter.cs</span><span>1 of 6</span></figcaption><pre tabindex="0">
 <span class="l del"><span class="g">-</span>            _logger.LogWarning($"Unknown SKU {order.Sku} on order {order.Id}, skipping");</span>
 <span class="l add"><span class="g">+</span>            _logger.LogWarning("Unknown SKU {Sku} on order {OrderId}, skipping",</span>
 <span class="l add"><span class="g">+</span>                order.Sku, order.Id);</span></pre></figure>
-    <p>Two of the six also change level. "Order already imported" goes from Warning to Information, because a repeated delivery is expected. "More than half of the batch was skipped" goes from Error to Warning, because the import itself finished.</p>
+      <p>Two of the six also change level. "Order already imported" goes from Warning to Information, because a repeated delivery is expected. "More than half of the batch was skipped" goes from Error to Warning, because the import itself finished.</p>
+    </div></details>
     <details class="fold">
       <summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Full diff, 48 lines</summary>
       <figure class="code"><figcaption><span>src/Sync.Client/Import/OrderImporter.cs</span><span>48 lines</span></figcaption><pre tabindex="0">
@@ -789,106 +1037,12 @@ textarea:hover{border-color:var(--accent-2)}
 <span class="l"><span class="g"> </span>    }</span>
 <span class="l"><span class="g"> </span>    return new ImportResult(imported, skipped);</span></pre></figure>
     </details>
-  </div>
-  <div class="decide">
-    <h3 id="q6">Switch the six calls to message templates?</h3>
-    <p class="why"><b>Recommended: Accept.</b> Templates give the log store an <code>OrderId</code> field to filter on, and the two level changes match what each event means. <span class="chip"><span class="cl">Confidence:</span>high</span> Source: <code>OrderImporter.cs:39-83</code>.</p>
-    <div class="seg" role="group" aria-labelledby="q6">
-      <button type="button" data-choice="accept" data-tone="yes"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Accept</button>
-      <button type="button" data-choice="reject" data-tone="no"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Reject</button>
-      <button type="button" data-choice="discuss" data-tone="talk"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Discuss</button>
-    </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
     <div class="foot">
-      <textarea data-note name="note-6" aria-label="Note to the agent for issue 6" placeholder="Note to the agent (optional), for example: templates yes, level changes no"></textarea>
+      <textarea data-note id="note-6" name="note-6" aria-label="Note to the agent for issue 6" placeholder="Note to the agent (optional), for example: templates yes, level changes no"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
-          <span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span>
-        </span>
+        <span class="dstat"><span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick another answer to overrule.</span><span class="s-over"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span><span class="s-disputed"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent. Your note tells it why.</span></span>
         <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
-      </div>
-    </div>
-  </div>
-</article>
-
-<!-- 7: needs the owner, each option shows the resulting log line -->
-<article class="issue" id="issue-7" data-issue="7">
-  <header class="ih">
-    <span class="num">7</span>
-    <div>
-      <h2>Customer email is written to the log at Information</h2>
-      <div class="meta">
-        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
-        <span class="chip"><span class="cl">Why you:</span>product decision</span>
-        <span class="chip"><span class="cl">Kind:</span>personal data</span>
-        <span class="chip"><span class="cl">Affects:</span>support team</span>
-        <span class="where">src/Sync.Client/Import/OrderImporter.cs:88</span>
-      </div>
-    </div>
-  </header>
-  <div class="body">
-    <p>Every imported order writes the customer's email address into the log, and Information lines are kept for 90 days. The agent cannot settle this alone: support asked for the email in the log (ticket SUP-812) because they search by it when a customer calls. Today the line looks like this:</p>
-    <div class="sample">10:42:07 INF Order 48213 imported for anna.berg@nordwind.example</div>
-  </div>
-  <div class="decide">
-    <h3 id="q7">What does the line say about the customer?</h3>
-    <p class="why"><b>Recommended: A.</b> It removes personal data from the log for one line of code, and support keeps a way to find the order. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>OrderImporter.cs:88</code>, ticket SUP-812. <span class="unchecked">Not checked: whether support's admin search accepts a customer id; their ticket only mentions email.</span></p>
-    <div class="opts" role="radiogroup" aria-labelledby="q7">
-      <label class="opt">
-        <input type="radio" name="opt-7" value="A">
-        <div class="oc">
-          <div class="ot"><span class="k">A</span>Log the customer id instead of the email<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
-          <div class="sample">10:42:07 INF Order 48213 imported for customer 9917</div>
-          <dl class="attrs" style="--cols:3">
-            <div><dt>Personal data in the log</dt><dd>None</dd></div>
-            <div><dt>Support finds the order by</dt><dd>Looking up the customer id in the admin first; one extra step</dd></div>
-            <div><dt>Effort</dt><dd>1 line</dd></div>
-          </dl>
-        </div>
-      </label>
-      <label class="opt">
-        <input type="radio" name="opt-7" value="B">
-        <div class="oc">
-          <div class="ot"><span class="k">B</span>Log a masked email<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
-          <div class="sample">10:42:07 INF Order 48213 imported for a***@nordwind.example</div>
-          <dl class="attrs" style="--cols:3">
-            <div><dt>Personal data in the log</dt><dd>First letter and company domain remain</dd></div>
-            <div><dt>Support finds the order by</dt><dd>Matching the masked address by eye</dd></div>
-            <div><dt>Effort</dt><dd>About 10 lines for a masking helper</dd></div>
-          </dl>
-        </div>
-      </label>
-      <label class="opt">
-        <input type="radio" name="opt-7" value="C">
-        <div class="oc">
-          <div class="ot"><span class="k">C</span>Keep the email; lower the line to Debug<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
-          <div class="sample">10:42:07 DBG Order 48213 imported for anna.berg@nordwind.example</div>
-          <dl class="attrs" style="--cols:3">
-            <div><dt>Personal data in the log</dt><dd>Full address, whenever Debug is switched on</dd></div>
-            <div><dt>Support finds the order by</dt><dd>Email, but only after asking the customer to switch Debug on</dd></div>
-            <div><dt>Effort</dt><dd>1 line</dd></div>
-          </dl>
-        </div>
-      </label>
-    </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
-    <div class="foot">
-      <textarea data-note name="note-7" aria-label="Note to the agent for issue 7" placeholder="Note to the agent (optional)"></textarea>
-      <div class="state">
-        <span class="dstat">
-          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
-        </span>
-        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
-        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
       </div>
     </div>
   </div>
@@ -896,26 +1050,22 @@ textarea:hover{border-color:var(--accent-2)}
 
 <!-- 8: agent decided with two real options, so radios; a proportion bar -->
 <article class="issue" id="issue-8" data-issue="8">
-  <header class="ih">
-    <span class="num">8</span>
-    <div>
-      <h2>Clients that hang up are logged as Error</h2>
-      <div class="meta">
-        <span class="mark agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span>
-        <span class="chip"><span class="cl">Kind:</span>noise</span>
-        <span class="where">src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:52</span>
-      </div>
+  <header class="ih"><span class="num">8</span><div class="ihc">
+    <h2 id="t8">Clients that hang up are logged as Error</h2>
+    <div class="badges">
+      <span class="st s-wait"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you</span><span class="st s-you"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you</span><span class="st s-agent"><svg class="i" aria-hidden="true"><use href="#i-agent"/></svg>Agent decided</span><span class="st s-over"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Overruled by you</span><span class="st s-disp"><svg class="i" aria-hidden="true"><use href="#i-talk"/></svg>Sent back to the agent</span>
+      <span class="stake low">Low stakes</span><span class="conf">High confidence</span>
     </div>
-  </header>
-  <div class="body">
-    <p>The middleware logs every exception as Error. When a client closes the connection mid-request, .NET cancels the request and throws <code>OperationCanceledException</code>; nothing is broken on our side. In staging over the last 7 days these made up 1,655 of the 1,912 Error lines from this middleware (87%). Either option leaves 257 Error lines a week.</p>
-    <div class="split" role="img" aria-label="1,655 of 1,912 Error lines are client disconnects, 257 are real failures"><i class="a" style="width:86.6%"></i><i class="b" style="width:13.4%"></i></div>
-    <div class="legend"><span><i style="background:var(--line-strong)"></i>1,655 client disconnects</span><span><i style="background:var(--fail)"></i>257 real failures</span></div>
-  </div>
-  <div class="decide">
-    <h3 id="q8">Which level do client disconnects get?</h3>
-    <p class="why"><b>Recommended: A.</b> A client hanging up is not our failure, and nobody asked to watch for it. <span class="chip"><span class="cl">Confidence:</span>high</span> Source: staging Error lines, last 7 days.</p>
-    <div class="opts" role="radiogroup" aria-labelledby="q8">
+    <p class="facts"><b>Risk:</b> 87% of this middleware's Error lines are client disconnects<span class="dot">·</span>Kind: noise<span class="dot">·</span><span class="where">src/Sync.Gateway/Middleware/RequestLogMiddleware.cs:52</span></p>
+  </div><button type="button" class="toggle" data-toggle aria-expanded="true"><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="t-close">Collapse</span><span class="t-open">Details</span></button></header>
+  <div class="verdict" data-verdict><span class="vk" data-vk></span><span class="vt"><span data-vl></span> <span class="vo" data-vo></span></span></div>
+  <div class="detail">
+    <div class="recbox">
+      <p class="rl"><span class="rk">Agent's choice</span><span><span class="k">A</span> Debug when the client cancelled</span><span class="conf">High confidence</span></p>
+      <p class="rr">A client hanging up is not our failure, and nobody asked to watch for it.</p>
+      <details class="src"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>1 source</summary><ul><li><code title="Staging Error lines from RequestLogMiddleware, last 7 days">staging Error lines, last 7 days</code></li></ul></details>
+    </div>
+    <div class="opts" role="radiogroup" aria-labelledby="t8">
       <label class="opt">
         <input type="radio" name="opt-8" value="A">
         <div class="oc">
@@ -939,123 +1089,17 @@ textarea:hover{border-color:var(--accent-2)}
         </div>
       </label>
     </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
+    <details class="bg"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>Background: what the 1,912 Error lines are, as a split bar</summary><div class="bgb">
+      <p>The middleware logs every exception as Error. When a client closes the connection mid-request, .NET cancels the request and throws <code>OperationCanceledException</code>; nothing is broken on our side. In staging over the last 7 days these made up 1,655 of the 1,912 Error lines from this middleware (87%). Either option leaves 257 Error lines a week.</p>
+      <div class="split" role="img" aria-label="1,655 of 1,912 Error lines are client disconnects, 257 are real failures"><i class="a" style="width:86.6%"></i><i class="b" style="width:13.4%"></i></div>
+      <div class="legend"><span><i style="background:var(--line-strong)"></i>1,655 client disconnects</span><span><i style="background:var(--fail)"></i>257 real failures</span></div>
+    </div></details>
+    <div class="stale" data-stale-notice hidden><span>The agent's recommendation changed after you answered. Your answer is kept.</span><button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button></div>
     <div class="foot">
-      <textarea data-note name="note-8" aria-label="Note to the agent for issue 8" placeholder="Note to the agent (optional)"></textarea>
+      <textarea data-note id="note-8" name="note-8" aria-label="Note to the agent for issue 8" placeholder="Note to the agent (optional)"></textarea>
       <div class="state">
-        <span class="dstat">
-          <span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick the other option to overrule.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span>
-        </span>
+        <span class="dstat"><span class="s-agent"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by the agent. Pick the other option to overrule.</span><span class="s-over"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Overruled by you.</span></span>
         <button type="button" class="btn ghost" data-act="restore">Restore the agent's choice</button>
-      </div>
-    </div>
-  </div>
-</article>
-
-<!-- 9: needs the owner, new in round 2, options are rendered screen mockups (ui-mockup form) -->
-<article class="issue" id="issue-9" data-issue="9">
-  <header class="ih">
-    <span class="num">9</span>
-    <div>
-      <h2>Where support sees which clients are behind the gateway</h2>
-      <div class="meta">
-        <span class="mark needs"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Needs you</span>
-        <span class="mark new"><svg class="i" aria-hidden="true"><use href="#i-new"/></svg>New in round 2</span>
-        <span class="chip"><span class="cl">Why you:</span>product decision</span>
-        <span class="chip"><span class="cl">Kind:</span>UI</span>
-        <span class="where">src/Sync.Admin/Clients/ClientsTable.tsx:40</span>
-      </div>
-    </div>
-  </header>
-  <div class="body">
-    <p>Whatever issue 2 decides, support asked (SUP-840) to see which clients are behind without searching logs. The gateway already stores each client's version at handshake (<code>ClientRegistry.cs:58</code>), and the admin Clients screen lists every client, but nothing on it says a client is behind. The gateway runs 4.2.0. Today the screen looks like this:</p>
-    <div class="mockwrap">
-      <span class="mocklabel">Today</span>
-      <div class="mock" role="img" aria-label="Clients screen today: a table of clients with version, last sync and status; nothing marks the clients on 4.1.3.">
-        <div class="mbar">Clients <span class="msub">340 clients</span></div>
-        <table>
-          <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
-          <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
-          <tr><td>Baltic Freight AB</td><td class="mono">4.1.3</td><td>5 min ago</td><td>Synced</td></tr>
-          <tr><td>Hansa Cold Chain</td><td class="mono">4.1.3</td><td>1 h ago</td><td>Retrying</td></tr>
-        </table>
-      </div>
-    </div>
-  </div>
-  <div class="decide">
-    <h3 id="q9">How does the Clients screen show a client that is behind?</h3>
-    <p class="why"><b>Recommended: A.</b> Support already opens the client row when a customer calls, so the chip is seen where it is needed and costs no screen space. <span class="chip"><span class="cl">Confidence:</span>medium</span> Sources: <code>ClientsTable.tsx:40</code>, <code>ClientRegistry.cs:58</code>, SUP-840.</p>
-    <div class="opts" role="radiogroup" aria-labelledby="q9">
-      <label class="opt">
-        <input type="radio" name="opt-9" value="A">
-        <div class="oc">
-          <div class="ot"><span class="k">A</span>A "behind" chip in the Version column, and a count in the header<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
-          <div class="mockwrap">
-            <div class="mock" role="img" aria-label="Option A: the header adds a 41 behind count; clients on 4.1.3 show a 1 behind chip next to the version.">
-              <div class="mbar">Clients <span class="msub">340 clients</span><span class="mchip">41 behind</span><span class="pin" aria-hidden="true">2</span></div>
-              <table>
-                <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
-                <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
-                <tr><td>Baltic Freight AB</td><td><span class="mono">4.1.3</span> <span class="mchip">1 behind</span> <span class="pin" aria-hidden="true">1</span></td><td>5 min ago</td><td>Synced</td></tr>
-                <tr><td>Hansa Cold Chain</td><td><span class="mono">4.1.3</span> <span class="mchip">1 behind</span></td><td>1 h ago</td><td>Retrying</td></tr>
-              </table>
-            </div>
-            <ol class="pins">
-              <li><span class="pin" aria-hidden="true">1</span>Each client on an older version gets a chip saying how far behind it is.</li>
-              <li><span class="pin" aria-hidden="true">2</span>The header counts behind clients; clicking the count filters the table to them.</li>
-            </ol>
-          </div>
-          <dl class="attrs" style="--cols:3">
-            <div><dt>Support finds a behind client</dt><dd>At a glance in the row they already open</dd></div>
-            <div><dt>Screen space</dt><dd>No new row or panel</dd></div>
-            <div><dt>Effort</dt><dd>About 40 lines in two components</dd></div>
-          </dl>
-        </div>
-      </label>
-      <label class="opt">
-        <input type="radio" name="opt-9" value="B">
-        <div class="oc">
-          <div class="ot"><span class="k">B</span>A banner above the table that links to the behind clients<span class="rec" data-rec-tag hidden><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Recommended</span></div>
-          <div class="mockwrap">
-            <div class="mock" role="img" aria-label="Option B: a banner above the unchanged table reads 41 clients are one version behind the gateway, with a Show them link.">
-              <div class="mbar">Clients <span class="msub">340 clients</span></div>
-              <div class="mbanner"><span class="pin" aria-hidden="true">1</span>41 clients are one version behind the gateway (4.2.0). <u>Show them</u></div>
-              <table>
-                <tr><th>Client</th><th>Version</th><th>Last sync</th><th>Status</th></tr>
-                <tr><td>Nordwind Logistik</td><td class="mono">4.2.0</td><td>2 min ago</td><td>Synced</td></tr>
-                <tr><td>Baltic Freight AB</td><td class="mono">4.1.3</td><td>5 min ago</td><td>Synced</td></tr>
-                <tr><td>Hansa Cold Chain</td><td class="mono">4.1.3</td><td>1 h ago</td><td>Retrying</td></tr>
-              </table>
-            </div>
-            <ol class="pins">
-              <li><span class="pin" aria-hidden="true">1</span>A banner, shown while any client is behind, with a link that filters the table. The rows do not change.</li>
-            </ol>
-          </div>
-          <dl class="attrs" style="--cols:3">
-            <div><dt>Support finds a behind client</dt><dd>Only after clicking the banner</dd></div>
-            <div><dt>Screen space</dt><dd>One banner row during every rollout</dd></div>
-            <div><dt>Effort</dt><dd>About 25 lines in one component</dd></div>
-          </dl>
-        </div>
-      </label>
-    </div>
-    <div class="stale" data-stale-notice hidden>
-      <span>The agent's recommendation changed after you answered. Your answer is kept.</span>
-      <button type="button" class="btn ghost" data-act="use-recommendation">Use the recommendation</button>
-    </div>
-    <div class="foot">
-      <textarea data-note name="note-9" aria-label="Note to the agent for issue 9" placeholder="Note to the agent (optional)"></textarea>
-      <div class="state">
-        <span class="dstat">
-          <span class="s-undecided"><svg class="i" aria-hidden="true"><use href="#i-wait"/></svg>Waiting for you. The preselected option counts once you confirm it or pick another.</span>
-          <span class="s-owner"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Decided by you.</span>
-        </span>
-        <button type="button" class="btn primary" data-act="confirm">Confirm</button>
-        <button type="button" class="btn ghost" data-act="reopen">Reopen</button>
       </div>
     </div>
   </div>
@@ -1063,10 +1107,11 @@ textarea:hover{border-color:var(--accent-2)}
 
 </main>
 
-<section class="col out" aria-labelledby="out-h">
-  <h2 id="out-h">What Copy decisions puts on your clipboard</h2>
-  <p class="cap">Plain text, updated as you answer. Your answers are also kept in this browser, so a reload or a new round on the same link keeps them.</p>
-  <pre data-preview tabindex="0" aria-label="Decision text"></pre>
+<section class="col out" aria-label="Decision text">
+  <details class="outd"><summary><svg class="i" aria-hidden="true"><use href="#i-chev"/></svg><span class="st-t">What Copy decisions puts on your clipboard</span><button type="button" class="btn primary" data-copy><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span data-copy-label>Copy decisions</span></button></summary>
+    <p class="cap">Plain text, updated as you answer. Your answers are also kept in this browser, so a reload or a new round on the same link keeps them.</p>
+    <pre data-preview tabindex="0" aria-label="Decision text"></pre>
+  </details>
 </section>
 
 <script type="application/json" id="review-data">
@@ -1139,6 +1184,57 @@ textarea:hover{border-color:var(--accent-2)}
         },
         "note": "If the transport owns the Error, this line is the only central record of client versions."
       },
+      "decision": null
+    },
+    {
+      "id": "7",
+      "title": "Customer email is written to the log at Information",
+      "round": 1,
+      "needsOwner": true,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "Log the customer id instead of the email",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "Log a masked email",
+          "dispute": false
+        },
+        {
+          "id": "C",
+          "label": "Keep the email, lower the line to Debug",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": null,
+      "dependsOn": null,
+      "decision": null
+    },
+    {
+      "id": "9",
+      "title": "Where support sees which clients are behind the gateway",
+      "round": 2,
+      "needsOwner": true,
+      "mode": "radio",
+      "options": [
+        {
+          "id": "A",
+          "label": "A behind chip in the Version column and a count in the header",
+          "dispute": false
+        },
+        {
+          "id": "B",
+          "label": "A banner above the table that links to the behind clients",
+          "dispute": false
+        }
+      ],
+      "recommended": "A",
+      "agentChoice": null,
+      "dependsOn": null,
       "decision": null
     },
     {
@@ -1253,34 +1349,6 @@ textarea:hover{border-color:var(--accent-2)}
       "decision": null
     },
     {
-      "id": "7",
-      "title": "Customer email is written to the log at Information",
-      "round": 1,
-      "needsOwner": true,
-      "mode": "radio",
-      "options": [
-        {
-          "id": "A",
-          "label": "Log the customer id instead of the email",
-          "dispute": false
-        },
-        {
-          "id": "B",
-          "label": "Log a masked email",
-          "dispute": false
-        },
-        {
-          "id": "C",
-          "label": "Keep the email, lower the line to Debug",
-          "dispute": false
-        }
-      ],
-      "recommended": "A",
-      "agentChoice": null,
-      "dependsOn": null,
-      "decision": null
-    },
-    {
       "id": "8",
       "title": "Clients that hang up are logged as Error",
       "round": 1,
@@ -1302,35 +1370,11 @@ textarea:hover{border-color:var(--accent-2)}
       "agentChoice": "A",
       "dependsOn": null,
       "decision": null
-    },
-    {
-      "id": "9",
-      "title": "Where support sees which clients are behind the gateway",
-      "round": 2,
-      "needsOwner": true,
-      "mode": "radio",
-      "options": [
-        {
-          "id": "A",
-          "label": "A behind chip in the Version column and a count in the header",
-          "dispute": false
-        },
-        {
-          "id": "B",
-          "label": "A banner above the table that links to the behind clients",
-          "dispute": false
-        }
-      ],
-      "recommended": "A",
-      "agentChoice": null,
-      "dependsOn": null,
-      "decision": null
     }
   ]
 }
 </script>
-<script>
-/* Review page behaviour. Paste into each review page unchanged.
+<script>/* Review page behaviour. Paste into each review page unchanged.
  * Reads <script type="application/json" id="review-data"> = { review, issues };
  * an issue's optional `decision` is the record's owner decision ({ by, choice, status }).
  * Pure functions first (never mutate their input), then boot() for the DOM. */
@@ -1533,14 +1577,63 @@ textarea:hover{border-color:var(--accent-2)}
     return out.join('\n');
   }
 
+  /* Where an issue stands, as the owner sees it:
+   * wait (needs the owner, undecided), you (owner answered a needs-owner issue),
+   * agent (agent decided, untouched), over (owner overruled an agent decision),
+   * disputed (sent back to the agent). */
+  function statusOf(issue, st) {
+    if (!st || st.status === 'undecided') return 'wait';
+    if (st.status === 'disputed') return 'disputed';
+    if (st.by === 'agent') return 'agent';
+    return issue && issue.needsOwner ? 'you' : 'over';
+  }
+
+  /* Progress split by who has to act: the owner's answers against the
+   * needs-owner issues, and how many agent decisions the owner overruled. */
+  function ownerCounts(state, issues) {
+    var out = { answered: 0, needs: 0, agent: 0, overruled: 0, waiting: [] };
+    issues.forEach(function (issue) {
+      var s = statusOf(issue, state[issue.id]);
+      if (issue.needsOwner) {
+        out.needs++;
+        if (s === 'wait') out.waiting.push(issue.id); else out.answered++;
+      } else {
+        out.agent++;
+        if (s === 'over' || s === 'disputed') out.overruled++;
+        if (s === 'wait') out.waiting.push(issue.id);
+      }
+    });
+    return out;
+  }
+
+  /* The next (dir 1) or previous (dir -1) issue still waiting for the owner,
+   * in page order, wrapping around; null when none is waiting. */
+  function nextOpen(issues, state, fromId, dir) {
+    var order = ids(issues), at = fromId == null ? -1 : order.indexOf(fromId);
+    var waiting = issues.filter(function (i) { return statusOf(i, state[i.id]) === 'wait'; }).map(function (i) { return i.id; });
+    if (!waiting.length) return null;
+    if (dir < 0) {
+      if (at < 0) at = order.length;
+      for (var k = waiting.length - 1; k >= 0; k--) if (order.indexOf(waiting[k]) < at) return waiting[k];
+      return waiting[waiting.length - 1];
+    }
+    for (var j = 0; j < waiting.length; j++) if (order.indexOf(waiting[j]) > at) return waiting[j];
+    return waiting[0];
+  }
+
   var api = {
     createState: createState, choose: choose, confirm: confirm, reopen: reopen,
     restoreAgent: restoreAgent, setNote: setNote, recommendedFor: recommendedFor,
-    counts: counts, buildText: buildText
+    counts: counts, buildText: buildText,
+    statusOf: statusOf, ownerCounts: ownerCounts, nextOpen: nextOpen
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   /* ---- DOM ---- */
+  var ICON = { wait: 'i-wait', you: 'i-check', agent: 'i-agent', over: 'i-user', disputed: 'i-talk' };
+  var WORD = { wait: 'waiting for you', you: 'decided by you', agent: 'decided by the agent', over: 'overruled by you', disputed: 'sent back to the agent' };
+  var LEAD = { wait: 'Preselected, not confirmed:', you: 'You chose', agent: 'Agent chose', over: 'You chose', disputed: 'Sent back:' };
+
   function boot() {
     var $ = function (sel, root) { return (root || document).querySelector(sel); };
     var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -1554,6 +1647,7 @@ textarea:hover{border-color:var(--accent-2)}
     var filter = 'all';
     var articles = {};
     $$('article[data-issue]').forEach(function (a) { articles[a.getAttribute('data-issue')] = a; });
+    var reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function save() { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} }
     function optionIdOf(el) {
@@ -1567,15 +1661,39 @@ textarea:hover{border-color:var(--accent-2)}
       all: function () { return true; },
       needs: function (i) { return !!i.needsOwner; },
       agent: function (i) { return !i.needsOwner; },
-      'new': function (i) { return i.round === review.round; }
+      'new': function (i) { return i.round === review.round; },
+      waiting: function (i) { return statusOf(i, state[i.id]) === 'wait'; }
     };
+
+    /* Collapsing: an issue that is not waiting for the owner starts folded to its
+     * header and verdict line; Confirm folds it and moves on; Reopen unfolds it.
+     * Only articles that have a [data-verdict] line can fold. */
+    function setCollapsed(a, on) {
+      if (!a || !$('[data-verdict]', a)) return;
+      a.classList.toggle('collapsed', on);
+      $$('[data-toggle]', a).forEach(function (t) { t.setAttribute('aria-expanded', String(!on)); });
+    }
+    function pillIcon(p, status) {
+      var NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(NS, 'svg'), use = document.createElementNS(NS, 'use');
+      svg.setAttribute('class', 'i');
+      svg.setAttribute('aria-hidden', 'true');
+      use.setAttribute('href', '#' + ICON[status]);
+      svg.appendChild(use);
+      p.textContent = '';
+      p.appendChild(svg);
+      p.appendChild(document.createTextNode(p.getAttribute('data-pill')));
+    }
 
     function render() {
       issues.forEach(function (issue) {
         var a = articles[issue.id], st = state[issue.id], rec = recommendedFor(issue, state);
         if (!a || !st) return;
+        var status = statusOf(issue, st);
         a.setAttribute('data-state', st.status);
         a.setAttribute('data-by', st.by || '');
+        a.setAttribute('data-needs', issue.needsOwner ? 'owner' : 'agent');
+        a.setAttribute('data-status', status);
         a.hidden = !(matches[filter] || matches.all)(issue);
         $$('input[type=radio]', a).forEach(function (r) {
           r.checked = r.value === st.choice;
@@ -1601,9 +1719,25 @@ textarea:hover{border-color:var(--accent-2)}
         });
         var ta = $('textarea[data-note]', a);
         if (ta && ta.value !== st.note) ta.value = st.note;
+        var o = st.choice != null ? findOption(issue, st.choice) : null;
+        $$('[data-vk]', a).forEach(function (el) { el.textContent = o ? (o.id.length <= 2 ? o.id : 'Chosen') : 'None'; });
+        $$('[data-vl]', a).forEach(function (el) { el.textContent = LEAD[status] + ' ' + (o ? oneLine(o.label, ' ') : 'nothing selected yet'); });
+        $$('[data-vo]', a).forEach(function (el) { el.textContent = o && o.outcome && status !== 'disputed' ? '· ' + oneLine(o.outcome, ' ') : ''; });
+        $$('[data-pill="' + issue.id + '"]').forEach(function (p) {
+          p.setAttribute('data-status', status);
+          pillIcon(p, status);
+          var t = 'Issue ' + issue.id + ', ' + WORD[status] + ': ' + oneLine(issue.title, ' ');
+          p.setAttribute('title', t);
+          p.setAttribute('aria-label', t);
+        });
       });
-      var c = counts(state, issues);
+      var c = counts(state, issues), oc = ownerCounts(state, issues);
       $$('[data-progress]').forEach(function (p) { p.textContent = c.decided + ' of ' + c.total + ' decided'; });
+      $$('[data-you-count]').forEach(function (p) {
+        p.textContent = oc.needs ? 'You: ' + oc.answered + ' of ' + oc.needs + ' answered' : 'Nothing needs you';
+      });
+      $$('[data-agent-count]').forEach(function (p) { p.textContent = 'Agent settled ' + oc.agent + ' · ' + oc.overruled + ' overruled by you'; });
+      if (document.body) document.body.classList.toggle('all-done', oc.waiting.length === 0);
       $$('[data-preview]').forEach(function (p) { p.textContent = buildText(review, issues, state); });
       $$('button[data-filter]').forEach(function (b) {
         b.setAttribute('aria-pressed', String(b.getAttribute('data-filter') === filter));
@@ -1615,6 +1749,33 @@ textarea:hover{border-color:var(--accent-2)}
       return a ? a.getAttribute('data-issue') : null;
     }
 
+    function go(id) {
+      var a = articles[id];
+      if (!a) return;
+      setCollapsed(a, false);
+      $$('[data-pill]').forEach(function (p) { p.setAttribute('aria-current', String(p.getAttribute('data-pill') === id)); });
+      a.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      a.classList.add('flash');
+      setTimeout(function () { a.classList.remove('flash'); }, 1200);
+      var f = $('input[type=radio]:checked', a) || $('input[type=radio], button[data-choice]', a);
+      if (f) try { f.focus({ preventScroll: true }); } catch (e) {}
+    }
+    /* The issue at the top of the viewport, so Next continues from where the owner is reading. */
+    function currentId() {
+      var cur = null, bar = $('.bar'), line = (bar ? bar.getBoundingClientRect().bottom : 0) + 48;
+      issues.forEach(function (i) {
+        var a = articles[i.id];
+        if (a && !a.hidden && a.getBoundingClientRect().top <= line) cur = i.id;
+      });
+      return cur;
+    }
+    function step(fromId, dir) {
+      var id = nextOpen(issues, state, fromId, dir);
+      if (id != null) { go(id); return; }
+      var copy = $('button[data-copy]');
+      if (copy) copy.focus();
+    }
+
     document.addEventListener('change', function (e) {
       var t = e.target, id = t && t.matches && t.matches('input[type=radio]') ? issueIdOf(t) : null;
       if (id != null) apply(choose(state, issues, id, t.value));
@@ -1624,9 +1785,8 @@ textarea:hover{border-color:var(--accent-2)}
       if (id != null) apply(setNote(state, id, t.value));
     });
 
-    var copyTimer;
-    function copyText() {
-      var btn = $('button[data-copy]');
+    /* Every copy button reports on its own label, so the one the owner clicked says "Copied". */
+    function copyText(btn) {
       var label = btn && ($('[data-copy-label]', btn) || (btn.children.length ? null : btn));
       var original = label ? (label.getAttribute('data-original') || label.textContent) : '';
       if (label) label.setAttribute('data-original', original);
@@ -1634,8 +1794,8 @@ textarea:hover{border-color:var(--accent-2)}
       function report(msg) {
         if (!label) return;
         label.textContent = msg;
-        clearTimeout(copyTimer);
-        copyTimer = setTimeout(function () { label.textContent = original; }, 2500);
+        clearTimeout(label._copyTimer);
+        label._copyTimer = setTimeout(function () { label.textContent = original; }, 2500);
       }
       function fallback() {
         var prev = $('[data-preview]'), done = false;
@@ -1658,6 +1818,14 @@ textarea:hover{border-color:var(--accent-2)}
     document.addEventListener('click', function (e) {
       var t = e.target && e.target.closest ? e.target : null;
       if (!t) return;
+      var pill = t.closest('[data-pill]');
+      if (pill) {
+        e.preventDefault();
+        var pid = pill.getAttribute('data-pill');
+        go(pid);
+        try { history.replaceState(null, '', '#issue-' + pid); } catch (x) {}
+        return;
+      }
       var b = t.closest('button');
       if (!b) return;
       var id = issueIdOf(b);
@@ -1665,22 +1833,48 @@ textarea:hover{border-color:var(--accent-2)}
         apply(choose(state, issues, id, b.getAttribute('data-choice')));
       } else if (b.hasAttribute('data-act') && id != null) {
         var act = b.getAttribute('data-act'), issue = findIssue(issues, id);
-        if (act === 'confirm') apply(confirm(state, issues, id));
-        else if (act === 'reopen') apply(reopen(state, issues, id));
-        else if (act === 'restore') apply(restoreAgent(state, issues, id));
+        if (act === 'confirm') {
+          apply(confirm(state, issues, id));
+          setCollapsed(articles[id], true);
+          step(id, 1);
+        } else if (act === 'reopen') {
+          apply(reopen(state, issues, id));
+          setCollapsed(articles[id], false);
+        } else if (act === 'restore') apply(restoreAgent(state, issues, id));
         else if (act === 'use-recommendation' && issue) {
           var rec = recommendedFor(issue, state);
           if (rec != null) apply(choose(state, issues, id, rec));
         }
       } else if (b.hasAttribute('data-copy')) {
-        copyText();
+        /* A copy button inside a <summary> must not also open or close its fold. */
+        if (b.closest('summary')) e.preventDefault();
+        copyText(b);
       } else if (b.hasAttribute('data-filter')) {
         filter = b.getAttribute('data-filter');
         render();
+      } else if (b.hasAttribute('data-next')) {
+        step(currentId(), 1);
+      } else if (b.hasAttribute('data-go-next') && id != null) {
+        setCollapsed(articles[id], true);
+        step(id, 1);
+      } else if (b.hasAttribute('data-toggle') && id != null) {
+        setCollapsed(articles[id], !articles[id].classList.contains('collapsed'));
       }
     });
 
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var t = e.target, tag = t && t.tagName;
+      if (tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && t.type !== 'radio') || (t && t.isContentEditable)) return;
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); step(currentId(), 1); }
+      else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); step(currentId(), -1); }
+    });
+
     render();
+    var target = location.hash && location.hash.indexOf('#issue-') === 0 ? location.hash.slice(7) : null;
+    issues.forEach(function (issue) {
+      if (statusOf(issue, state[issue.id]) !== 'wait' && issue.id !== target) setCollapsed(articles[issue.id], true);
+    });
   }
 
   if (typeof document !== 'undefined') {

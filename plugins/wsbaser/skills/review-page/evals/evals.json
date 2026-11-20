@@ -1,11 +1,11 @@
 {
-  "skill_name": "wsbaser:review",
+  "skill_name": "wsbaser:review-page",
   "evals": [
     {
       "id": "pr-comments-4421",
       "name": "pr-comments-4421",
       "prompt": "Review the comments in Azure DevOps pull request 4421 in the 7C_Frontend repository, check if they are valid, research each and propose the best solution.\n\n[Eval harness: this runs live against Azure DevOps and the 7C_Frontend checkout on the owner's machine; Task 9 may swap it for a captured fixture. Nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/pr-comments-4421/owner-answer.txt as the owner's answer.]",
-      "expected_output": "The azure-devops-pr intake file is loaded. A review page is published with the Artifact tool and its URL is stored in review.artifactUrl. Every unresolved, non-system comment thread of the PR is one issue whose origin holds the reviewer's quote, author and file:line, and the page shows a verdict for each. Issues with several real solutions use radios; issues with one use buttons plus dispute options. No fold holds under 600 characters. At least two issues have explanations of clearly different depth (for example one sentence against background, code and a picture). The skill waits for the answer, then returns 'Review settled: <n> decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names that issue's id as undecided and waits for a new paste instead of returning. Nothing is posted to the PR.",
+      "expected_output": "The azure-devops-pr intake file is loaded. A review page is published with the Artifact tool and its URL is stored in review.artifactUrl. Every unresolved, non-system comment thread of the PR is one issue whose origin holds the reviewer's quote, author and file:line, and the page shows a verdict for each. Issues with several real solutions use radios; issues with one use buttons plus dispute options. No general fold holds under 600 characters (the background fold, the sources fold and folded issues are exempt). At least two issues have explanations of clearly different depth (for example one sentence against background, code and a picture). The skill waits for the answer, then returns 'Review settled: <n> decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names that issue's id as undecided and waits for a new paste instead of returning. Nothing is posted to the PR.",
       "files": [
         "evals/files/pr-comments-4421/owner-answer.txt"
       ]
@@ -14,7 +14,7 @@
       "id": "pr-comments-4399",
       "name": "pr-comments-4399",
       "prompt": "Review the comments in Azure DevOps pull request 4399 in the 7C_Frontend repository, check if they are valid, research each and propose the best solution.\n\n[Eval harness: this runs live against Azure DevOps and the 7C_Frontend checkout on the owner's machine; Task 9 may swap it for a captured fixture. Nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/pr-comments-4399/owner-answer.txt as the owner's answer.]",
-      "expected_output": "The azure-devops-pr intake file is loaded. A review page is published with the Artifact tool and its URL is stored in review.artifactUrl. Every unresolved, non-system comment thread of the PR is one issue whose origin holds the reviewer's quote, author and file:line, and the page shows a verdict for each. Issues with several real solutions use radios; issues with one use buttons plus dispute options. No fold holds under 600 characters. At least two issues have explanations of clearly different depth. The skill waits for the answer, then returns 'Review settled: <n> decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names that issue's id as undecided and waits for a new paste instead of returning. Nothing is posted to the PR.",
+      "expected_output": "The azure-devops-pr intake file is loaded. A review page is published with the Artifact tool and its URL is stored in review.artifactUrl. Every unresolved, non-system comment thread of the PR is one issue whose origin holds the reviewer's quote, author and file:line, and the page shows a verdict for each. Issues with several real solutions use radios; issues with one use buttons plus dispute options. No general fold holds under 600 characters (the background fold, the sources fold and folded issues are exempt). At least two issues have explanations of clearly different depth. The skill waits for the answer, then returns 'Review settled: <n> decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names that issue's id as undecided and waits for a new paste instead of returning. Nothing is posted to the PR.",
       "files": [
         "evals/files/pr-comments-4399/owner-answer.txt"
       ]
@@ -43,7 +43,7 @@
       "id": "fifteen-issues",
       "name": "fifteen-issues",
       "prompt": "Here are the open points on PR 203 that I need settled: evals/files/fifteen-issues/issues.md. Treat evals/files/fifteen-issues/ as the project root. Have each one decided and explained, and give me one page to confirm them.\n\n[Eval harness: nobody clicks the page. After the page is published and the skill waits, paste the contents of evals/files/fifteen-issues/owner-answer.txt as the owner's answer.]",
-      "expected_output": "The supplied-issues intake file is loaded; the record holds all fifteen points with the caller's wording, the four reviewer claims carry origin quote, author and where. The record passes check_record.py --stage ready and the page is valid. With fifteen issues the page stays one reading column with every issue fully visible, no panes, stepper or summary table, readable top to bottom; agent-decided issues are not shrunk or collapsed. The hand-over line counts the needs-owner issues against fifteen. The skill waits, then returns 'Review settled: 15 decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names its id as undecided and waits instead of returning.",
+      "expected_output": "The supplied-issues intake file is loaded; the record holds all fifteen points with the caller's wording, the four reviewer claims carry origin quote, author and where. The record passes check_record.py --stage ready and the page is valid. With fifteen issues the page stays one reading column in the new decision-page format: a sticky bar with the owner's own progress (You: 0 of N answered), one strip pill per issue and Next open issue; needs-owner issues open first under Needs your decision, agent-decided issues after them under Settled by the agent, folded to a verdict line; no panes, stepper or summary table. The hand-over line counts the needs-owner issues against fifteen. The skill waits, then returns 'Review settled: 15 decisions' with the decision text and the review.json path, or, if an issue has no recommendation, names its id as undecided and waits instead of returning.",
       "files": [
         "evals/files/fifteen-issues/issues.md",
         "evals/files/fifteen-issues/owner-answer.txt",
@@ -81,6 +81,72 @@
       "files": [
         "evals/files/sync-client/src/sync_client.py",
         "evals/files/find-issues-sync-client/owner-answer.txt"
+      ]
+    },
+    {
+      "id": "rebuild-s7c1-5150-decisions",
+      "prompt": "The review record for this review was lost. Rebuild the published review page from the page alone (treat its #review-data and content as the record), doing only step 5 without publishing. Page: eval-workspaces/review-page/inputs/s7c1-5150-decisions.html",
+      "expected_output": "A page in the current decision-page format (7 issues, 3 need the owner) whose copied decision text is identical, issue by issue, to the published page, with all content and sources kept. LOCAL ONLY: the input is a real published page kept in the git-ignored eval-workspaces folder, not committed. Grade with eval-workspaces/review-page/grade/grade.py.",
+      "files": [
+        "eval-workspaces/review-page/inputs/s7c1-5150-decisions.html"
+      ],
+      "assertions": [
+        "Shared review-page.js is pasted byte for byte",
+        "No page-specific script besides the shared one",
+        "review-data parses and holds no raw <",
+        "Same issues, options, recommendations and agent choices as the published page",
+        "Copied decision text matches the published page, issue by issue",
+        "Every issue has its article and every option its control",
+        "review-data order matches the page order",
+        "Content kept: at least 90% of the published page's words still appear",
+        "Every cited file is still cited",
+        "check_page.py prints ok",
+        "No sideways scroll at 400px and 1440px",
+        "Confirm folds the issue and scrolls to the next waiting one"
+      ]
+    },
+    {
+      "id": "rebuild-s7c1-5252-completion-decisions",
+      "prompt": "The review record for this review was lost. Rebuild the published review page from the page alone (treat its #review-data and content as the record), doing only step 5 without publishing. Page: eval-workspaces/review-page/inputs/s7c1-5252-completion-decisions.html",
+      "expected_output": "A page in the current decision-page format (12 issues, dependencies, round 3, many tables) whose copied decision text is identical, issue by issue, to the published page, with all content and sources kept. LOCAL ONLY: the input is a real published page kept in the git-ignored eval-workspaces folder, not committed. Grade with eval-workspaces/review-page/grade/grade.py.",
+      "files": [
+        "eval-workspaces/review-page/inputs/s7c1-5252-completion-decisions.html"
+      ],
+      "assertions": [
+        "Shared review-page.js is pasted byte for byte",
+        "No page-specific script besides the shared one",
+        "review-data parses and holds no raw <",
+        "Same issues, options, recommendations and agent choices as the published page",
+        "Copied decision text matches the published page, issue by issue",
+        "Every issue has its article and every option its control",
+        "review-data order matches the page order",
+        "Content kept: at least 90% of the published page's words still appear",
+        "Every cited file is still cited",
+        "check_page.py prints ok",
+        "No sideways scroll at 400px and 1440px",
+        "Confirm folds the issue and scrolls to the next waiting one"
+      ]
+    },
+    {
+      "id": "rebuild-pr-4471-review-decisions",
+      "prompt": "The review record for this review was lost. Rebuild the published review page from the page alone (treat its #review-data and content as the record), doing only step 5 without publishing. Page: eval-workspaces/review-page/inputs/pr-4471-review-decisions.html",
+      "expected_output": "A page in the current decision-page format (5 issues, none needs the owner) whose copied decision text is identical, issue by issue, to the published page, with all content and sources kept. LOCAL ONLY: the input is a real published page kept in the git-ignored eval-workspaces folder, not committed. Grade with eval-workspaces/review-page/grade/grade.py.",
+      "files": [
+        "eval-workspaces/review-page/inputs/pr-4471-review-decisions.html"
+      ],
+      "assertions": [
+        "Shared review-page.js is pasted byte for byte",
+        "No page-specific script besides the shared one",
+        "review-data parses and holds no raw <",
+        "Same issues, options, recommendations and agent choices as the published page",
+        "Copied decision text matches the published page, issue by issue",
+        "Every issue has its article and every option its control",
+        "review-data order matches the page order",
+        "Content kept: at least 90% of the published page's words still appear",
+        "Every cited file is still cited",
+        "check_page.py prints ok",
+        "No sideways scroll at 400px and 1440px",
+        "Confirm folds the issue and scrolls to the next waiting one"
       ]
     }
   ]

@@ -16,6 +16,7 @@ ISSUE_ID = re.compile(r"[A-Za-z0-9-]+")
 VERDICTS = ("valid", "not-valid", "partly")
 DECISION_BY = ("agent", "owner", None)
 DECISION_STATUS = ("decided", "undecided", "disputed")
+STAKES = ("High", "Medium", "Low")
 MODES = ("radio", "buttons")
 MIN_FOLD_CHARS = 600
 
@@ -103,6 +104,10 @@ def _check_decided_issue(issue, ids, errors):
         errors.append(f"{label}: buttons mode needs exactly one real option, found {len(real)}")
     elif mode == "radio" and len(real) < 2:
         errors.append(f"{label}: radio mode needs two or more real options, found {len(real)}")
+
+    stakes = issue.get("stakes")
+    if not isinstance(stakes, dict) or stakes.get("level") not in STAKES or not _nonempty(stakes.get("reason")):
+        errors.append(f"{label}: stakes must be {{\"level\": High|Medium|Low, \"reason\": what goes wrong}}")
 
     needs_owner = issue.get("needsOwner")
     if not isinstance(needs_owner, bool):

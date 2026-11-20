@@ -1,6 +1,6 @@
 ---
 name: wsbaser:decide
-description: Decides open issues the way a careful senior would — sizes research to each issue, consults the installed skill that fits its kind, picks the best option with reasons and sources, and marks only the issues that truly need the owner. Takes a review.json and fills in options, recommendations and agent decisions. Use from wsbaser:review, or whenever a list of open questions should be settled with as few questions to the user as possible.
+description: Decides open issues the way a careful senior would — sizes research to each issue, consults the installed skill that fits its kind, picks the best option with reasons and sources, and marks only the issues that truly need the owner. Takes a review.json and fills in options, recommendations and agent decisions. Use from wsbaser:review-page, or whenever a list of open questions should be settled with as few questions to the user as possible.
 ---
 
 # Decide
@@ -15,14 +15,14 @@ In this file, `<skills>` is the plugin's skills folder: the parent of this skill
 
 The caller gives you the path to a `review.json` and, often, pointers to what it already knows: the conversation, files, links. Read those pointers; they are part of each issue's context.
 
-1. Read `<skills>/review/references/record.md`. Its field names are the contract. If it or `<skills>/review/scripts/check_record.py` is missing, stop and tell the caller.
-2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage intake`. If it prints anything, stop, write nothing, and tell the caller what it printed.
+1. Read `<skills>/review-page/references/record.md`. Its field names are the contract. If it or `<skills>/review-page/scripts/check_record.py` is missing, stop and tell the caller.
+2. Run `python <skills>/review-page/scripts/check_record.py <path to review.json> --stage intake`. If it prints anything, stop, write nothing, and tell the caller what it printed.
 3. Decide every issue that has no `options` yet, and any issue the caller names for a re-think. Leave the others as they are. In a later round the caller may pass a list of issue ids to (re)work; then work only on those and leave every other issue untouched. Without a list, work on every issue.
 
 For each issue you decide, fill exactly these fields:
 
 - `kind`: the name of the kind file that matched (without `.md`), or the free text from triage when no file matched.
-- `attributes`, `mode`.
+- `attributes`, `stakes`, `mode`. `stakes` is `{ "level": "High" | "Medium" | "Low", "reason": "..." }`: the level and the one-line "what goes wrong, and for whom" from triage. The review page shows it as a pill and sorts by it.
 - `options`: each with `id`, `label` and `attributes`, plus `outcome`, `dispute` and `blocks` where section 6 and the kind file say.
 - `recommendation`: `option`, `reason`, `confidence`, `sources`, `unverified`.
 - `needsOwner` and `needsOwnerReason` (an empty string when `needsOwner` is `false`).
@@ -100,8 +100,8 @@ Write `verdictReason` with the evidence, `file:line` where it is code. A `not-va
 
 - **One real option** (the answer is clear and there is nothing real to weigh it against): `mode: "buttons"`. Add dispute options that fit the issue, each with `"dispute": true`: for example `reject` ("Leave it as is") and `discuss`; for a declined claim, "Do it anyway" and `discuss`.
 - **Several real options**: `mode: "radio"`, usually two or three. Never add a weak option to make a choice look fair.
-- Each option's `label` says what it does. Add `outcome` when the copied decision text needs a short statement of what choosing it does.
-- The `attributes` on each option are the ones that matter for this issue, as the kind file says. Issue-level `attributes` carry what applies to the whole issue, such as confidence or severity.
+- Each option's `label` says what it does, in one short line: it is shown on the page and copied into the decision text. Add `outcome` when the copied decision text needs a short statement of what choosing it does.
+- The `attributes` on each option are the ones that matter for this issue, as the kind file says. Issue-level `attributes` carry what applies to the whole issue, such as effort or reversibility. Confidence goes only in `recommendation.confidence` and severity only in `stakes`, so the page never shows two values for one thing.
 - Write option `blocks` only where the kind file asks for them.
 - Pick the best option on the evidence. The `reason` says why it beats the others, in one or two sentences. When a skill's advice shaped the pick, name the skill in the reason.
 
@@ -134,6 +134,6 @@ An issue depends on another when its best answer changes with the other's answer
 ## 10. Validate and hand back
 
 1. Write the file back as UTF-8 JSON.
-2. Run `python <skills>/review/scripts/check_record.py <path to review.json> --stage decided`.
+2. Run `python <skills>/review-page/scripts/check_record.py <path to review.json> --stage decided`.
 3. Fix every line it prints and run it again until it exits 0 with no output. After three rounds that still print errors, stop and give the caller the remaining lines.
 4. Tell the caller the record is decided, with how many issues the agent decided, which ids need the owner, and the reason for each.

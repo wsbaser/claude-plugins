@@ -19,7 +19,8 @@ The file is named `review.json` and lives in a folder `review-<review.id>/`. The
       "needsOwner": true,
       "needsOwnerReason": "no clear winner",
       "origin": { "quote": "...", "author": "reviewer", "where": "SyncSession.cs:142", "verdict": "valid", "verdictReason": "..." },
-      "attributes": [ { "label": "Confidence", "value": "Medium" } ],
+      "attributes": [ { "label": "Effort", "value": "Small" } ],
+      "stakes": { "level": "High", "reason": "one outage pages on-call twice" },
       "explanation": [ { "form": "prose", "text": "..." } ],
       "mode": "radio",
       "options": [ { "id": "A", "label": "...", "attributes": [], "blocks": [] } ],
@@ -39,7 +40,7 @@ The file is named `review.json` and lives in a folder `review-<review.id>/`. The
 | `review.id` | Stable id of the review, matching `^[a-z0-9-]+$`. Names the folder `review-<id>/`. |
 | `review.title` | Human title of the review. Non-empty. |
 | `review.round` | Current round, `>= 1`. Grows when the review is run again on the same subject. |
-| `review.artifactUrl` | Optional string. Written by the `review` skill when the page is published; absent before that. |
+| `review.artifactUrl` | Optional string. Written by the `review-page` skill when the page is published; absent before that. |
 
 ## Issue fields
 
@@ -50,7 +51,8 @@ The file is named `review.json` and lives in a folder `review-<review.id>/`. The
 | `round` | The round the issue was added in or last reworked in (a re-think after a dispute, or a dependent whose map or recommendation was redone); `1 <= round <= review.round`. Raising it makes the review page drop the owner's saved state for that issue. |
 | `kind` | Free text chosen by the agent (for example "code fix", "PR comment", "product question", "UI/UX"). Routes research and skill choice. Not a closed list. |
 | `origin` | `null` when the skill found the issue itself. Otherwise the claim someone else made: `quote`, `author`, `where` (what it points at), `verdict` (`valid`, `not-valid` or `partly`: the agent's judgement of the claim) and `verdictReason`. Validity exists only for issues that came from someone else's claim. |
-| `attributes` | Free list of `{ "label", "value" }` pairs picked for this issue: confidence, severity, complexity, risk, reversibility, effort, blast radius, or others. No fixed set. |
+| `attributes` | Free list of `{ "label", "value" }` pairs picked for this issue: complexity, reversibility, effort, blast radius, or others. No fixed set. Leave out confidence (it lives in `recommendation.confidence`) and stakes or severity (they live in `stakes`), so the page never shows two values for one thing. |
+| `stakes` | `{ "level": "High" \| "Medium" \| "Low", "reason": "<what goes wrong, and for whom, if the choice is wrong>" }`. Required from stage `decided`. The page shows it as a coloured pill and a "Risk:" line, and the review sorts by it. |
 | `explanation` | Ordered content blocks (see Blocks). |
 | `mode` | `radio` (two or more real options) or `buttons` (exactly one real option plus dispute options). |
 | `options` | One or more options (see Options). |
@@ -79,7 +81,7 @@ The record is validated at the stage the pipeline has reached. Each stage includ
 | Stage | Who fills it | Rules |
 |---|---|---|
 | `intake` | `review` | `schema == 1`; `review.id`, `review.title`, `review.round` valid; issue ids unique; titles non-empty and single-line; `1 <= issue.round <= review.round`. Fields: id, title, round, origin quote, author and where. |
-| `decided` | `decide` | Adds `kind`, `attributes`, `options`, `mode`, `recommendation`, `needsOwner`, `dependsOn`, the origin `verdict` and `verdictReason`, and an agent `decision` where the agent can decide. May also add option `blocks` when the kind needs the owner to see the option itself, such as a mockup. Rules: options non-empty with unique ids; `mode` matches the real option count; the recommendation names a non-dispute option and has a reason; `needsOwner` true needs a reason; a null recommendation needs `needsOwner`; `origin` has `quote`, a legal `verdict` and `verdictReason`; `dependsOn` points at an existing other issue, with no cycle, and its map uses real option ids on both sides; an agent decision names an existing option. |
+| `decided` | `decide` | Adds `kind`, `attributes`, `stakes`, `options`, `mode`, `recommendation`, `needsOwner`, `dependsOn`, the origin `verdict` and `verdictReason`, and an agent `decision` where the agent can decide. May also add option `blocks` when the kind needs the owner to see the option itself, such as a mockup. Rules: options non-empty with unique ids; `mode` matches the real option count; the recommendation names a non-dispute option and has a reason; `needsOwner` true needs a reason; a null recommendation needs `needsOwner`; `origin` has `quote`, a legal `verdict` and `verdictReason`; `dependsOn` points at an existing other issue, with no cycle, and its map uses real option ids on both sides; an agent decision names an existing option; `stakes` has a level of High, Medium or Low and a reason. |
 | `ready` | `explain` | Adds `explanation` and option `blocks`. Rules: `explanation` non-empty; every block has `form`; every fold has `label` and `size` and holds at least 600 characters. |
 
 ## Commands

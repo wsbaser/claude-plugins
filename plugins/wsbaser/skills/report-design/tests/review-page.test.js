@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const R = require('../assets/review-page.js');
 
-const fx = path.join(__dirname, '..', '..', 'review', 'tests', 'fixtures');
+const fx = path.join(__dirname, '..', '..', 'review-page', 'tests', 'fixtures');
 const record = JSON.parse(fs.readFileSync(path.join(fx, 'review-round2.json'), 'utf8'));
 const expected = fs.readFileSync(path.join(fx, 'decisions-round2.txt'), 'utf8').replace(/\r\n/g, '\n').trimEnd();
 
@@ -204,4 +204,37 @@ test('review data with every < escaped as \\u003c parses back to the same text',
   const escaped = JSON.stringify(data).replace(/</g, '\\u003c');
   assert.ok(!escaped.includes('<'));
   assert.strictEqual(JSON.parse(escaped).issues[0].title, 'Task<T> & <b>');
+});
+
+test('statusOf names where each issue stands for the owner', () => {
+  const issues = reduced();
+  let s = R.createState(issues, {});
+  assert.deepStrictEqual(issues.map(i => R.statusOf(i, s[i.id])), ['wait', 'wait', 'agent', 'agent']);
+  s = R.confirm(s, issues, '1');
+  s = R.choose(s, issues, '3', 'discuss');
+  s = R.choose(s, issues, '4', 'reject');
+  assert.deepStrictEqual(issues.map(i => R.statusOf(i, s[i.id])), ['you', 'wait', 'disputed', 'disputed']);
+  const agentPicked = R.choose(R.createState(issues, {}), issues, '3', 'accept');
+  assert.strictEqual(R.statusOf(issues[2], agentPicked['3']), 'over');
+});
+
+test('ownerCounts splits the owner\'s progress from the agent\'s', () => {
+  const issues = reduced();
+  let s = R.createState(issues, {});
+  assert.deepStrictEqual(R.ownerCounts(s, issues), { answered: 0, needs: 2, agent: 2, overruled: 0, waiting: ['1', '2'] });
+  s = R.confirm(s, issues, '2');
+  s = R.choose(s, issues, '4', 'reject');
+  assert.deepStrictEqual(R.ownerCounts(s, issues), { answered: 1, needs: 2, agent: 2, overruled: 1, waiting: ['1'] });
+});
+
+test('nextOpen walks the waiting issues in page order and wraps', () => {
+  const issues = reduced();
+  let s = R.createState(issues, {});
+  assert.strictEqual(R.nextOpen(issues, s, null, 1), '1');
+  assert.strictEqual(R.nextOpen(issues, s, '1', 1), '2');
+  assert.strictEqual(R.nextOpen(issues, s, '2', 1), '1');
+  assert.strictEqual(R.nextOpen(issues, s, '4', -1), '2');
+  assert.strictEqual(R.nextOpen(issues, s, '1', -1), '2');
+  s = R.confirm(R.confirm(s, issues, '1'), issues, '2');
+  assert.strictEqual(R.nextOpen(issues, s, null, 1), null);
 });

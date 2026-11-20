@@ -23,6 +23,13 @@ class CheckRecord(unittest.TestCase):
         r = load(); r["issues"][0]["recommendation"]["option"] = "Z"
         self.assertTrue(any("issue 1" in e and "recommendation" in e for e in validate(r, "decided")))
 
+    def test_stakes_needs_a_level_and_a_reason(self):
+        for bad in (None, {"level": "Severe", "reason": "x"}, {"level": "High", "reason": ""}):
+            r = load(); r["issues"][0]["stakes"] = bad
+            self.assertTrue(any("issue 1" in e and "stakes" in e for e in validate(r, "decided")), bad)
+        r = load(); del r["issues"][0]["stakes"]
+        self.assertEqual(validate(r, "intake"), [])
+
     def test_recommending_a_dispute_option_is_rejected(self):
         r = load(); r["issues"][2]["recommendation"]["option"] = "reject"
         self.assertTrue(validate(r, "decided"))

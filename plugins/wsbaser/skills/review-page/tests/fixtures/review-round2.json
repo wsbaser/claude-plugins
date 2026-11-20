@@ -12,7 +12,7 @@
       "origin": { "quote": "Why Error here? The transport already logs this.", "author": "reviewer", "where": "SyncSession.cs:142", "verdict": "valid", "verdictReason": "both layers log the same exception at Error" },
       "attributes": [ { "label": "Confidence", "value": "Medium" } ],
       "explanation": [ { "form": "prose", "text": "The same failure is logged at Error in two places." } ],
-      "mode": "radio",
+      "stakes": {"level": "High", "reason": "one outage pages on-call twice"}, "mode": "radio",
       "options": [
         { "id": "A", "label": "Error once in SyncSession, transport logs Debug", "attributes": [], "blocks": [] },
         { "id": "B", "label": "Error once in the transport, SyncSession logs Debug", "attributes": [], "blocks": [] },
@@ -32,7 +32,7 @@
       "origin": null,
       "attributes": [ { "label": "Reversibility", "value": "Low" } ],
       "explanation": [ { "form": "prose", "text": "A client behind the gateway version can still work, but support wants to see the skew." } ],
-      "mode": "radio",
+      "stakes": {"level": "Medium", "reason": "the wrong level hides or floods version mismatches, and the choice is hard to reverse"}, "mode": "radio",
       "options": [
         { "id": "A", "label": "Information", "attributes": [], "blocks": [] },
         { "id": "B", "label": "Warning", "attributes": [], "blocks": [] },
@@ -52,7 +52,7 @@
       "origin": null,
       "attributes": [ { "label": "Severity", "value": "High" } ],
       "explanation": [ { "form": "prose", "text": "The logger reads the user name without a null check and throws on anonymous requests." } ],
-      "mode": "buttons",
+      "stakes": {"level": "High", "reason": "anonymous requests such as the health probe get a 500"}, "mode": "buttons",
       "options": [
         { "id": "accept", "label": "Accept", "outcome": "apply the null guard", "attributes": [], "blocks": [] },
         { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },
@@ -72,7 +72,7 @@
       "origin": null,
       "attributes": [ { "label": "Severity", "value": "Low" } ],
       "explanation": [ { "form": "prose", "text": "Every retry attempt is logged at Warning, which floods the log during outages." } ],
-      "mode": "buttons",
+      "stakes": {"level": "Low", "reason": "retries fill the Warning log with noise"}, "mode": "buttons",
       "options": [
         { "id": "accept", "label": "Accept", "outcome": "retry attempts go to Debug", "attributes": [], "blocks": [] },
         { "id": "reject", "label": "Reject", "dispute": true, "attributes": [], "blocks": [] },

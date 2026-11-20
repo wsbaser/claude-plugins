@@ -1,9 +1,9 @@
 ---
-name: wsbaser:review
+name: wsbaser:review-page
 description: Settles the open issues of a topic and gets the owner's sign-off on one page — finds the issues (PR review comments, questions before implementing a task, points raised by another skill), has each researched and decided, explains each at the depth it needs, publishes a review page where the owner confirms or changes each decision, and returns the decision list. Does not implement anything. Use when asked to review PR comments and propose answers, analyse a task and prepare open questions, "prepare a review artifact", "what do you need me to decide", or when a skill needs several decisions from the user at once.
 ---
 
-# Review
+# Review page
 
 Turn a topic into a list of issues, have each one decided and explained, publish one page where the owner confirms or changes every decision, and return the settled decisions to whoever asked. You orchestrate; the other skills do the deciding, explaining and styling.
 
@@ -39,7 +39,8 @@ Create the folder `review-<review.id>/` where the caller says, else in the sessi
 Decide, for this task and not from a preset:
 
 - **Which attributes matter.** Pick the few labels that help the owner choose here (for example severity, effort, reversibility, blast radius). Pass them to the decision step.
-- **The order.** Dependencies before dependents, then by stakes, highest first. Dependencies are known only after step 3, so reorder the `issues` array then. Ids never change when you reorder.
+- **The order.** The page shows the issues that need the owner first and the agent's decisions after them, so order the `issues` array the same way: needs-owner issues, then agent-decided ones; within each group, dependencies before dependents, then by stakes, highest first. A parent may end up in the other group from its dependent; that is fine. Who needs the owner and the dependencies are known only after step 3, so reorder the array then. Ids never change when you reorder.
+- **Stakes.** Every issue gets `stakes` (High, Medium or Low, with a short "what goes wrong" reason) from the decision step; the page shows it as a coloured pill and you sort by it. Between issues of equal stakes keep their earlier order.
 
 ## 3. Decide
 
@@ -51,14 +52,14 @@ Invoke `wsbaser:explain` through the Skill tool in embedded mode with `<record>`
 
 ## 5. Build and publish
 
-1. Invoke `wsbaser:report-design` and read its `references/decision-page.md`. Load `artifact-design`, as the Artifact tool requires.
-2. Write the page freehand from the record into `review-<review.id>/page.html`: one column, every issue in record order with its header, body and decision block, `#review-data` built from the record as `decision-page.md` says. Paste `<skills>/report-design/assets/tokens.css` and `<skills>/report-design/assets/review-page.js` unchanged.
-3. Validate at `ready`, then go through report-design's before-publishing checks.
+1. Read `<skills>/report-design/SKILL.md` and `<skills>/report-design/references/decision-page.md` directly (the skill may not appear in the Skill tool's list; reading its files is the same thing). Load `artifact-design`, as the Artifact tool requires; where the two differ on looks, report-design wins.
+2. Write the page freehand from the record into `review-<review.id>/page.html`, in the structure `decision-page.md` gives: a sticky bar with the split progress, one strip pill per issue and Next open issue; a "Needs your decision" section and a "Settled by the agent" section in record order; each issue with its header (status badges, stakes pill, facts line), verdict line, recommendation box first, options, background fold and foot; the copied text with its second Copy button; `#review-data` built from the record in the same order. Paste `<skills>/report-design/assets/tokens.css` and `<skills>/report-design/assets/review-page.js` unchanged, and add no other script: the shared script drives the strip, the counts, navigation and folding. Copy the page CSS and sprite from `<skills>/report-design/assets/example-review-page.html` rather than restyling from scratch.
+3. Validate at `ready`, then run `python <skills>/report-design/scripts/check_page.py review-<review.id>/page.html` and fix every line it prints, then go through report-design's other before-publishing checks.
 4. Publish with the Artifact tool. On the first publish, write the URL into `review.artifactUrl` in `<record>`. Every later publish goes to that same URL: in this session, publish the same `page.html` path again; in a later session, pass `review.artifactUrl` as `url` (the Artifact tool reads the artifact first).
 
 ## 6. Hand over and wait
 
-Give the owner the link and one line of what needs them. Count only issues still waiting on the owner (`needsOwner: true` and `decision.status` not `decided` in `<record>`) against the total ("2 of 9 need you"), or say "None need you; confirm or change any of them". In a later round, also name the issues reworked this round: "1 reworked, 0 waiting on you". Then stop and wait for the pasted decisions. Always wait, even when no issue needs the owner.
+Give the owner the link and one line of what needs them; mention that **Next open issue** (or the `N` key) walks them through it. Count only issues still waiting on the owner (`needsOwner: true` and `decision.status` not `decided` in `<record>`) against the total ("2 of 9 need you"), or say "None need you; confirm or change any of them". In a later round, also name the issues reworked this round: "1 reworked, 0 waiting on you". Then stop and wait for the pasted decisions. Always wait, even when no issue needs the owner.
 
 When the caller announces the page and collects the owner's answer itself, give the caller the link and that line instead, and take the answer it passes back as the paste.
 

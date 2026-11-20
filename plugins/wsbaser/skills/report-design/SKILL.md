@@ -16,8 +16,9 @@ Always, for any page:
 
 For a decision page (the owner confirms, changes or disputes items and copies the result back):
 
-- `references/decision-page.md`: the issue anatomy, the DOM contract, `#review-data`, counting and dependency rules.
-- `assets/review-page.js`: paste it unchanged at the end of the page.
+- `references/decision-page.md`: what the page ranks first, the page structure, the issue anatomy, the DOM contract, `#review-data`, folding, counting and dependency rules.
+- `assets/review-page.js`: paste it unchanged at the end of the page. It drives the choices, the issue strip, the split progress, Next open issue (and the `N`/`P` keys), folding and every Copy decisions button.
+- `scripts/check_page.py <page.html>`: run it before publishing; it reports every mechanical rule the page breaks (pasted assets, ids, hooks, order, escaping).
 
 The worked example of all of it is `assets/example-review-page.html`. Open it when a rule is unclear; copy its patterns, not its content.
 
@@ -44,11 +45,12 @@ To add a form, add a file to either folder. No index and no edit to this file.
 - A fold is allowed only for long extra depth, such as multi-paragraph background or rejected options argued at length. Its content is 600 characters or more and the reader can decide without opening it.
 - A fold's label says how much is behind it, in a unit the reader feels: "Background, 3 paragraphs", "Full listing, 48 lines".
 - Show the gist inline above any fold. Keep folds to a few per item, never nested.
-- Nothing the decision depends on is folded, and items the agent decided are never shown smaller, dimmer or more collapsed than items that need the owner.
+- Nothing the decision depends on is folded.
+- Decision pages rank their content by what the owner has to do, and fold the rest (`references/decision-page.md` has the ranking): the recommendation, its reason, confidence and "Not checked" warnings stay open; the background explanation and the source list fold; an issue that no longer waits for the owner (decided by the agent, or already answered) folds to one verdict line that names the choice. Folding there is about attention, not size, so the 600-character rule does not apply to those folds.
 
 ## Writing the page
 
-- One reading column, every item fully visible, top to bottom. No panes, steppers or split summary tables.
+- One reading column, top to bottom. No side panes, steppers or split summary tables. A decision page adds a sticky bar with progress and an issue strip, and groups issues into "Needs your decision" and "Settled by the agent".
 - Each item's body has the blocks it needs and no others. Two items rarely have the same shape.
 - Lead with the answer; show today before what changes; give `file:line` with every claim about code.
 - Inline CSS and JS only, fonts from `fonts.googleapis.com`, icons as inline SVG.
@@ -60,4 +62,4 @@ To add a form, add a file to either folder. No index and no edit to this file.
 - The body never scrolls sideways, at laptop width and at phone width; wide content scrolls inside its own frame.
 - Every fold is labelled with its size and holds 600 characters or more; nothing short is folded.
 - Tokens are pasted unchanged and no colour is hard-coded.
-- On a decision page: the script is pasted unchanged, the Recommended tags sit on the right options, and Copy decisions fills the preview.
+- On a decision page: the script is pasted unchanged and is the only script, the Recommended tags sit on the right options, waiting issues are open and the rest folded, Next open issue walks the waiting ones, and both Copy decisions buttons fill the clipboard.
